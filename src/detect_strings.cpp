@@ -15,7 +15,7 @@ int main(int argc, char** argv){
   ROS_INFO_STREAM("got palm pose in frame '" << pose.header.frame_id << "':\n" << pose.pose);
 
   const double distance{ nh.param("distance", 0.1) };
-  pose.pose.position.x + distance;
+  pose.pose.position.x+= distance;
 
   moveit_msgs::RobotTrajectory trajectory;
   double fraction{ mgi.computeCartesianPath({ pose.pose }, .02, 1.5, trajectory) };
