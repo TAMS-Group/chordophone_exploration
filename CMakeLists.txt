@@ -22,4 +22,4 @@ function(one_filer name)
     )
 endfunction()
 
-one_filer(detect_strings)
+one_filer(alternate_poses)
