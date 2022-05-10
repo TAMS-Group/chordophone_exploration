@@ -5,7 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
-  moveit_ros_planning_interface)
+  moveit_ros_planning_interface
+  sr_robot_msgs
+  std_msgs
+)
 
 catkin_package()
 
@@ -23,3 +26,4 @@ function(one_filer name)
 endfunction()
 
 one_filer(alternate_poses)
+one_filer(stop_on_contact)

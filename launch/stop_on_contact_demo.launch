@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="factor" default="0.1" />
+  <node name="poses" pkg="tams_pr2_guzheng" type="alternate_poses">
+    <param name="factor" value="$(arg factor)"/>
+  </node>
+  <node name="detect_contact" pkg="tams_pr2_guzheng" type="stop_on_contact" />
+
+</launch>
