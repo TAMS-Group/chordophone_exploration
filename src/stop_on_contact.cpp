@@ -6,8 +6,8 @@
 
 #include <deque>
 
-constexpr size_t FILTER_THRESHOLD{ 10 };
-constexpr double STOP_THRESHOLD{ 10.0 };
+const ros::Duration FILTER_WIDTH{ 5.0 };
+constexpr double STOP_THRESHOLD{ 10.0 }; // of filtered signal
 
 struct DetectContact {
   ros::Publisher pub;
@@ -20,12 +20,18 @@ struct DetectContact {
     sub = nh.subscribe("hand/rh/tactile", 1, &DetectContact::getReadings, this);
   }
 
-  std::deque<double> last_values;
+  struct Point {
+	 ros::Time stamp;
+	 short data;
+  };
+  std::deque<Point> last_values;
+
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
-    last_values.push_back(tacs.tactiles[0].pdc);
-    if(last_values.size() > FILTER_THRESHOLD){
+	 last_values.push_back({tacs.header.stamp, tacs.tactiles[0].pdc});
+
+	 if(last_values.front().stamp + FILTER_WIDTH < last_values.back().stamp){
       std_msgs::Float32 data;
-      data.data= last_values.back() - last_values.front();
+		data.data= last_values.back().data - last_values.front().data;
       pub.publish(data);
       last_values.pop_front();
 
