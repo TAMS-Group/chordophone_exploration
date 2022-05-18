@@ -7,10 +7,10 @@ from geometry_msgs.msg import PoseStamped
 
 def main():
     rospy.init_node('publish_path')
-    pub = rospy.Publisher('pluck_path', Path, latch=True, queue_size= 1)
+    pub = rospy.Publisher('pluck/path', Path, latch=True, queue_size= 1)
 
     path = Path()
-    path.header.frame_id = 'guzheng/d6/bridge'
+    path.header.frame_id = 'guzheng/d6/head'
 
     waypoints = [
         (.08, 0.03, 0.01),
