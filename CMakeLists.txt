@@ -27,3 +27,4 @@ endfunction()
 
 one_filer(alternate_poses)
 one_filer(stop_on_contact)
+one_filer(path_to_traj)
