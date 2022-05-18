@@ -4,9 +4,9 @@
   <node name="stf_d6_moveable"
         pkg="tf2_ros"
         type="static_transform_publisher"
-        args="0.59 -0.23 0.69 0 0 0 base_footprint guzheng/d6/moveable" />
+        args="0.59 -0.23 0.69 0 0 0 base_footprint guzheng/d6/bridge" />
   <node name="stf_d6_bridge"
         pkg="tf2_ros"
         type="static_transform_publisher"
-        args="0.60 -0.38 0.645 1.57 -0.25 0 base_footprint guzheng/d6/bridge" />
+        args="0.60 -0.38 0.645 1.57 -0.25 0 base_footprint guzheng/d6/head" />
 </launch>
