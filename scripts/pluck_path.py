@@ -13,10 +13,11 @@ def main():
     path.header.frame_id = 'guzheng/d6/head'
 
     waypoints = [
-        (.08, 0.03, 0.01),
+        (.08, 0.01, 0.01),
         (.08, 0.00, 0.00),
-        (.08, -0.03, 0.00),
-        (.08, -0.04, 0.03)
+        (.08, -0.015, 0.00),
+        (.08, -0.04, 0.10),
+        (.08, 0.05, 0.15)
         ]
 
     for x, y, z in waypoints:
@@ -26,8 +27,10 @@ def main():
         p.pose.position.z = z
         p.pose.orientation.w = 1.0
         path.poses.append(p)
+    rospy.sleep(1.0)
     pub.publish(path)
-    rospy.spin()
+    rospy.sleep(1.0)
+#    rospy.spin()
 
 
 if __name__ == "__main__":

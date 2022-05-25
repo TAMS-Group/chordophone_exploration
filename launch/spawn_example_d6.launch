@@ -8,5 +8,5 @@
   <node name="stf_d6_bridge"
         pkg="tf2_ros"
         type="static_transform_publisher"
-        args="0.60 -0.38 0.645 1.57 -0.25 0 base_footprint guzheng/d6/head" />
+        args="0.60 -0.38 0.68 1.57 -0.25 0 base_footprint guzheng/d6/head" />
 </launch>
