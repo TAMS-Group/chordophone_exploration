@@ -5,9 +5,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
+  bio_ik
   moveit_ros_planning_interface
+  rviz_visual_tools
   sr_robot_msgs
   std_msgs
+  tf2_ros
 )
 
 catkin_package()
