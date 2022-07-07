@@ -24,16 +24,17 @@ struct DetectContact {
 	 ros::Time stamp;
 	 short data;
   };
-  std::deque<Point> last_values;
+  std::deque<Point> latest_values;
 
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
-	 last_values.push_back({tacs.header.stamp, tacs.tactiles[0].pdc});
+	 latest_values.push_back({tacs.header.stamp, tacs.tactiles[0].pdc});
 
-	 if(last_values.front().stamp + FILTER_WIDTH < last_values.back().stamp){
+	 if(latest_values.front().stamp + FILTER_WIDTH < latest_values.back().stamp){
       std_msgs::Float32 data;
-		data.data= last_values.back().data - last_values.front().data;
+		// TODO: low-pass filter instead of latest_values.back()
+		data.data= latest_values.back().data - latest_values.front().data;
       pub.publish(data);
-      last_values.pop_front();
+		latest_values.pop_front();
 
       if(data.data > STOP_THRESHOLD){
         std_msgs::String msg;
