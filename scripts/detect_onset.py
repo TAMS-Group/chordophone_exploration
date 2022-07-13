@@ -1,11 +1,18 @@
 #!/usr/bin/env python
 
 import rospy
+import cv_bridge
+
 from audio_common_msgs.msg import AudioData, AudioInfo
 from geometry_msgs.msg import PointStamped
+from sensor_msgs.msg import Image
+from std_msgs.msg import Float32
 
-import numpy as np
 import librosa
+
+import cv2
+import numpy as np
+
 import struct
 import sys
 import time
@@ -53,11 +60,54 @@ class OnsetDetector():
 		self.pub= rospy.Publisher('onsets', PointStamped, queue_size= 100)
 		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
 
+		self.cv_bridge= cv_bridge.CvBridge()
+		self.spectrogram= None
+		self.previous_onsets= []
+		self.pub_spectrogram= rospy.Publisher('spectrogram', Image, queue_size= 1)
+
+		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1)
+
 		self.last_time = rospy.Time.now()
 
 	def reset(self):
+		# audio buffer
 		self.buffer_time= None
 		self.buffer= self.buffer[0:0]
+
+		# visualization
+		self.spectrogram= None
+		self.previous_onsets= []
+
+	def update_spectrogram(self, spec, onsets):
+		if self.pub_spectrogram.get_num_connections() == 0:
+			self.spectrogram= None
+			return
+
+		overlap_hops= int(self.window_overlap/self.hop_length)
+
+		# throw away overlap
+		spec= spec[:, overlap_hops:-overlap_hops]
+		onsets= [o-self.window_overlap_t for o in onsets]
+
+		log_spec= np.log(spec)
+
+		if self.spectrogram is None:
+			self.spectrogram= log_spec
+			return
+		elif self.spectrogram.shape[1] > spec.shape[1]:
+			self.spectrogram= self.spectrogram[:, -spec.shape[1]:]
+		self.spectrogram= np.concatenate([self.spectrogram, log_spec],1)
+
+		spectrogram= np.array(self.spectrogram/np.max(self.spectrogram)*255, dtype= np.uint8)
+		heatmap = cv2.applyColorMap(spectrogram, cv2.COLORMAP_JET)
+		LINECOLOR=[255,0,255]
+		for o in self.previous_onsets:
+			heatmap[:,int(o*self.sr/self.hop_length)][:] = LINECOLOR
+		for o in onsets:
+			heatmap[:,int(self.window/self.hop_length + o*self.sr/self.hop_length)][:]= LINECOLOR
+		self.previous_onsets= onsets
+
+		self.pub_spectrogram.publish(self.cv_bridge.cv2_to_imgmsg(heatmap, "bgr8"))
 
 	def audio_cb(self, msg):
 		# handle bag loop graciously
@@ -65,6 +115,7 @@ class OnsetDetector():
 		if now < self.last_time:
 			rospy.loginfo('detected bag loop')
 			self.reset()
+			self.last_time= now
 
 		if self.buffer_time is None:
 			self.buffer_time= now
@@ -83,6 +134,7 @@ class OnsetDetector():
 			hop_length= self.hop_length,
 			fmin= 36.71,
 			n_bins = 96))
+
 		onset_env_cqt= librosa.onset.onset_strength(
 			sr=self.sr,
 			S=librosa.amplitude_to_db(cqt, ref=np.max))
@@ -96,7 +148,9 @@ class OnsetDetector():
 			wait= 0.1*self.sr/self.hop_length,
 			delta= 0.2)
 
-		onsets_cqt= filter(lambda t: t > self.window_overlap_t and t < self.window_t + self.window_overlap_t, onsets_cqt_raw)
+		onsets_cqt= [o for o in onsets_cqt_raw if o >= self.window_overlap_t and o < self.window_t + self.window_overlap_t]
+
+		self.update_spectrogram(cqt, onsets_cqt)
 
 		p= PointStamped()
 		p.point.y= 0.2
@@ -108,11 +162,15 @@ class OnsetDetector():
 			p.point.x= 0.5
 			rospy.loginfo('found onset at time {}'.format(p.header.stamp))
 			self.pub.publish(p)
+		if len(onsets_cqt) == 0:
+			rospy.loginfo('found no onsets')
 
 		self.buffer_time+= rospy.Duration(self.window_t)
 		self.buffer= self.buffer[(-2*self.window_overlap):]
 
-		if rospy.Time.now()-now > rospy.Duration(self.window):
+		compute_time= rospy.Time.now() - now
+		self.pub_compute_time.publish(compute_time.to_sec())
+		if compute_time > rospy.Duration(self.window):
 			rospy.logerr('computation took longer than processed window')
 
 def main():
