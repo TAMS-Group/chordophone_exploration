@@ -135,6 +135,7 @@ class OnsetDetector():
 			fmin= 36.71,
 			n_bins = 96))
 
+		# TODO: this normalizes by default which adds noise when no onset is in the data
 		onset_env_cqt= librosa.onset.onset_strength(
 			sr=self.sr,
 			S=librosa.amplitude_to_db(cqt, ref=np.max))
@@ -144,7 +145,7 @@ class OnsetDetector():
 			hop_length= self.hop_length,
 			onset_envelope= onset_env_cqt,
 			units= 'time',
-			backtrack= True,
+			#backtrack= True,
 			wait= 0.1*self.sr/self.hop_length,
 			delta= 0.2)
 
