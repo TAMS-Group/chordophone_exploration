@@ -1,4 +1,6 @@
 <launch>
+  <arg name="play" default="false" />
+
   <group ns="guzheng">
 
   <node name="audio_capture" pkg="audio_capture" type="audio_capture" output="screen">
@@ -10,7 +12,13 @@
     <param name="sample_rate" value="44100" />
   </node>
 
+  <node name="onset_detector" pkg="tams_pr2_guzheng" type="detect_onset.py" output="screen" />
+
   </group>
 
+  <!--
   <include file="$(dirname)/spectrum.launch" />
+  -->
+
+  <include if="$(arg play)" file="$(dirname)/play_audio_topic.launch" />
 </launch>
