@@ -155,16 +155,16 @@ class OnsetDetector():
 
 		self.update_spectrogram(cqt, onsets_cqt)
 
-		p= PointStamped()
-		p.point.y= 0.2
-		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)
-		self.pub.publish(p)
 		for o in onsets_cqt:
 			p= PointStamped()
 			p.header.stamp= self.buffer_time+rospy.Duration(o)
 			p.point.x= 0.5
 			rospy.loginfo('found onset at time {}'.format(p.header.stamp))
 			self.pub.publish(p)
+		p= PointStamped()
+		p.point.y= 0.2
+		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)+rospy.Duration(self.window_t)
+		self.pub.publish(p)
 		if len(onsets_cqt) == 0:
 			rospy.loginfo('found no onsets')
 
