@@ -6,11 +6,16 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
   bio_ik
+  dynamic_reconfigure
   moveit_ros_planning_interface
   rviz_visual_tools
   sr_robot_msgs
   std_msgs
   tf2_ros
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/Offsets.cfg
 )
 
 catkin_package()
