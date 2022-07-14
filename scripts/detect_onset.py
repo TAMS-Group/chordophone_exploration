@@ -6,7 +6,7 @@ import cv_bridge
 from audio_common_msgs.msg import AudioData, AudioInfo
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Header
 
 import librosa
 
@@ -66,7 +66,8 @@ class OnsetDetector():
 
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1)
 
-		self.pub= rospy.Publisher('onsets', PointStamped, queue_size= 100)
+		self.pub_plot= rospy.Publisher('onsets_plotable', PointStamped, queue_size= 100)
+		self.pub= rospy.Publisher('onsets', Header, queue_size= 100)
 
 
 		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
@@ -160,11 +161,12 @@ class OnsetDetector():
 			p.header.stamp= self.buffer_time+rospy.Duration(o)
 			p.point.x= 0.5
 			rospy.loginfo('found onset at time {}'.format(p.header.stamp))
-			self.pub.publish(p)
+			self.pub_plot.publish(p)
+			self.pub.publish(p.header)
 		p= PointStamped()
 		p.point.y= 0.2
 		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)+rospy.Duration(self.window_t)
-		self.pub.publish(p)
+		self.pub_plot.publish(p)
 		if len(onsets_cqt) == 0:
 			rospy.loginfo('found no onsets')
 
