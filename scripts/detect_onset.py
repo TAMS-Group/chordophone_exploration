@@ -57,8 +57,7 @@ class OnsetDetector():
 			rospy.signal_shutdown('incompatible audio format')
 			return
 
-		self.pub= rospy.Publisher('onsets', PointStamped, queue_size= 100)
-		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
+		self.last_time = rospy.Time.now()
 
 		self.cv_bridge= cv_bridge.CvBridge()
 		self.spectrogram= None
@@ -67,7 +66,10 @@ class OnsetDetector():
 
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1)
 
-		self.last_time = rospy.Time.now()
+		self.pub= rospy.Publisher('onsets', PointStamped, queue_size= 100)
+
+
+		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
 
 	def reset(self):
 		# audio buffer
