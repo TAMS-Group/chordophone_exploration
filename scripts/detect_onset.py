@@ -101,7 +101,11 @@ class OnsetDetector():
 			self.spectrogram= self.spectrogram[:, -spec.shape[1]:]
 		self.spectrogram= np.concatenate([self.spectrogram, log_spec],1)
 
-		spectrogram= np.array(self.spectrogram/np.max(self.spectrogram)*255, dtype= np.uint8)
+		## normalizes per compute
+		#spectrogram= np.array(self.spectrogram/np.max(self.spectrogram)*255, dtype= np.uint8)
+		## absolute normalization for log image
+		absolute_log_threshold= 12.0
+		spectrogram= np.array(np.minimum(255, self.spectrogram/absolute_log_threshold*255), dtype= np.uint8)
 		heatmap = cv2.applyColorMap(spectrogram, cv2.COLORMAP_JET)
 		LINECOLOR=[255,0,255]
 		for o in self.previous_onsets:
@@ -135,7 +139,9 @@ class OnsetDetector():
 			y=self.buffer,
 			sr= self.sr,
 			hop_length= self.hop_length,
-			fmin= 36.71,
+			#fmin= 36.71, # D1
+         #fmin= 55.00, # A1
+         fmin= 65.41, # C2
 			n_bins = 96))
 
 		# TODO: this normalizes by default which adds noise when no onset is in the data

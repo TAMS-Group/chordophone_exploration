@@ -20,16 +20,17 @@ class Projector:
 		self.tf_buffer= tf2_ros.Buffer(rospy.Duration(150.0))
 		self.tf_listener= tf2_ros.TransformListener(self.tf_buffer)
 
-
 		self.id= 0
 		self.events= []
 
 		self.last_publish= time.time()
 
 		self.pub= rospy.Publisher('events_markers', MarkerArray, queue_size= 1)
+
 		# server directly sets config correctly
 		self.config= None
 		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
+
 		self.sub= rospy.Subscriber('events', Header, self.event_cb, queue_size= 100)
 
 	def offset_cb(self, config, level):
@@ -74,7 +75,10 @@ class Projector:
 				p.pose.position.x+= self.config.offset_x
 				p.pose.position.y+= self.config.offset_y
 				p.pose.position.z+= self.config.offset_z
-				p = self.tf_buffer.transform(p, "base_footprint")
+				try:
+					p = self.tf_buffer.transform(p, "base_footprint")
+				except Exception:
+					pass
 				m = deepcopy(e)
 				m.header= p.header
 				m.pose= p.pose
