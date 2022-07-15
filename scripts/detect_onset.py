@@ -101,11 +101,12 @@ class OnsetDetector():
 			self.spectrogram= self.spectrogram[:, -spec.shape[1]:]
 		self.spectrogram= np.concatenate([self.spectrogram, log_spec],1)
 
-		## normalizes per compute
-		#spectrogram= np.array(self.spectrogram/np.max(self.spectrogram)*255, dtype= np.uint8)
+		# normalizes per compute
+		spectrogram= np.array(self.spectrogram/np.max(self.spectrogram)*255, dtype= np.uint8)
 		## absolute normalization for log image
-		absolute_log_threshold= 12.0
-		spectrogram= np.array(np.minimum(255, self.spectrogram/absolute_log_threshold*255), dtype= np.uint8)
+		#absolute_log_threshold= 12.0
+		#spectrogram= np.array(np.minimum(255, self.spectrogram/absolute_log_threshold*255), dtype= np.uint8)
+
 		heatmap = cv2.applyColorMap(spectrogram, cv2.COLORMAP_JET)
 		LINECOLOR=[255,0,255]
 		for o in self.previous_onsets:
@@ -132,7 +133,7 @@ class OnsetDetector():
 		if self.buffer.shape[0] < self.window+2*self.window_overlap:
 			return
 
-		# constant q transform with 96 half-tones from D1
+		# constant q transform with 96 half-tones from C2
 		# in theory we only need notes from D2-D6, but in practice tuning is often too low
 		# and harmonics are needed above D6
 		cqt= np.abs(librosa.cqt(
@@ -140,11 +141,10 @@ class OnsetDetector():
 			sr= self.sr,
 			hop_length= self.hop_length,
 			#fmin= 36.71, # D1
-         #fmin= 55.00, # A1
-         fmin= 65.41, # C2
+			#fmin= 55.00, # A1
+			fmin= 65.41, # C2
 			n_bins = 96))
 
-		# TODO: this normalizes by default which adds noise when no onset is in the data
 		onset_env_cqt= librosa.onset.onset_strength(
 			sr=self.sr,
 			S=librosa.amplitude_to_db(cqt, ref=np.max))
@@ -156,25 +156,30 @@ class OnsetDetector():
 			units= 'time',
 			#backtrack= True,
 			wait= 0.1*self.sr/self.hop_length,
-			delta= 0.2)
+			#delta= 0.2, normalize= True,
+			delta= 4.0, normalize= False, # TODO: test on system
+			)
 
 		onsets_cqt= [o for o in onsets_cqt_raw if o >= self.window_overlap_t and o < self.window_t + self.window_overlap_t]
 
 		self.update_spectrogram(cqt, onsets_cqt)
 
+		# publish events and plot visualization
 		for o in onsets_cqt:
 			p= PointStamped()
 			p.header.stamp= self.buffer_time+rospy.Duration(o)
 			p.point.x= 0.5
-			rospy.loginfo('found onset at time {}'.format(p.header.stamp))
 			self.pub_plot.publish(p)
 			self.pub.publish(p.header)
 		p= PointStamped()
 		p.point.y= 0.2
 		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)+rospy.Duration(self.window_t)
 		self.pub_plot.publish(p)
+
 		if len(onsets_cqt) == 0:
 			rospy.loginfo('found no onsets')
+		else:
+			rospy.loginfo('found {} onsets'.format(len(onsets_cqt)))
 
 		self.buffer_time+= rospy.Duration(self.window_t)
 		self.buffer= self.buffer[(-2*self.window_overlap):]
