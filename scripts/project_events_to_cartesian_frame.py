@@ -43,7 +43,8 @@ class Projector:
 		self.config= None
 		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
 
-		self.sub= rospy.Subscriber('events', Header, self.event_cb, queue_size= 100)
+		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100)
+		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_cb, queue_size= 100)
 
 	def reset(self):
 		self.id= 0
@@ -56,29 +57,11 @@ class Projector:
 		self.publish()
 		return config
 
-	def event_cb(self, msg):
-		if self.loop:
-			rospy.loginfo("detected loop")
-			self.reset()
-
-		if not self.tf_buffer.can_transform('base_footprint', self.config.frame, msg.stamp+rospy.Duration(0.1), timeout= rospy.Duration(0.2)):
-			rospy.logwarn("throw away event because transform is not available")
-			return
-		# inf is not supported... :(
-		buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)
-		for dt in np.arange(OffsetsConfig.min['delta_t'], OffsetsConfig.max['delta_t'], 0.01):
-			try:
-				buffer.set_transform(self.tf_buffer.lookup_transform('base_footprint', self.config.frame, msg.stamp+rospy.Duration(dt)), '')
-			except Exception as e:
-				rospy.logwarn('throw away event because transform in temporal vicinity is not available (delta "{}")'.format(dt))
-				return
-
+	def event_header_cb(self, msg):
 		m= Marker()
 		m.type= Marker.SPHERE
 		m.action= Marker.ADD
-		m.ns = "audio_event"
-		m.id= self.id
-		self.id= self.id+1
+		m.ns = "event"
 		m.color.a= 1.0
 		m.color.r= 0.8
 		m.color.g= 0.0
@@ -88,12 +71,41 @@ class Projector:
 		m.scale.z= 0.01
 
 		m.header= msg
-		m.header.frame_id= self.config.frame
+		#m.header.frame_id= self.config.frame
 		m.pose.orientation.w= 1.0
 		m.pose.position.y= 0.01
 		m.pose.position.z= 0.025
 
-		self.events.append((m, buffer))
+		self.event_marker_cb(m)
+
+	def event_marker_array_cb(self, msg):
+		for m in msg.markers:
+			self.event_marker_cb(m)
+
+	def event_marker_cb(self, marker):
+		if self.loop:
+			rospy.loginfo("detected loop")
+			self.reset()
+
+		if not self.tf_buffer.can_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(OffsetsConfig.max['delta_t']), timeout= rospy.Duration(OffsetsConfig.max['delta_t']+0.2)):
+			rospy.logwarn("throw away event because transform is not available")
+			return
+		# inf is not supported... :(
+		buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)
+		for dt in np.arange(OffsetsConfig.min['delta_t'], OffsetsConfig.max['delta_t'], 0.01):
+			try:
+				buffer.set_transform(self.tf_buffer.lookup_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(dt)), '')
+			except Exception as e:
+				rospy.logwarn('throw away event because transform in temporal vicinity is not available (delta "{}")'.format(dt))
+				rospy.logwarn(e)
+				return
+
+		# ensure on the projector side that ids cannot collide
+		# the namespace can be defined by the sender though
+		marker.id= self.id
+		self.id= self.id+1
+
+		self.events.append((marker, buffer))
 		self.publish()
 
 	def publish(self):
