@@ -2,6 +2,6 @@
 <launch>
   <node name="onset_projector" pkg="tams_pr2_guzheng" type="project_events_to_cartesian_frame.py">
     <remap from="events" to="guzheng/onsets" />
-    <remap from="events_markers" to="guzheng/onset_markers" />
+    <remap from="events_projected" to="guzheng/onsets_projected" />
   </node>
 </launch>

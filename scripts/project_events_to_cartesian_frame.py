@@ -30,14 +30,14 @@ class LoopDetector:
 
 class Projector:
 	def __init__(self):
-		self.tf_buffer= tf2_ros.Buffer(rospy.Duration(150.0), debug= False)
+		self.tf_buffer= tf2_ros.Buffer(rospy.Duration(30.0), debug= False)
 		self.tf_listener= tf2_ros.TransformListener(self.tf_buffer)
 
 		self.loop= LoopDetector()
 
 		self.reset()
 
-		self.pub= rospy.Publisher('events_markers', MarkerArray, queue_size= 1)
+		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1)
 
 		# server directly sets config correctly
 		self.config= None
