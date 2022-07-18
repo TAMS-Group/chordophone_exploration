@@ -6,17 +6,21 @@ import cv_bridge
 from audio_common_msgs.msg import AudioData, AudioInfo
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32, Header
+from std_msgs.msg import Float32, Header, ColorRGBA
 from visualization_msgs.msg import MarkerArray, Marker
 
 import librosa
+import crepe
+import crepe.core
 
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
 
 import struct
 import sys
 import time
+
 
 class OnsetDetector():
 	buffer= np.array([], dtype= float)
@@ -45,12 +49,24 @@ class OnsetDetector():
 		self.sr= 44100
 		self.hop_length= 512
 
+		self.fmin= librosa.note_to_hz('C2')
+		self.semitones= 84
+		self.fmax= librosa.note_to_hz('D6') # * 2**4 from D2 would be the range of the guzheng
+
+		self.cmap= plt.get_cmap('gist_rainbow').copy()
+		self.cmap.set_bad((0,0,0,1)) # make sure they are visible
+
 		# number of samples for analysis window and overlap regions between consecutive windows
 		self.window_t= 3.0
 		self.window_overlap_t= 0.5
 
 		self.window= int(self.sr*self.window_t)
 		self.window_overlap= int(self.sr*self.window_overlap_t)
+
+		# preload model to not block the callback on first message
+		# capacities: 'tiny', 'small', 'medium', 'large', 'full'
+		self.crepe_model= 'full'
+		crepe.core.build_and_load_model(self.crepe_model)
 
 		self.buffer_time= None
 
@@ -117,6 +133,23 @@ class OnsetDetector():
 
 		self.pub_spectrogram.publish(self.cv_bridge.cv2_to_imgmsg(heatmap, "bgr8"))
 
+	def fundamental_frequency_for_onset(self, onset):
+		excerpt = self.buffer[int(onset*self.sr):int(onset*self.sr+self.window_overlap)]
+		time, freq, confidence, _ = crepe.predict(excerpt, self.sr, viterbi= True, model_capacity= self.crepe_model, verbose= 0)
+		thresholded_freq= freq[confidence > 0.8]
+		if len(thresholded_freq) > 0:
+			pitch= np.average(thresholded_freq, weights= confidence[confidence > 0.8])
+			rospy.loginfo('found frequency {} ({})'.format(pitch, librosa.hz_to_note(pitch)))
+			return pitch
+		else:
+			return 0.0
+
+	def color_from_freq(self, freq):
+		if freq > 0.0:
+			return ColorRGBA(*self.cmap((freq-self.fmin)/(self.fmax-self.fmin)))
+		else:
+			return ColorRGBA(*self.cmap.get_bad())
+
 	def audio_cb(self, msg):
 		# handle bag loop graciously
 		now = rospy.Time.now()
@@ -140,10 +173,8 @@ class OnsetDetector():
 			y=self.buffer,
 			sr= self.sr,
 			hop_length= self.hop_length,
-			#fmin= 36.71, # D1
-			#fmin= 55.00, # A1
-			fmin= 65.41, # C2
-			n_bins = 96))
+			fmin= self.fmin,
+			n_bins = self.semitones))
 
 		onset_env_cqt= librosa.onset.onset_strength(
 			sr=self.sr,
@@ -185,11 +216,7 @@ class OnsetDetector():
 			m.scale.x= 0.01
 			m.scale.y= 0.01
 			m.scale.z= 0.01
-			m.color.a= 1.0
-#			m.color= color_from_note(note_from_cqt(cqt[:,(o*self.sr):]))
-			m.color.r= 0.0
-			m.color.g= 0.0
-			m.color.b= 0.0
+			m.color= self.color_from_freq(self.fundamental_frequency_for_onset(o))
 			markers.markers.append(m)
 		self.pub.publish(markers)
 
