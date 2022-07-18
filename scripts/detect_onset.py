@@ -7,6 +7,7 @@ from audio_common_msgs.msg import AudioData, AudioInfo
 from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32, Header
+from visualization_msgs.msg import MarkerArray, Marker
 
 import librosa
 
@@ -67,8 +68,7 @@ class OnsetDetector():
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1)
 
 		self.pub_plot= rospy.Publisher('onsets_plotable', PointStamped, queue_size= 100)
-		self.pub= rospy.Publisher('onsets', Header, queue_size= 100)
-
+		self.pub= rospy.Publisher('onsets', MarkerArray, queue_size= 100)
 
 		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
 
@@ -170,11 +170,28 @@ class OnsetDetector():
 			p.header.stamp= self.buffer_time+rospy.Duration(o)
 			p.point.x= 0.5
 			self.pub_plot.publish(p)
-			self.pub.publish(p.header)
 		p= PointStamped()
 		p.point.y= 0.2
 		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)+rospy.Duration(self.window_t)
 		self.pub_plot.publish(p)
+
+		markers= MarkerArray()
+		for o in onsets_cqt:
+			m= Marker()
+			m.ns= "audio_onset"
+			m.type= Marker.SPHERE
+			m.action= Marker.ADD
+			m.header.stamp= self.buffer_time+rospy.Duration(o)
+			m.scale.x= 0.01
+			m.scale.y= 0.01
+			m.scale.z= 0.01
+			m.color.a= 1.0
+#			m.color= color_from_note(note_from_cqt(cqt[:,(o*self.sr):]))
+			m.color.r= 0.0
+			m.color.g= 0.0
+			m.color.b= 0.0
+			markers.markers.append(m)
+		self.pub.publish(markers)
 
 		if len(onsets_cqt) == 0:
 			rospy.loginfo('found no onsets')

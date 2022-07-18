@@ -44,7 +44,7 @@ class Projector:
 		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
 
 		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100)
-		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_cb, queue_size= 100)
+		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100)
 
 	def reset(self):
 		self.id= 0
