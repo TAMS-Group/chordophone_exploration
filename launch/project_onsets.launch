@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+  <group ns="guzheng">
   <node name="onset_projector" pkg="tams_pr2_guzheng" type="project_events_to_cartesian_frame.py">
-    <remap from="events_markers" to="guzheng/onsets" />
-    <remap from="events_projected" to="guzheng/onsets_projected" />
+    <remap from="events_markers" to="onsets" />
+    <remap from="events_projected" to="onsets_projected" />
   </node>
+  </group>
 </launch>
