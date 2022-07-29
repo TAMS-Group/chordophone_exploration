@@ -37,7 +37,7 @@ class Projector:
 
 		self.reset()
 
-		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1)
+		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True)
 
 		# server directly sets config correctly
 		self.config= None
