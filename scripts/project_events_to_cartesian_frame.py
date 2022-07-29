@@ -53,7 +53,7 @@ class Projector:
 		self.tf_buffer.clear()
 
 	def offset_cb(self, config, level):
-		self.config = config
+		self.config= config
 		self.publish()
 		return config
 
@@ -61,7 +61,7 @@ class Projector:
 		m= Marker()
 		m.type= Marker.SPHERE
 		m.action= Marker.ADD
-		m.ns = "event"
+		m.ns= "event"
 		m.color.a= 1.0
 		m.color.r= 0.8
 		m.color.g= 0.0
@@ -115,18 +115,18 @@ class Projector:
 
 			markers= MarkerArray()
 			for [marker, buffer] in self.events:
-				p = PoseStamped(header= deepcopy(marker.header), pose= deepcopy(marker.pose))
-				p.header.frame_id = self.config.frame
+				p= PoseStamped(header= deepcopy(marker.header), pose= deepcopy(marker.pose))
+				p.header.frame_id= self.config.frame
 				p.header.stamp+= rospy.Duration(self.config.delta_t)
 				p.pose.position.x+= self.config.offset_x
 				p.pose.position.y+= self.config.offset_y
 				p.pose.position.z+= self.config.offset_z
 				try:
-					p = buffer.transform(p, "base_footprint")
+					p= buffer.transform(p, "base_footprint")
 				except Exception as e:
 					rospy.logerr(e)
 					continue
-				m = deepcopy(marker)
+				m= deepcopy(marker)
 				m.header= p.header
 				m.pose= p.pose
 				markers.markers.append( m )
