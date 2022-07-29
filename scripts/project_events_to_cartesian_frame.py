@@ -10,7 +10,7 @@ from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 from tams_pr2_guzheng.cfg import OffsetsConfig
 
 from std_msgs.msg import Header
-from geometry_msgs.msg import PointStamped, PoseStamped
+from geometry_msgs.msg import PointStamped, PoseStamped, Point
 from visualization_msgs.msg import Marker, MarkerArray
 
 import numpy as np
@@ -38,6 +38,7 @@ class Projector:
 		self.reset()
 
 		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True)
+		self.pub_frame= rospy.Publisher('projection_frame', PoseStamped, queue_size= 1, latch= True)
 
 		# server directly sets config correctly
 		self.config= None
@@ -132,6 +133,13 @@ class Projector:
 				m.pose= p.pose
 				markers.markers.append( m )
 			self.pub.publish(markers)
+
+			p= PoseStamped()
+			p.header.frame_id= self.config.frame
+			p.header.stamp= rospy.Time.now()
+			p.pose.orientation.w= 1.0
+			p.pose.position= Point(self.config.offset_x, self.config.offset_y, self.config.offset_z)
+			self.pub_frame.publish(p)
 
 def main():
 	rospy.init_node('project_events_to_frame')
