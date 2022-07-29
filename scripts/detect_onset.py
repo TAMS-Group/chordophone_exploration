@@ -225,13 +225,14 @@ class OnsetDetector():
 		self.pub.publish(markers)
 
 		if len(onsets_cqt) == 0:
-			rospy.loginfo('found no onsets')
+			rospy.logdebug('found no onsets')
 		else:
-			rospy.loginfo('found {} onsets'.format(len(onsets_cqt)))
+			rospy.logdebug('found {} onsets'.format(len(onsets_cqt)))
 
 		self.buffer_time+= rospy.Duration(self.window_t)
 		self.buffer= self.buffer[(-2*self.window_overlap):]
 
+		rospy.loginfo_once('onset detection is online')
 		compute_time= rospy.Time.now() - now
 		self.pub_compute_time.publish(compute_time.to_sec())
 		if compute_time > rospy.Duration(self.window):
