@@ -189,7 +189,7 @@ class OnsetDetector():
 			hop_length= self.hop_length,
 			onset_envelope= onset_env_cqt,
 			units= 'time',
-			#backtrack= True,
+			backtrack= True,
 			wait= 0.1*self.sr/self.hop_length,
 			#delta= 0.2, normalize= True,
 			delta= 4.0, normalize= False, # TODO: test on system
