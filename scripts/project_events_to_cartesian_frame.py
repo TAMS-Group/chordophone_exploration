@@ -121,6 +121,7 @@ class Projector:
 				p.pose.position.x+= self.config.offset_x
 				p.pose.position.y+= self.config.offset_y
 				p.pose.position.z+= self.config.offset_z
+				p.pose.orientation.w= 1.0
 				try:
 					p= buffer.transform(p, "base_footprint")
 				except Exception as e:
