@@ -136,9 +136,13 @@ class OnsetDetector():
 	def fundamental_frequency_for_onset(self, onset):
 		excerpt = self.buffer[int(onset*self.sr):int(onset*self.sr+self.window_overlap)]
 		time, freq, confidence, _ = crepe.predict(excerpt, self.sr, viterbi= True, model_capacity= self.crepe_model, verbose= 0)
-		thresholded_freq= freq[confidence > 0.8]
+
+		confidence_threshold= 0.4
+		confidence_mask = confidence > confidence_threshold
+
+		thresholded_freq= freq[confidence_mask]
 		if len(thresholded_freq) > 0:
-			pitch= np.average(thresholded_freq, weights= confidence[confidence > 0.8])
+			pitch= np.average(thresholded_freq, weights= confidence[confidence_mask]) # confidence[confidence > 0.8])
 			rospy.loginfo('found frequency {} ({})'.format(pitch, librosa.hz_to_note(pitch)))
 			return pitch
 		else:
