@@ -189,10 +189,9 @@ class OnsetDetector():
 			hop_length= self.hop_length,
 			onset_envelope= onset_env_cqt,
 			units= 'time',
-			backtrack= True,
+			backtrack= False,
 			wait= 0.1*self.sr/self.hop_length,
-			#delta= 0.2, normalize= True,
-			delta= 4.0, normalize= False, # TODO: test on system
+			delta= 4.0, normalize= False,
 			)
 
 		onsets_cqt= [o for o in onsets_cqt_raw if o >= self.window_overlap_t and o < self.window_t + self.window_overlap_t]
