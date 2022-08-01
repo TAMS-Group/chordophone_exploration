@@ -1,0 +1,21 @@
+<launch>
+  <arg name="recording" default="false" />
+
+  <include unless="$(arg recording)" file="$(dirname)/microphone.launch">
+    <arg name="play" value="false" />
+  </include>
+
+  <include file="$(dirname)/play_audio_topic.launch" />
+
+  <include file="$(dirname)/detect_onset.launch" />
+  <include file="$(dirname)/project_onsets.launch" />
+
+  <include file="$(dirname)/detect_pluck.launch" />
+  <include file="$(dirname)/project_plucks.launch" />
+  
+<!--
+  <group ns="guzheng">
+  </group>
+-->
+
+</launch>

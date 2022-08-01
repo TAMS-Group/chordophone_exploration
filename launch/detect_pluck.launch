@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="pluck_detector" ns="guzheng" pkg="tams_pr2_guzheng" type="detect_pluck">
+    <param name="finger_idx" value="0" />
+    <remap from="hand/rh/tactile" to="/hand/rh/tactile" />
+  </node>
+</launch>

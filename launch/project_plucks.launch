@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="pluck_projector" ns="guzheng" pkg="tams_pr2_guzheng" type="project_events_to_cartesian_frame.py">
+    <param name="delta_t" value="0.0" />
+    <remap from="events_markers" to="plucks" />
+    <remap from="events_projected" to="plucks_projected" />
+  </node>
+</launch>
