@@ -217,9 +217,9 @@ class OnsetDetector():
 			m.type= Marker.SPHERE
 			m.action= Marker.ADD
 			m.header.stamp= self.buffer_time+rospy.Duration(o)
-			m.scale.x= 0.01
-			m.scale.y= 0.01
-			m.scale.z= 0.01
+			m.scale.x= 0.005
+			m.scale.y= 0.005
+			m.scale.z= 0.005
 			m.color= self.color_from_freq(self.fundamental_frequency_for_onset(o))
 			markers.markers.append(m)
 		self.pub.publish(markers)

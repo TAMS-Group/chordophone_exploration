@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 generate_dynamic_reconfigure_options(
   cfg/Offsets.cfg
+  cfg/Threshold.cfg
 )
 
 catkin_package()
@@ -34,6 +35,7 @@ function(one_filer name)
 endfunction()
 
 one_filer(alternate_poses)
+one_filer(detect_pluck)
 one_filer(stop_on_contact)
 one_filer(path_to_traj)
 one_filer(feel_string)
