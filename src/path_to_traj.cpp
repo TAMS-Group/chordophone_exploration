@@ -236,27 +236,6 @@ int main(int argc, char** argv){
    mgi.setMaxVelocityScalingFactor(1.0);
    mgi.setMaxAccelerationScalingFactor(1.0);
 
-	// move torso to reasonable height
-	//{
-	//options.group_name_ = "torso";
-	//moveit::planning_interface::MoveGroupInterface mgi_torso{ options };
-   //mgi_torso.setMaxVelocityScalingFactor(1.0);
-   //mgi_torso.setMaxAccelerationScalingFactor(1.0);
-	//mgi_torso.setJointValueTarget({0.16825}); // mean height
-	//mgi_torso.move();
-	//}
-
-	//{
-   //options.group_name_ = "right_arm_and_hand";
-	//moveit::planning_interface::MoveGroupInterface mgi_right{ options	};
-   //mgi_right.setMaxVelocityScalingFactor(1.0);
-   //mgi_right.setMaxAccelerationScalingFactor(1.0);
-
-	//mgi_right.setJointValueTarget({-1.048134568510038, 0.33186522463132273, -1.4104755797305828, -1.703852694944122, -0.5134409648277009, -0.315195934553282, 0.07970872374449509, -1.2502830475568716e-06, -0.26175084213630034, 0.8192479550796485, 0.3499906866513662, 8.040438331663623e-05, -2.8072419343516263e-05, 1.5707268944669193, 1.5707889340775059, 0.349921315932693, 3.160236626863484e-05, 1.570694899902314, 1.5707822109633267, 0.34995090350736846, -9.304465432651334e-05, 1.5706199421043197, 1.5707274787708079, 0.3499912777154244, 0.19005917587326865, 0.38993968266188184, 3.916621645912522e-05, 0.5799610561233474, 0.3499207099695695});
-	//mgi_right.setJointValueTarget({{"rh_LFJ3", -0.2617261607198903},{"rh_LFJ2", 0.0}}); // broken lfj2
-	//mgi_right.move();
-	//}
-
 	ros::Subscriber sub{ nh.subscribe<nav_msgs::Path>("pluck/path", 1,
 		                                               [&](const auto& path){
 		ROS_INFO_STREAM("got path with " << path->poses.size() << " poses");
