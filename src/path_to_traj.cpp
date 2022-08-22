@@ -11,12 +11,20 @@
 #include <rviz_visual_tools/remote_control.h>
 
 #include <tf2_ros/transform_listener.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 #include <bio_ik/goal_types.h>
 
 #include <nav_msgs/Path.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <geometry_msgs/Pose.h>
+
+#include <sensor_msgs/Image.h>
+#include <sensor_msgs/image_encodings.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
 
 using std::size_t;
 
@@ -35,27 +43,18 @@ struct GenerateArgs {
 	const std::string group;
 	const std::string tip;
 	const planning_scene::PlanningScene& scene;
-	std::function<void()> publish;
 };
 
-void generateTrajectory(trajectory_msgs::JointTrajectory& traj, const GenerateArgs& args){
-	// prepare traj
-	traj.header.stamp = ros::Time::now();
+robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 	const auto* jmg{ args.scene.getRobotModel()->getJointModelGroup(args.group) };
+	// prepare traj
 	if(!jmg){
 		ROS_FATAL_STREAM("specified group '" << args.group << "' does not exist");
-		return;
+		throw std::runtime_error{"group does not exist"};
 	}
-	traj.joint_names = jmg->getActiveJointModelNames();
+	robot_trajectory::RobotTrajectory traj{ args.scene.getRobotModel(), jmg};
 
-	// fill in current state
-	traj.points.emplace_back();
-	args.scene.getCurrentState().copyJointGroupPositions(
-	         jmg,
-	         traj.points.back().positions);
-	double time_from_start= 0.0;
-	traj.points.back().time_from_start= ros::Duration{ time_from_start };
-	time_from_start+= 1.0;
+	traj.addSuffixWayPoint(args.scene.getCurrentState(), 0.0);
 
 	moveit::core::RobotState wp { args.scene.getCurrentState() }, previous_wp{ wp };
 
@@ -116,18 +115,12 @@ void generateTrajectory(trajectory_msgs::JointTrajectory& traj, const GenerateAr
 			moveit::core::RobotState interpolated{ wp };
 			previous_wp.interpolate(wp, 0.05*j, interpolated, jmg);
 
-			traj.points.emplace_back();
-			interpolated.copyJointGroupPositions(jmg, traj.points.back().positions);
-			traj.points.back().time_from_start = ros::Duration{ time_from_start };
-			time_from_start+= 1.0;
+			traj.addSuffixWayPoint(interpolated, 1.0);
 		}
 
-		traj.points.emplace_back();
-		wp.copyJointGroupPositions(jmg, traj.points.back().positions);
-		traj.points.back().time_from_start = ros::Duration{ time_from_start };
-		time_from_start+= 1.0;
-
 		wp.updateLinkTransforms();
+		traj.addSuffixWayPoint(wp, 1.0);
+
 		Eigen::Isometry3d tip_pose_solved { wp.getFrameTransform(args.tip) };
 		double translation_max_dimension_distance{ (tip_pose_solved.translation()-expected_tip_position).array().abs().maxCoeff() };
 		ROS_INFO_STREAM("distance: " << translation_max_dimension_distance);
@@ -137,13 +130,71 @@ void generateTrajectory(trajectory_msgs::JointTrajectory& traj, const GenerateAr
 
 	{
 		trajectory_processing::TimeOptimalTrajectoryGeneration time_parameterization{ 1.0, 0.2 };
-		robot_trajectory::RobotTrajectory rtraj{ args.scene.getRobotModel(), args.group };
-		rtraj.setRobotTrajectoryMsg(args.scene.getCurrentState(), traj);
-		time_parameterization.computeTimeStamps(rtraj);
-		moveit_msgs::RobotTrajectory rtraj_msg;
-		rtraj.getRobotTrajectoryMsg(rtraj_msg);
-		traj = rtraj_msg.joint_trajectory;
+		time_parameterization.computeTimeStamps(traj);
 	}
+	return traj;
+}
+
+struct LinkPathArgs {
+	const std::string frame;
+	const std::string tip;
+	robot_trajectory::RobotTrajectory& trajectory;
+	tf2_ros::Buffer& tf;
+};
+nav_msgs::Path getLinkPath(LinkPathArgs args){
+	nav_msgs::Path path;
+	path.header.frame_id = args.frame;
+
+	auto& t { args.trajectory };
+	for(size_t i{ 0 }; i < t.getWayPointCount(); ++i){
+		auto& wp { *t.getWayPointPtr(i) };
+		wp.updateLinkTransforms();
+		Eigen::Isometry3d wp_tip{ wp.getGlobalLinkTransform(args.tip) };
+		geometry_msgs::PoseStamped wp_pose;
+		wp_pose.header.frame_id = wp.getRobotModel()->getRootLinkName();
+		wp_pose.pose = tf2::toMsg(wp_tip);
+		path.poses.emplace_back( args.tf.transform(wp_pose, args.frame) );
+	}
+	return path;
+}
+
+struct PaintArgs {
+	const nav_msgs::Path& requested;
+	const nav_msgs::Path& generated;
+};
+sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
+	cv::Mat img{ 100, 200, CV_8UC3, cv::Scalar(128,128,128) };
+
+	// indicate string position
+	cv::circle(img, cv::Point{100, 90}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+	const double pixel_size= 0.002;
+
+	auto drawPoses{
+		[&](const nav_msgs::Path& path, const cv::Scalar& color){
+			bool first{ true };
+			cv::Point pt1, pt2;
+			for(auto& p : path.poses){
+				pt1= pt2;
+				pt2= cv::Point(100-p.pose.position.y/pixel_size, 100-p.pose.position.z/pixel_size-10);
+				if( first ){
+					first= false;
+					continue;
+				}
+
+				ROS_DEBUG_STREAM( "adding line from " << pt1 << " to " << pt2);
+				cv::line(img, pt1, pt2, color, 1, cv::LINE_AA);
+			}
+		}
+	};
+
+	drawPoses(args.requested, cv::Scalar{255,0,0});
+	drawPoses(args.generated, cv::Scalar{0,255,0});
+
+	std_msgs::Header header;
+	cv_bridge::CvImage bridge{ header, sensor_msgs::image_encodings::RGB8, img };
+	sensor_msgs::Image img_ros;
+	bridge.toImageMsg(img_ros);
+	return img_ros;
 }
 
 int main(int argc, char** argv){
@@ -153,7 +204,8 @@ int main(int argc, char** argv){
 	ros::AsyncSpinner spinner{ 2 };
    spinner.start();
 
-	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 5, true) };
+	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
+	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 1, true) };
 
 	auto tf_buffer{ std::make_shared<tf2_ros::Buffer>() };
 	tf2_ros::TransformListener tf_listener{ *tf_buffer };
@@ -210,15 +262,14 @@ int main(int argc, char** argv){
 		ROS_INFO_STREAM("got path with " << path->poses.size() << " poses");
 
 		ROS_INFO("planning trajectory");
-		moveit_msgs::DisplayTrajectory trajectory;
-		trajectory.model_id = psm.getRobotModel()->getName();
-		trajectory.trajectory.resize(1);
+
+		// update scene + start trajectory at current state
 		if(!psm.requestPlanningSceneState()){
 			ROS_ERROR_STREAM("failed to get current scene from move_group");
 			return;
 		}
-		moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), trajectory.trajectory_start, false);
 
+		// transform requested path to planning frame
 		nav_msgs::Path path_transformed{ *path };
 		const auto& planning_frame{ scene.getPlanningFrame() };
 		for(auto& pose : path_transformed.poses){
@@ -227,23 +278,45 @@ int main(int argc, char** argv){
 			pose = tf_buffer->transform(pose, planning_frame);
 		}
 
-		generateTrajectory(trajectory.trajectory[0].joint_trajectory,
-		   {
+		// compute trajectory
+		robot_trajectory::RobotTrajectory trajectory{ generateTrajectory(
+			         {
 		   .path = path_transformed,
 		   .group = group_name,
 		   .tip = tip_name,
 			.scene = scene,
-			.publish = [&]{ pub_traj.publish(trajectory); }
-		   }
-		);
-		pub_traj.publish(trajectory);
-		ROS_INFO_STREAM("publish trajectory with " << trajectory.trajectory[0].joint_trajectory.points.size() << " points");
+			}
+		) };
 
+		// propagate result
+		moveit_msgs::DisplayTrajectory dtrajectory;
+		dtrajectory.model_id = psm.getRobotModel()->getName();
+		moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
+		dtrajectory.trajectory.resize(1);
+		trajectory.getRobotTrajectoryMsg(dtrajectory.trajectory[0]);
+		pub_traj.publish(dtrajectory);
+		ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+
+		// create image to show trajectories
+		nav_msgs::Path local_path { getLinkPath({
+			                                        .frame = path->header.frame_id,
+			                                        .tip = tip_name,
+			                                        .trajectory = trajectory,
+			                                        .tf = *tf_buffer
+			                                     }) };
+		pub_img.publish(
+		         paintLocalPaths({
+		                            .requested = *path,
+		                            .generated = local_path
+		                         })
+		         );
+
+		// execute after confirmation from user
 		remote.waitForNextStep("execute trajectory?");
 		ros::Duration(1.0).sleep();
 
 		{
-			auto status{ mgi.execute(trajectory.trajectory[0]) };
+			auto status{ mgi.execute(dtrajectory.trajectory[0]) };
 			ROS_INFO_STREAM("status after execution: " << status);
 		}
 		})
@@ -251,5 +324,5 @@ int main(int argc, char** argv){
 
 
 	ros::waitForShutdown();
-   return 0;
+	return 0;
 }

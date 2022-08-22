@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
   bio_ik
+  cv_bridge
   dynamic_reconfigure
   moveit_ros_planning_interface
   rviz_visual_tools

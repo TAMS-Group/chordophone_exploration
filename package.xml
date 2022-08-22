@@ -17,4 +17,5 @@
   <depend>rviz_visual_tools</depend>
   <depend>tf2_ros</depend>
   <depend>dynamic_reconfigure</depend>
+  <depend>cv_bridge</depend>
 </package>
