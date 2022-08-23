@@ -27,10 +27,15 @@ def main():
         p.pose.position.z = z
         p.pose.orientation.w = 1.0
         path.poses.append(p)
-    rospy.sleep(1.0)
-    pub.publish(path)
-    rospy.sleep(1.0)
-#    rospy.spin()
+    if not rospy.get_param("~continuous", False):
+        rospy.sleep(1.0)
+        pub.publish(path)
+        rospy.sleep(1.0)
+    else:
+        r=rospy.Rate(10)
+        while not rospy.is_shutdown():
+            r.sleep()
+            pub.publish(path)
 
 
 if __name__ == "__main__":
