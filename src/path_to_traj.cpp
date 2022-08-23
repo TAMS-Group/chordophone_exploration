@@ -214,7 +214,7 @@ int main(int argc, char** argv){
    spinner.start();
 
 	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
-	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 1, true) };
+	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
 
 	auto tf_buffer{ std::make_shared<tf2_ros::Buffer>() };
 	tf2_ros::TransformListener tf_listener{ *tf_buffer };
@@ -295,12 +295,12 @@ int main(int argc, char** argv){
 			                                        .trajectory = trajectory,
 			                                        .tf = *tf_buffer
 			                                     }) };
-		pub_img.publish(
-		         paintLocalPaths({
-		                            .requested = *path,
-		                            .generated = local_path
-		                         })
-		         );
+//		pub_img.publish(
+//		         paintLocalPaths({
+//		                            .requested = *path,
+//		                            .generated = local_path
+//		                         })
+//		         );
 
 		// execute after confirmation from user
 		remote.waitForNextStep("execute trajectory?");
