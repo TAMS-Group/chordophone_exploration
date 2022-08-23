@@ -1,6 +1,8 @@
 ﻿#include <ros/ros.h>
 
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit/planning_scene_monitor/current_state_monitor.h>
+#include <moveit/planning_scene_monitor/trajectory_monitor.h>
 #include <moveit/robot_state/conversions.h>
 
 #include <moveit/robot_trajectory/robot_trajectory.h>
@@ -94,16 +96,18 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		constraints.add<bio_ik::PositionGoal>(
 		         args.tip,
 		         tf2::Vector3{expected_tip_position.x(),expected_tip_position.y(),expected_tip_position.z()},
+					/*TODO: this is nonsense, the offset should be in the tip frame!*/
+		         //tf2::Vector3{expected_tip_position.x()+0.01,expected_tip_position.y(),expected_tip_position.z()+0.014},
 		         1.0
 		         );
 		constraints.add<bio_ik::DirectionGoal>(
-		         args.tip,
+		         "rh_fftip",
 		         tf2::Vector3{ 0, 0, 1 },
 		         tf2::Vector3{ 0, 0, -1 },
 		         1.0
 		         );
 		constraints.add<bio_ik::DirectionGoal>(
-		         args.tip,
+		         "rh_fftip",
 		         tf2::Vector3{ 1, 0, 0 },
 		         tf2::Vector3{ 0, 1, 0 },
 		         0.005
@@ -161,6 +165,7 @@ nav_msgs::Path getLinkPath(LinkPathArgs args){
 struct PaintArgs {
 	const nav_msgs::Path& requested;
 	const nav_msgs::Path& generated;
+	const nav_msgs::Path executed;
 };
 sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	cv::Mat img{ 100, 200, CV_8UC3, cv::Scalar(128,128,128) };
@@ -189,6 +194,7 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 
 	drawPoses(args.requested, cv::Scalar{255,0,0});
 	drawPoses(args.generated, cv::Scalar{0,255,0});
+	drawPoses(args.executed, cv::Scalar{0,0,255});
 
 	std_msgs::Header header;
 	cv_bridge::CvImage bridge{ header, sensor_msgs::image_encodings::RGB8, img };
@@ -201,7 +207,7 @@ int main(int argc, char** argv){
    ros::init(argc, argv, "path_to_traj");
    ros::NodeHandle nh, pnh{"~"};
 
-	ros::AsyncSpinner spinner{ 2 };
+	ros::AsyncSpinner spinner{ 3 };
    spinner.start();
 
 	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
@@ -222,7 +228,7 @@ int main(int argc, char** argv){
 	  return 1;
 	}
    std::string tip_name;
-	pnh.param<std::string>("tip", tip_name, "rh_fftip");
+	pnh.param<std::string>("tip", tip_name, "rh_ff_biotac_link");
 	if(!scene.getRobotModel()->hasLinkModel(tip_name)){
 	  ROS_FATAL_STREAM("LinkModel '" << tip_name << "' does not exist");
 	  return 1;
@@ -235,6 +241,9 @@ int main(int argc, char** argv){
 	moveit::planning_interface::MoveGroupInterface mgi{ options };
    mgi.setMaxVelocityScalingFactor(1.0);
    mgi.setMaxAccelerationScalingFactor(1.0);
+
+	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
+	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
 
 	ros::Subscriber sub{ nh.subscribe<nav_msgs::Path>("pluck/path", 1,
 		                                               [&](const auto& path){
@@ -294,10 +303,29 @@ int main(int argc, char** argv){
 		remote.waitForNextStep("execute trajectory?");
 		ros::Duration(1.0).sleep();
 
-		{
-			auto status{ mgi.execute(dtrajectory.trajectory[0]) };
-			ROS_INFO_STREAM("status after execution: " << status);
-		}
+		csm->startStateMonitor();
+		tm.clearTrajectory();
+		tm.startTrajectoryMonitor();
+		auto status{ mgi.execute(dtrajectory.trajectory[0]) };
+		tm.stopTrajectoryMonitor();
+		csm->stopStateMonitor();
+		ROS_INFO_STREAM("status after execution: " << status);
+		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
+
+		nav_msgs::Path executed_path{ getLinkPath({
+			                                        .frame = path->header.frame_id,
+			                                        .tip = tip_name,
+			                                        .trajectory = executed_trajectory,
+			                                        .tf = *tf_buffer
+			                                     }) };
+		pub_img.publish(
+		         paintLocalPaths({
+		                            .requested = *path,
+		                            .generated = local_path,
+		                            .executed = executed_path
+		                         })
+		         );
+
 		})
 	};
 
