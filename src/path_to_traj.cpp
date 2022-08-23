@@ -304,7 +304,9 @@ int main(int argc, char** argv){
 
 		// execute after confirmation from user
 		remote.waitForNextStep("execute trajectory?");
-		ros::Duration(1.0).sleep();
+		if(!remote.getAutonomous()){
+			ros::Duration(1.0).sleep();
+		}
 
 		csm->startStateMonitor();
 		tm.clearTrajectory();
