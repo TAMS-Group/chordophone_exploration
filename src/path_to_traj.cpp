@@ -168,11 +168,14 @@ struct PaintArgs {
 	const nav_msgs::Path executed;
 };
 sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
-	cv::Mat img{ 100, 200, CV_8UC3, cv::Scalar(128,128,128) };
+	const int width= 200;
+	const int height= 100;
+	const double pixel_size= 0.001;
+
+	cv::Mat img{ height, width, CV_8UC3, cv::Scalar(128,128,128) };
 
 	// indicate string position
-	cv::circle(img, cv::Point{100, 90}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
-	const double pixel_size= 0.002;
+	cv::circle(img, cv::Point{width/2, height*9/10}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
 
 	auto drawPoses{
 		[&](const nav_msgs::Path& path, const cv::Scalar& color){
@@ -180,7 +183,7 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 			cv::Point pt1, pt2;
 			for(auto& p : path.poses){
 				pt1= pt2;
-				pt2= cv::Point(100-p.pose.position.y/pixel_size, 100-p.pose.position.z/pixel_size-10);
+				pt2= cv::Point(width/2-p.pose.position.y/pixel_size, height-p.pose.position.z/pixel_size-height*1/10);
 				if( first ){
 					first= false;
 					continue;
