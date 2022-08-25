@@ -5,10 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(catkin REQUIRED COMPONENTS
+  actionlib
+  actionlib_msgs
   bio_ik
   cv_bridge
   dynamic_reconfigure
   moveit_ros_planning_interface
+  nav_msgs
   rviz_visual_tools
   sr_robot_msgs
   std_msgs
@@ -20,9 +23,25 @@ generate_dynamic_reconfigure_options(
   cfg/Threshold.cfg
 )
 
+add_action_files(
+DIRECTORY
+  action
+FILES
+  ExecutePath.action
+)
+
+generate_messages(
+DEPENDENCIES
+  actionlib_msgs
+  nav_msgs
+)
+
 catkin_package()
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+  include
+  ${catkin_INCLUDE_DIRS}
+)
 
 # this package consists of one-file examples only
 function(one_filer name)

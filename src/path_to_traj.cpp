@@ -1,5 +1,11 @@
 ﻿#include <ros/ros.h>
 
+#include <actionlib/server/simple_action_server.h>
+#include <tams_pr2_guzheng/ExecutePathAction.h>
+using tams_pr2_guzheng::ExecutePathAction;
+using tams_pr2_guzheng::ExecutePathGoalConstPtr;
+using tams_pr2_guzheng::ExecutePathResult;
+
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit/planning_scene_monitor/current_state_monitor.h>
 #include <moveit/planning_scene_monitor/trajectory_monitor.h>
@@ -240,6 +246,7 @@ int main(int argc, char** argv){
 	}
 
 	rviz_visual_tools::RemoteControl remote{ pnh };
+
 	moveit::planning_interface::MoveGroupInterface::Options options{ "right_arm_and_hand" };
 	options.robot_model_= psm.getRobotModel();
 	options.group_name_ = "right_arm";
@@ -250,9 +257,11 @@ int main(int argc, char** argv){
 	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
 	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
 
-	ros::Subscriber sub{ nh.subscribe<nav_msgs::Path>("pluck/path", 1,
-		                                               [&](const auto& path){
-		ROS_INFO_STREAM("got path with " << path->poses.size() << " poses");
+   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> server;
+
+	auto actionCB{ [&](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+      auto& path{ goal->path };
+		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
 		ROS_INFO("planning trajectory");
 
@@ -263,7 +272,7 @@ int main(int argc, char** argv){
 		}
 
 		// transform requested path to planning frame
-		nav_msgs::Path path_transformed{ *path };
+		nav_msgs::Path path_transformed{ path };
 		const auto& planning_frame{ scene.getPlanningFrame() };
 		for(auto& pose : path_transformed.poses){
 			if(pose.header.frame_id.empty())
@@ -291,13 +300,13 @@ int main(int argc, char** argv){
 		ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
 
 		// create image to show trajectories
-		nav_msgs::Path local_path { getLinkPath({
-			                                        .frame = path->header.frame_id,
+		nav_msgs::Path generated_path { getLinkPath({
+			                                        .frame = path.header.frame_id,
 			                                        .tip = tip_name,
 			                                        .trajectory = trajectory,
 			                                        .tf = *tf_buffer
 			                                     }) };
-		pub_path_planned.publish( local_path );
+		pub_path_planned.publish( generated_path );
 
 		// execute after confirmation from user
 		remote.waitForNextStep("execute trajectory?");
@@ -315,24 +324,29 @@ int main(int argc, char** argv){
 		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
 
 		nav_msgs::Path executed_path{ getLinkPath({
-			                                        .frame = path->header.frame_id,
+			                                        .frame = path.header.frame_id,
 			                                        .tip = tip_name,
 			                                        .trajectory = executed_trajectory,
 			                                        .tf = *tf_buffer
 			                                     }) };
 		pub_img.publish(
 		         paintLocalPaths({
-		                            .requested = *path,
-		                            .generated = local_path,
+		                            .requested = path,
+		                            .generated = generated_path,
 		                            .executed = executed_path
 		                         })
 		         );
 
 		pub_path_executed.publish( executed_path );
 
+		ExecutePathResult result;
+		result.generated_path = generated_path;
+		result.executed_path = executed_path;
 
-	}) };
-
+		server->setSucceeded(result);
+	} };
+   server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/execute_path", actionCB, false);
+   server->start();
 
 	ros::waitForShutdown();
 	return 0;
