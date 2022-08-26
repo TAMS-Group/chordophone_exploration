@@ -24,10 +24,7 @@ geometry_msgs/PoseStamped finger_start_pose # in string frame
 
 ## Generated Action
 
-# free text definition of the meaning of the parameters below
-string actionspace_type
-# free parameters depending on value
-float64[] action_parameters
+tams_pr2_guzheng/ActionParameters action_parameters
 
 
 ## Generated and executed motions

@@ -39,6 +39,8 @@ add_message_files(
 DIRECTORY
   msg
 FILES
+  ActionParameters.msg
+  EpisodeState.msg
   PluckEpisodeV1.msg
 )
 
