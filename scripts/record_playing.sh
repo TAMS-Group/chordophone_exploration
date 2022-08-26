@@ -5,16 +5,29 @@
 rosbag record \
   -o "guzheng${1:+_$1}" \
   \
-  /guzheng/audio \
-  /guzheng/audio_info \
+  /episode/state \
+  /episode/action_parameters \
+  \
   /joint_states \
-  /hand/joint_states_original \
-  /hand/rh/tactile \
   /tf \
   /tf_static \
+  \
+  /pluck/execute_path/goal \
+  /pluck/execute_path/result \
+  /pluck/trajectory \
+  /pluck/executed_trajectory \
+  /pluck/planned_path \
+  /pluck/executed_path \
+  \
+  /guzheng/audio \
+  /guzheng/audio_info \
+  /guzheng/onsets \
+  \
+  /hand/rh/tactile \
+  \
   /diagnostics_agg \
   /mannequin_mode_active \
+
   /move_group/monitored_planning_scene \
-  /move_group/display_planned_path \
-
-
+  /move_group/goal \
+  /move_group/result \
