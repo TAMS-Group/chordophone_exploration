@@ -4,10 +4,11 @@ import rospy
 import cv_bridge
 
 from audio_common_msgs.msg import AudioData, AudioInfo
-from geometry_msgs.msg import PointStamped
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32, Header, ColorRGBA
 from visualization_msgs.msg import MarkerArray, Marker
+from tams_pr2_guzheng.msg import NoteOnset
+
 
 import librosa
 import crepe
@@ -83,7 +84,7 @@ class OnsetDetector():
 
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1, tcp_nodelay= True)
 
-		self.pub_plot= rospy.Publisher('onsets_plotable', PointStamped, queue_size= 100, tcp_nodelay= True)
+		self.pub_onset= rospy.Publisher('onsets_plotable', NoteOnset, queue_size= 100, tcp_nodelay= True)
 		self.pub= rospy.Publisher('onsets', MarkerArray, queue_size= 100, tcp_nodelay= True)
 
 		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100, tcp_nodelay= True)
@@ -142,11 +143,11 @@ class OnsetDetector():
 
 		thresholded_freq= freq[confidence_mask]
 		if len(thresholded_freq) > 0:
-			pitch= np.average(thresholded_freq, weights= confidence[confidence_mask]) # confidence[confidence > 0.8])
+			pitch= np.average(thresholded_freq, weights= confidence[confidence_mask])
 			rospy.loginfo('found frequency {} ({})'.format(pitch, librosa.hz_to_note(pitch)))
-			return pitch
+			return pitch, np.max(confidence[confidence_mask])
 		else:
-			return 0.0
+			return 0.0, 0.0
 
 	def color_from_freq(self, freq):
 		if freq > 0.0:
@@ -198,28 +199,28 @@ class OnsetDetector():
 
 		self.update_spectrogram(cqt, onsets_cqt)
 
+		markers= MarkerArray()
+
 		# publish events and plot visualization
 		for o in onsets_cqt:
-			p= PointStamped()
-			p.header.stamp= self.buffer_time+rospy.Duration(o)
-			p.point.x= 0.5
-			self.pub_plot.publish(p)
-		p= PointStamped()
-		p.point.y= 0.2
-		p.header.stamp= self.buffer_time+rospy.Duration(self.window_overlap_t)+rospy.Duration(self.window_t)
-		self.pub_plot.publish(p)
+			fundamental_frequency, confidence= self.fundamental_frequency_for_onset(o)
+         t= self.buffer_time+rospy.Duration(o)
 
-		markers= MarkerArray()
-		for o in onsets_cqt:
+			no= NoteOnset()
+			no.header.stamp= t
+			no.note = librosa.hz_to_note(fundamental_frequency)
+         no.confidence = confidence
+			self.pub_onset.publish(p)
+
 			m= Marker()
 			m.ns= "audio_onset"
 			m.type= Marker.SPHERE
 			m.action= Marker.ADD
-			m.header.stamp= self.buffer_time+rospy.Duration(o)
+			m.header.stamp= t
 			m.scale.x= 0.005
 			m.scale.y= 0.005
 			m.scale.z= 0.005
-			m.color= self.color_from_freq(self.fundamental_frequency_for_onset(o))
+			m.color= self.color_from_freq(fundamental_frequency)
 			markers.markers.append(m)
 		self.pub.publish(markers)
 

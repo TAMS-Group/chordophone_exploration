@@ -42,9 +42,7 @@ moveit_msgs/MoveItErrorCodes execution_status
 audio_common_msgs/AudioInfo audio_info
 audio_common_msgs/AudioData audio_data
 
-time[] detected_audio_onsets
-
-string detected_note
+tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
 
 
 ## Tactile data
