@@ -79,14 +79,14 @@ class OnsetDetector():
 		self.cv_bridge= cv_bridge.CvBridge()
 		self.spectrogram= None
 		self.previous_onsets= []
-		self.pub_spectrogram= rospy.Publisher('spectrogram', Image, queue_size= 1)
+		self.pub_spectrogram= rospy.Publisher('spectrogram', Image, queue_size= 1, tcp_nodelay= True)
 
-		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1)
+		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1, tcp_nodelay= True)
 
-		self.pub_plot= rospy.Publisher('onsets_plotable', PointStamped, queue_size= 100)
-		self.pub= rospy.Publisher('onsets', MarkerArray, queue_size= 100)
+		self.pub_plot= rospy.Publisher('onsets_plotable', PointStamped, queue_size= 100, tcp_nodelay= True)
+		self.pub= rospy.Publisher('onsets', MarkerArray, queue_size= 100, tcp_nodelay= True)
 
-		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100)
+		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100, tcp_nodelay= True)
 
 	def reset(self):
 		# audio buffer

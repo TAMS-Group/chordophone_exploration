@@ -17,7 +17,7 @@ def setup():
   global dump
   filename = sys.argv[1] if len(sys.argv) > 1 else "dump.pcm"
   dump = open(filename, 'wb')
-  rospy.Subscriber('guzheng/audio', AudioData, cb, queue_size=100)
+  rospy.Subscriber('guzheng/audio', AudioData, cb, queue_size=100, tcp_nodelay= True)
   rospy.Timer(rospy.Duration(1.0), status)
   rospy.loginfo('setup complete')
 

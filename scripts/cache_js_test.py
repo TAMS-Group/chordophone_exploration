@@ -22,6 +22,6 @@ def cb(msg):
 		rospy.loginfo('{} is still too young compared to {}'.format(buffer[0].header.stamp, rospy.Time.now()))
 
 
-pub = rospy.Publisher('joint_states_buffered', JointState, queue_size= 100)
-sub = rospy.Subscriber('joint_states', JointState, cb, queue_size= 100)
+pub = rospy.Publisher('joint_states_buffered', JointState, queue_size= 100, tcp_nodelay= True)
+sub = rospy.Subscriber('joint_states', JointState, cb, queue_size= 100, tcp_nodelay= True)
 rospy.spin()

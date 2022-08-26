@@ -37,15 +37,15 @@ class Projector:
 
 		self.reset()
 
-		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True)
-		self.pub_frame= rospy.Publisher('projection_frame', PoseStamped, queue_size= 1, latch= True)
+		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
+		self.pub_frame= rospy.Publisher('projection_frame', PoseStamped, queue_size= 1, latch= True, tcp_nodelay= True)
 
 		# server directly sets config correctly
 		self.config= None
 		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
 
-		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100)
-		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100)
+		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
+		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
 
 	def reset(self):
 		self.id= 0
