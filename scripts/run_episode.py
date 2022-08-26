@@ -5,12 +5,7 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
 
 import actionlib
-from tams_pr2_guzheng.msg import
-    ExecutePathAction,
-    ExecutePathGoal,
-    ExecutePathResult,
-    StringMarker,
-    ActionParameters
+from tams_pr2_guzheng.msg import ExecutePathAction, ExecutePathGoal, ExecutePathResult, EpisodeState, ActionParameters
 
 import random
 
@@ -20,7 +15,7 @@ class RunEpisode():
         self.execute_path_client = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
         self.execute_path_client.wait_for_server()
 
-        self.state_pub = rospy.Publisher('episode/state', StringMarker, queue_size=10, tcp_nodelay= True)
+        self.state_pub = rospy.Publisher('episode/state', EpisodeState, queue_size=10, tcp_nodelay= True)
         self.parameter_pub = rospy.Publisher('episode/action_parameters', ActionParameters , queue_size=10, tcp_nodelay= True)
 
         self.episode_id= 0
@@ -67,23 +62,25 @@ class RunEpisode():
 
         now = rospy.Time.now()
         self.publishState("start", now)
-        execute_path_client.send_goal(ExecutePathGoal(path= path))
-        self.publishParameters(self, "y z waypoint offsets", [y_rand, z_rand], now= now)
+        self.execute_path_client.send_goal(ExecutePathGoal(path= path))
+        self.publishParameters("y z waypoint offsets", [y_rand, z_rand], now= now)
 
-        execute_path_client.wait_for_result()
+        self.execute_path_client.wait_for_result()
         self.publishState("end")
 
 
 def main():
-    rospy.init_node('publish_path')
+    rospy.init_node('run_episode')
 
     re= RunEpisode()
     
+    note= rospy.get_param("~note", "d6")
+
     if not rospy.get_param("~continuous", False):
-        re.run(note= 'd6')
+        re.run_episode(note= note)
     else:
         while not rospy.is_shutdown():
-            re.run(note= 'd6')
+            re.run_episode(note= note)
 
 
 if __name__ == "__main__":
