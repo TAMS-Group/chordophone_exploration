@@ -41,6 +41,7 @@ DIRECTORY
 FILES
   ActionParameters.msg
   EpisodeState.msg
+  NoteOnset.msg
   PluckEpisodeV1.msg
 )
 

@@ -204,13 +204,13 @@ class OnsetDetector():
 		# publish events and plot visualization
 		for o in onsets_cqt:
 			fundamental_frequency, confidence= self.fundamental_frequency_for_onset(o)
-         t= self.buffer_time+rospy.Duration(o)
+			t= self.buffer_time+rospy.Duration(o)
 
 			no= NoteOnset()
 			no.header.stamp= t
 			no.note = librosa.hz_to_note(fundamental_frequency)
-         no.confidence = confidence
-			self.pub_onset.publish(p)
+			no.confidence = confidence
+			self.pub_onset.publish(no)
 
 			m= Marker()
 			m.ns= "audio_onset"
