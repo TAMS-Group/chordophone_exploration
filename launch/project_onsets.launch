@@ -6,7 +6,7 @@
     <param name="offset_x" value="0.024" />
     <param name="offset_y" value="0.0" />
     <param name="offset_z" value="-0.01" />
-    <remap from="events_markers" to="onsets" />
+    <remap from="events_markers" to="onsets_markers" />
     <remap from="events_projected" to="onsets_projected" />
   </node>
   </group>

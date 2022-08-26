@@ -84,8 +84,8 @@ class OnsetDetector():
 
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1, tcp_nodelay= True)
 
-		self.pub_onset= rospy.Publisher('onsets_plotable', NoteOnset, queue_size= 100, tcp_nodelay= True)
-		self.pub= rospy.Publisher('onsets', MarkerArray, queue_size= 100, tcp_nodelay= True)
+		self.pub_onset= rospy.Publisher('onsets', NoteOnset, queue_size= 100, tcp_nodelay= True)
+		self.pub= rospy.Publisher('onsets_markers', MarkerArray, queue_size= 100, tcp_nodelay= True)
 
 		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100, tcp_nodelay= True)
 
