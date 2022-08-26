@@ -3,6 +3,7 @@
 # optional argument allows for custom filename
 
 rosbag record \
+  --tcpnodelay \
   -o "guzheng${1:+_$1}" \
   \
   /episode/state \
@@ -24,10 +25,11 @@ rosbag record \
   /guzheng/onsets \
   \
   /hand/rh/tactile \
+  /guzheng/plucks \
   \
   /diagnostics_agg \
   /mannequin_mode_active \
-
+  \
   /move_group/monitored_planning_scene \
-  /move_group/goal \
-  /move_group/result \
+  /execute_trajectory/goal \
+  /execute_trajectory/result \

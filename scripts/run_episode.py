@@ -18,9 +18,12 @@ class RunEpisode():
         self.state_pub = rospy.Publisher('episode/state', EpisodeState, queue_size=10, tcp_nodelay= True)
         self.parameter_pub = rospy.Publisher('episode/action_parameters', ActionParameters , queue_size=10, tcp_nodelay= True)
 
+        # leave time for clients to connect
+        rospy.sleep(rospy.Duration(1.0))
+
         self.episode_id= 0
 
-    def newEpisode(self):
+    def new_episode(self):
         self.episode_id= random.randint(0, 1<<30)
     
     def publishState(self, state, now= None):
@@ -38,6 +41,8 @@ class RunEpisode():
         self.parameter_pub.publish(ap)
 
     def run_episode(self, note):
+        self.new_episode()
+
         y_rand = random.uniform(-.01, 0.005)
         z_rand = random.uniform(.0, 0.01)
 
@@ -62,7 +67,7 @@ class RunEpisode():
 
         now = rospy.Time.now()
         self.publishState("start", now)
-        self.execute_path_client.send_goal(ExecutePathGoal(path= path))
+        self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= 'ff'))
         self.publishParameters("y z waypoint offsets", [y_rand, z_rand], now= now)
 
         self.execute_path_client.wait_for_result()
@@ -78,9 +83,11 @@ def main():
 
     if not rospy.get_param("~continuous", False):
         re.run_episode(note= note)
+        rospy.sleep(rospy.Duration(1.0))
     else:
         while not rospy.is_shutdown():
-            re.run_episode(note= note)
+            re.run_episode(note= "d6")
+            re.run_episode(note= "b5")
 
 
 if __name__ == "__main__":

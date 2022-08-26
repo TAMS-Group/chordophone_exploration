@@ -107,14 +107,14 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		         1.0
 		         );
 		constraints.add<bio_ik::DirectionGoal>(
-		         "rh_fftip",
-		         tf2::Vector3{ 0, 0, 1 },
+		         args.tip,
+		         tf2::Vector3{ 1, 0, 0 },
 		         tf2::Vector3{ 0, 0, -1 },
 		         1.0
 		         );
 		constraints.add<bio_ik::DirectionGoal>(
-		         "rh_fftip",
-		         tf2::Vector3{ 1, 0, 0 },
+		         args.tip,
+		         tf2::Vector3{ 0, 1, 0 },
 		         tf2::Vector3{ 0, 1, 0 },
 		         0.005
 		         );
@@ -241,10 +241,11 @@ int main(int argc, char** argv){
 	  ROS_FATAL_STREAM("JointModelGroup '" << group_name << "' does not exist");
 	  return 1;
 	}
-   std::string tip_name;
-	pnh.param<std::string>("tip", tip_name, "rh_ff_biotac_link");
-	if(!scene.getRobotModel()->hasLinkModel(tip_name)){
-	  ROS_FATAL_STREAM("LinkModel '" << tip_name << "' does not exist");
+   std::string finger;
+	pnh.param<std::string>("finger", finger, "ff");
+   const std::vector<std::string> fingers{ "th", "ff", "mf", "rf", "lf" };
+	if(std::find(fingers.begin(), fingers.end(), finger) == fingers.end()){
+	  ROS_FATAL_STREAM("finger must be one of th/ff/mf/rf/lf");
 	  return 1;
 	}
 
@@ -265,6 +266,13 @@ int main(int argc, char** argv){
 	auto actionCB{ [&](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
       auto& path{ goal->path };
 		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+      std::string tip_name{ "rh_" + (goal->finger.empty() ? finger : goal->finger) + "_biotac_link" };
+      if(!scene.getRobotModel()->hasLinkModel(tip_name)){
+          ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
+          server->setAborted();
+          return;
+      }
 
 		ROS_INFO("planning trajectory");
 
