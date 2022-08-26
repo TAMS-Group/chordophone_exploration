@@ -222,6 +222,7 @@ int main(int argc, char** argv){
    spinner.start();
 
 	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
+	ros::Publisher pub_executed_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
 	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
 	ros::Publisher pub_path_planned { nh.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
 	ros::Publisher pub_path_executed { nh.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
@@ -324,6 +325,15 @@ int main(int argc, char** argv){
 		csm->stopStateMonitor();
 		ROS_INFO_STREAM("status after execution: " << status);
 		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
+
+		{
+			moveit_msgs::DisplayTrajectory dtrajectory;
+			dtrajectory.model_id = psm.getRobotModel()->getName();
+			moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
+			dtrajectory.trajectory.resize(1);
+			executed_trajectory.getRobotTrajectoryMsg(dtrajectory.trajectory[0]);
+			pub_executed_traj.publish(dtrajectory);
+		}
 
 		nav_msgs::Path executed_path{ getLinkPath({
 			                                        .frame = path.header.frame_id,
