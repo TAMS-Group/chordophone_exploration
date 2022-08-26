@@ -215,7 +215,7 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 }
 
 int main(int argc, char** argv){
-   ros::init(argc, argv, "path_to_traj");
+   ros::init(argc, argv, "pluck_from_path");
    ros::NodeHandle nh, pnh{"~"};
 
 	ros::AsyncSpinner spinner{ 3 };
