@@ -49,4 +49,4 @@ tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
 
 sr_robot_msgs/Biotac[] tactile_data
 
-time[] detected_tactile_snaps
+time[] detected_tactile_plucks
