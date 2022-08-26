@@ -7,15 +7,20 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(catkin REQUIRED COMPONENTS
   actionlib
   actionlib_msgs
+  audio_common_msgs
   bio_ik
   cv_bridge
   dynamic_reconfigure
+  geometry_msgs
+  moveit_msgs
   moveit_ros_planning_interface
   nav_msgs
   rviz_visual_tools
+  sensor_msgs
   sr_robot_msgs
   std_msgs
   tf2_ros
+  trajectory_msgs
 )
 
 generate_dynamic_reconfigure_options(
@@ -30,10 +35,22 @@ FILES
   ExecutePath.action
 )
 
+add_message_files(
+DIRECTORY
+  msg
+FILES
+  PluckEpisodeV1.msg
+)
+
 generate_messages(
 DEPENDENCIES
   actionlib_msgs
+  audio_common_msgs
+  geometry_msgs
+  moveit_msgs
   nav_msgs
+  sr_robot_msgs
+  trajectory_msgs
 )
 
 catkin_package()
