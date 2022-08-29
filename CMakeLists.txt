@@ -42,6 +42,7 @@ FILES
   ActionParameters.msg
   EpisodeState.msg
   NoteOnset.msg
+  BiotacStamped.msg
   PluckEpisodeV1.msg
 )
 

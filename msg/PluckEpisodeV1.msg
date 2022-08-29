@@ -1,5 +1,7 @@
 ## Record a full training episode for plucking a string with all relevant data
 
+int32 id
+
 # stamp defines start time of episode
 std_msgs/Header header
 
@@ -44,9 +46,11 @@ audio_common_msgs/AudioData audio_data
 
 tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
 
+std_msgs/Float32MultiArray cqt
+# TODO: publisher not implemented yet
 
 ## Tactile data
 
-sr_robot_msgs/Biotac[] tactile_data
+tams_pr2_guzheng/BiotacStamped[] tactile_data
 
 time[] detected_tactile_plucks
