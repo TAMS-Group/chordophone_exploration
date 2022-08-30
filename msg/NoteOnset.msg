@@ -2,5 +2,5 @@ std_msgs/Header header
 
 string note
 
-# plotjuggler with stick plots need a constant data item to show 
+# confidence in note classification *not confidence in overall detection*
 float32 confidence
