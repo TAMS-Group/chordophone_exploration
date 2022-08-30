@@ -104,6 +104,11 @@ class Aggregator():
         self.episode= PluckEpisodeV1()
         self.episode.id= None
         self.episode.audio_info= self.audio_info
+        self.episode.start_state.name= []
+        self.episode.start_state.position= []
+        self.episode.start_state.velocity= []
+        self.episode.start_state.effort= []
+
 
     def finalize_episode(self):
         if self.episode.id is not None:
@@ -119,6 +124,16 @@ class Aggregator():
         return self.episode.id is not None
 
     def joint_states_cb(self, msg):
+        if self.tracksEpisode():
+            try:
+                self.episode.start_state.name.index(msg.name[0])
+            except ValueError:
+                # use time stamp of last part of the joint state
+                self.episode.start_state.header= msg.header
+                self.episode.start_state.name.extend(msg.name)
+                self.episode.start_state.position.extend(msg.position)
+                self.episode.start_state.velocity.extend(msg.velocity)
+                self.episode.start_state.effort.extend(msg.effort)
         pass
     def tf_cb(self, msg):
         pass

@@ -12,7 +12,6 @@ duration length
 ## Geometry
 
 # robot state before action
-#TODO
 sensor_msgs/JointState start_state
 
 # targeted string (by western note name)
