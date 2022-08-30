@@ -30,27 +30,39 @@ class Aggregator():
         self.subs= []
 
         self.topics= [
+            # monitoring
             ('/diagnostics_agg', DiagnosticArray, self.diagnostics_cb),
+            ('/mannequin_mode_active', BoolMsg, self.mannequin_mode_cb),
+            ('/move_group/monitored_planning_scene', PlanningScene, self.monitored_planning_scene_cb),
+
+            # episode parameters
             ('/episode/state', EpisodeState, self.state_cb),
             ('/episode/action_parameters', ActionParameters, self.action_parameter_cb),
+            ('/pluck/execute_path/goal', ExecutePathActionGoal, self.execute_path_cb),
+            ('/pluck/execute_path/result', ExecutePathActionResult, self.pluck_execute_path_result_cb),
+            ('/pluck/planned_path', Path, self.pluck_planned_path_cb),
+            ('/pluck/trajectory', DisplayTrajectory, self.pluck_planned_trajectory_cb),
+
+            # execution monitoring
+            ('/pluck/executed_path', Path, self.pluck_executed_path_cb),
+            ('/pluck/executed_trajectory', DisplayTrajectory, self.pluck_executed_trajectory_cb),
+
+            # actual execution
             ('/execute_trajectory/goal', ExecuteTrajectoryActionGoal, self.execute_trajectory_goal_cb),
             ('/execute_trajectory/result', ExecuteTrajectoryActionResult, self.execute_trajectory_result_cb),
-            ('/guzheng/audio_info', AudioInfo, self.audio_info_cb),
-            ('/guzheng/audio', AudioData, self.audio_cb),
+
+            # sensor events
             ('/guzheng/onsets', NoteOnset, self.onsets_cb),
             ('/guzheng/plucks', MarkerArray, self.plucks_cb),
+
+            ('/guzheng/audio', AudioData, self.audio_cb),
+            ('/guzheng/audio_info', AudioInfo, self.audio_info_cb),
+
+            # streams
             ('/hand/rh/tactile', BiotacAll, self.biotac_cb),
             ('/joint_states', JointState, self.joint_states_cb),
             ('/tf', TFMessage, self.tf_cb),
             ('/tf_static', TFMessage, self.tf_static_cb),
-            ('/move_group/monitored_planning_scene', PlanningScene, self.monitored_planning_scene_cb),
-            ('/mannequin_mode_active', BoolMsg, self.mannequin_mode_cb),
-            ('/pluck/executed_path', Path, self.pluck_executed_path_cb),
-            ('/pluck/planned_path', Path, self.pluck_planned_path_cb),
-            ('/pluck/trajectory', DisplayTrajectory, self.pluck_planned_trajectory_cb),
-            ('/pluck/executed_trajectory', DisplayTrajectory, self.pluck_executed_trajectory_cb),
-            ('/pluck/execute_path/goal', ExecutePathActionGoal, self.execute_path_cb),
-            ('/pluck/execute_path/result', ExecutePathActionResult, self.pluck_execute_path_result_cb),
             ]
 
         self.episode_pub= rospy.Publisher('pluck_episodes', PluckEpisodeV1, queue_size= 100, tcp_nodelay= True)
@@ -105,7 +117,6 @@ class Aggregator():
 
     def tracksEpisode(self):
         return self.episode.id is not None
-
 
     def joint_states_cb(self, msg):
         pass
