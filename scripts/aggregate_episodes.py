@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-import rospy
 from rosbag import Bag
+import rospy
+import tf2_ros
 
 from tams_pr2_guzheng.msg import PluckEpisodeV1, BiotacStamped, EpisodeState, ActionParameters, NoteOnset, ExecutePathActionGoal, ExecutePathActionResult
 
@@ -11,6 +12,7 @@ from audio_common_msgs.msg import AudioInfo, AudioData
 from visualization_msgs.msg import MarkerArray
 from sr_robot_msgs.msg import BiotacAll
 from sensor_msgs.msg import JointState
+from geometry_msgs.msg import PoseStamped, Pose
 from tf2_msgs.msg import TFMessage
 from std_msgs.msg import Bool as BoolMsg
 from nav_msgs.msg import Path
@@ -23,6 +25,7 @@ import sys
 class Aggregator():
     def __init__(self):
         self.audio_info= None
+        self.tf= tf2_ros.Buffer(cache_time= rospy.Duration(30))
         self.start_episode()
 
         self.store= False
@@ -136,16 +139,11 @@ class Aggregator():
                 self.episode.start_state.effort.extend(msg.effort)
         pass
     def tf_cb(self, msg):
-        pass
+        for t in msg.transforms:
+            self.tf.set_transform(t, "bag")
     def tf_static_cb(self, msg):
-        pass
-    def monitored_planning_scene_cb(self, msg):
-        pass
-    def pluck_execute_path_result_cb(self, msg):
-        pass
-    def mannequin_mode_cb(self, msg):
-        if msg.data:
-            rospy.logerr("Mannequin mode is active. Recording is invalid.")
+        for t in msg.transforms:
+            self.tf.set_transform_static(t, "bag")
 
     def pluck_executed_path_cb(self, msg):
         if not self.tracksEpisode():
@@ -163,7 +161,15 @@ class Aggregator():
         if not self.tracksEpisode():
             rospy.logwarn("received planned trajectory, but not tracking an episode")
         self.episode.planned_trajectory= msg.trajectory[0].joint_trajectory
-
+    def pluck_execute_path_result_cb(self, msg):
+        if not self.tracksEpisode():
+            rospy.logwarn(f'got ExecutePath result at {msg.header.stamp.to_sec()}, but no episode is tracked')
+        self.episode.planned_path = msg.result.generated_path
+        self.episode.executed_path = msg.result.executed_path
+        # TODO: enable with new recording
+        #self.episode.planned_trajectory = msg.result.generated_trajectory
+        #self.episode.executed_trajectory = msg.result.executed_trajectory
+        pass
     def audio_info_cb(self, msg):
         # persists across whole aggregation
         self.audio_info= msg
@@ -190,6 +196,15 @@ class Aggregator():
         self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
         self.episode.commanded_path= msg.goal.path
         self.episode.finger= msg.goal.finger
+        try:
+            self.episode.string_head_frame = self.tf.lookup_transform('base_footprint', msg.goal.path.header.frame_id, rospy.Time())
+        except Exception as e:
+            rospy.logwarn(e)
+        try:
+            finger_tf= self.tf.lookup_transform(msg.goal.path.header.frame_id, 'rh_'+self.episode.finger+'_biotac_link', rospy.Time())
+            self.episode.finger_start_pose= PoseStamped(header= finger_tf.header, pose= Pose(position= finger_tf.transform.translation, orientation= finger_tf.transform.rotation))
+        except Exception as e:
+            rospy.logwarn(e)
     def biotac_cb(self, msg):
         fingers= ['ff', 'mf', 'rf', 'lf', 'th']
         if self.tracksEpisode() and self.episode.finger != '' and self.episode.finger not in fingers:
@@ -199,10 +214,6 @@ class Aggregator():
                 header= msg.header,
                 tactile= msg.tactiles[fingers.index(self.episode.finger)]
                 ))
-    def diagnostics_cb(self, msg):
-        for status in msg.status:
-            if status.level >= DiagnosticStatus.ERROR:
-                rospy.logerr('Diagnostics error at {}:\n{}: {}'.format(msg.header.stamp, status.name, status.message))
     def state_cb(self, msg):
         if self.episode.id is not None and msg.episode != self.episode.id:
             rospy.logerr('received state {}/{} but currently episode {} is still tracked'.format(msg.episode,msg.state,self.episode.id))
@@ -228,6 +239,16 @@ class Aggregator():
         if not self.tracksEpisode():
             rospy.logwarn('got trajectory goal, but not actively tracking an episode right now')
         self.episode.execution_status= msg.result.error_code
+
+    def monitored_planning_scene_cb(self, msg):
+        pass
+    def mannequin_mode_cb(self, msg):
+        if msg.data:
+            rospy.logerr("Mannequin mode is active. Recording is invalid.")
+    def diagnostics_cb(self, msg):
+        for status in msg.status:
+            if status.level >= DiagnosticStatus.ERROR:
+                rospy.logerr('Diagnostics error at {}:\n{}: {}'.format(msg.header.stamp, status.name, status.message))
 
 
 if __name__ == '__main__':

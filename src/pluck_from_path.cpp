@@ -302,13 +302,17 @@ int main(int argc, char** argv){
 		) };
 
 		// propagate result
-		moveit_msgs::DisplayTrajectory dtrajectory;
-		dtrajectory.model_id = psm.getRobotModel()->getName();
-		moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
-		dtrajectory.trajectory.resize(1);
-		trajectory.getRobotTrajectoryMsg(dtrajectory.trajectory[0]);
-		pub_traj.publish(dtrajectory);
-		ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+		moveit_msgs::RobotTrajectory trajectory_msg;
+		trajectory.getRobotTrajectoryMsg(trajectory_msg);
+		{
+			moveit_msgs::DisplayTrajectory dtrajectory;
+			dtrajectory.model_id = psm.getRobotModel()->getName();
+			moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
+			dtrajectory.trajectory.reserve(1);
+			dtrajectory.trajectory.push_back(trajectory_msg);
+			pub_traj.publish(dtrajectory);
+			ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+		}
 
 		// create image to show trajectories
 		nav_msgs::Path generated_path { getLinkPath({
@@ -328,18 +332,20 @@ int main(int argc, char** argv){
 		csm->startStateMonitor();
 		tm.clearTrajectory();
 		tm.startTrajectoryMonitor();
-		auto status{ mgi.execute(dtrajectory.trajectory[0]) };
+		auto status{ mgi.execute(trajectory_msg) };
 		tm.stopTrajectoryMonitor();
 		csm->stopStateMonitor();
 		ROS_INFO_STREAM("status after execution: " << status);
 		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
 
+		moveit_msgs::RobotTrajectory executed_trajectory_msg;
+		executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
 		{
 			moveit_msgs::DisplayTrajectory dtrajectory;
 			dtrajectory.model_id = psm.getRobotModel()->getName();
 			moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
-			dtrajectory.trajectory.resize(1);
-			executed_trajectory.getRobotTrajectoryMsg(dtrajectory.trajectory[0]);
+			dtrajectory.trajectory.reserve(1);
+			dtrajectory.trajectory.push_back(executed_trajectory_msg);
 			pub_executed_traj.publish(dtrajectory);
 		}
 
@@ -361,7 +367,9 @@ int main(int argc, char** argv){
 
 		ExecutePathResult result;
 		result.generated_path = generated_path;
+		result.generated_trajectory = trajectory_msg.joint_trajectory;
 		result.executed_path = executed_path;
+		result.executed_trajectory = executed_trajectory_msg.joint_trajectory;
 
 		server->setSucceeded(result);
 	} };

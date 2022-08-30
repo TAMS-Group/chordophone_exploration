@@ -3,5 +3,8 @@ nav_msgs/Path path
 string finger # one of th/ff/mf/rf/lf
 ---
 nav_msgs/Path generated_path
+trajectory_msgs/JointTrajectory generated_trajectory
+
 nav_msgs/Path executed_path
+trajectory_msgs/JointTrajectory executed_trajectory
 ---

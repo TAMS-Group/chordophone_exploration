@@ -17,12 +17,10 @@ sensor_msgs/JointState start_state
 # targeted string (by western note name)
 string string
 # string head frame "guzheng/<note>/head" in planning frame
-#TODO
 geometry_msgs/TransformStamped string_head_frame
 
 # plucking finger
 string finger # one of th/ff/mf/rf/lf
-#TODO
 geometry_msgs/PoseStamped finger_start_pose # in string frame
 
 
@@ -34,6 +32,7 @@ tams_pr2_guzheng/ActionParameters action_parameters
 ## Generated and executed motions
 
 nav_msgs/Path commanded_path
+
 nav_msgs/Path planned_path
 trajectory_msgs/JointTrajectory planned_trajectory
 
