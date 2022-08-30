@@ -58,7 +58,7 @@ class OnsetDetector():
 		self.cmap.set_bad((0,0,0,1)) # make sure they are visible
 
 		# number of samples for analysis window and overlap regions between consecutive windows
-		self.window_t= 3.0
+		self.window_t= 1.0
 		self.window_overlap_t= 0.5
 
 		self.window= int(self.sr*self.window_t)
