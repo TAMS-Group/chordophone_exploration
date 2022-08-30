@@ -12,15 +12,18 @@ duration length
 ## Geometry
 
 # robot state before action
+#TODO
 sensor_msgs/JointState start_state
 
 # targeted string (by western note name)
 string string
 # string head frame "guzheng/<note>/head" in planning frame
+#TODO
 geometry_msgs/TransformStamped string_head_frame
 
 # plucking finger
 string finger # one of th/ff/mf/rf/lf
+#TODO
 geometry_msgs/PoseStamped finger_start_pose # in string frame
 
 
@@ -46,8 +49,9 @@ audio_common_msgs/AudioData audio_data
 
 tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
 
-std_msgs/Float32MultiArray cqt
 # TODO: publisher not implemented yet
+#TODO
+std_msgs/Float32MultiArray cqt
 
 ## Tactile data
 
