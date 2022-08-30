@@ -25,7 +25,7 @@ class RunEpisode():
 
     def new_episode(self):
         self.episode_id= random.randint(0, 1<<30)
-    
+
     def publishState(self, state, now= None):
         es= EpisodeState()
         es.header.stamp = rospy.Time.now() if now is None else now
@@ -53,10 +53,10 @@ class RunEpisode():
             [.05,-0.025+0.000+y_rand, 0.02+0.015+z_rand],
             [.05, 0.00 +0.000,        0.01+0.015]
             ]
-    
+
         path = Path()
         path.header.frame_id = 'guzheng/{}/head'.format(note)
-    
+
         for x, y, z in waypoints:
             p = PoseStamped()
             p.pose.position.x = x  # 0 - 0.15
@@ -72,13 +72,13 @@ class RunEpisode():
 
         self.execute_path_client.wait_for_result()
         self.publishState("end")
-
+        rospy.sleep(rospy.Duration(2.0)
 
 def main():
     rospy.init_node('run_episode')
 
     re= RunEpisode()
-    
+
     note= rospy.get_param("~note", "d6")
 
     if not rospy.get_param("~continuous", False):
