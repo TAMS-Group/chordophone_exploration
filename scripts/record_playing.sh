@@ -27,6 +27,9 @@ rosbag record \
   /hand/rh/tactile \
   /guzheng/plucks \
   \
+  /guzheng/onset_projector/parameter_updates \
+  /guzheng/pluck_projector/parameter_updates \
+  \
   /diagnostics_agg \
   /mannequin_mode_active \
   \
