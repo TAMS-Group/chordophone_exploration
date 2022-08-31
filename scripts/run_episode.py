@@ -40,9 +40,7 @@ class RunEpisode():
         ap.action_parameters= parameters
         self.parameter_pub.publish(ap)
 
-    def run_episode(self, note):
-        self.new_episode()
-
+    def run_episode(self, note, repeat= 1):
         y_rand = random.uniform(-.01, 0.005)
         z_rand = random.uniform(.0, 0.01)
 
@@ -54,25 +52,29 @@ class RunEpisode():
             [.05, 0.00 +0.000,        0.01+0.015]
             ]
 
-        path = Path()
-        path.header.frame_id = 'guzheng/{}/head'.format(note)
+        for i in range(repeat):
+            self.new_episode()
 
-        for x, y, z in waypoints:
-            p = PoseStamped()
-            p.pose.position.x = x  # 0 - 0.15
-            p.pose.position.y = y
-            p.pose.position.z = z
-            p.pose.orientation.w = 1.0
-            path.poses.append(p)
+            path = Path()
+            path.header.frame_id = 'guzheng/{}/head'.format(note)
 
-        now = rospy.Time.now()
-        self.publishState("start", now)
-        self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= 'ff'))
-        self.publishParameters("y z waypoint offsets", [y_rand, z_rand], now= now)
+            for x, y, z in waypoints:
+                p = PoseStamped()
+                p.pose.position.x = x  # 0 - 0.15
+                p.pose.position.y = y
+                p.pose.position.z = z
+                p.pose.orientation.w = 1.0
+                path.poses.append(p)
 
-        self.execute_path_client.wait_for_result()
-        self.publishState("end")
-        rospy.sleep(rospy.Duration(2.0)
+            now = rospy.Time.now()
+            self.publishState("start", now)
+            self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= 'ff'))
+            self.publishParameters("y z waypoint offsets", [y_rand, z_rand], now= now)
+
+            self.execute_path_client.wait_for_result()
+            rospy.sleep(rospy.Duration(2.0))
+            self.publishState("end")
+            rospy.sleep(rospy.Duration(1.0))
 
 def main():
     rospy.init_node('run_episode')
@@ -81,13 +83,14 @@ def main():
 
     note= rospy.get_param("~note", "d6")
 
+    repeat= rospy.get_param("~repeat", 1)
+
     if not rospy.get_param("~continuous", False):
-        re.run_episode(note= note)
+        re.run_episode(note= note, repeat= repeat)
         rospy.sleep(rospy.Duration(1.0))
     else:
         while not rospy.is_shutdown():
-            re.run_episode(note= "d6")
-            re.run_episode(note= "b5")
+            re.run_episode(note= note, repeat= repeat)
 
 
 if __name__ == "__main__":

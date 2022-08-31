@@ -257,7 +257,7 @@ class Aggregator():
 if __name__ == '__main__':
     rospy.init_node('aggregator')
     if sys.argv[1] == 'live':
-        Aggregator.live()
+        Aggregator().live()
         rospy.spin()
     else:
         Aggregator().bag(Bag(sys.argv[1]))
