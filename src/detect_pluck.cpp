@@ -41,24 +41,29 @@ struct DetectContact {
   }
 
   struct Point {
-	 ros::Time stamp;
-	 short data;
+     ros::Time stamp;
+     short data;
   };
   std::deque<Point> latest_values;
 
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
-	 latest_values.push_back({tacs.header.stamp, tacs.tactiles.at(finger_idx).pdc});
+    double value;
+
+    // TODO: switch to pac0/1 with envelope magnitude (max-min) over 0.01s buffers instead of high-pass filtering the PDC signal
+
+    latest_values.push_back({tacs.header.stamp, tacs.tactiles.at(finger_idx).pdc});
 
     if(latest_values.front().stamp + FILTER_WIDTH > tacs.header.stamp)
       return;
 
+    // TODO: low-pass filter of latest_values instead of latest_values.back()
+    value= latest_values.back().data - latest_values.front().data;
     std_msgs::Float32 data;
-    // TODO: low-pass filter instead of latest_values.back()
-    data.data= latest_values.back().data - latest_values.front().data;
+    data.data= value;
     pub.publish(data);
     latest_values.pop_front();
 
-    if(data.data > config.threshold && (last_event+ros::Duration(config.wait)) < tacs.header.stamp){
+    if(value > config.threshold && (last_event+ros::Duration(config.wait)) < tacs.header.stamp){
       last_event = tacs.header.stamp;
       ROS_INFO_STREAM("detected event (sleeping for " << config.wait << "s)");
       visualization_msgs::MarkerArray ma;
