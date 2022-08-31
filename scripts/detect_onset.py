@@ -135,7 +135,8 @@ class OnsetDetector():
 		self.pub_spectrogram.publish(self.cv_bridge.cv2_to_imgmsg(heatmap, "bgr8"))
 
 	def fundamental_frequency_for_onset(self, onset):
-		excerpt = self.buffer[int(onset*self.sr):int(onset*self.sr+self.window_overlap)]
+		prediction_averaging_window= 0.1*self.sr # at most self.window_overlap to make sure the data exists
+		excerpt = self.buffer[int(onset*self.sr):int(onset*self.sr+prediction_averaging_window)]
 		time, freq, confidence, _ = crepe.predict(excerpt, self.sr, viterbi= True, model_capacity= self.crepe_model, verbose= 0)
 
 		confidence_threshold= 0.4
