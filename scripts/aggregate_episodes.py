@@ -221,7 +221,8 @@ class Aggregator():
             rospy.logerr('received start of episode {}, but still tracking episode {}'.format(msg.episode, self.episode.id))
 
         if msg.state == 'end':
-            self.episode.length= msg.header.stamp - self.episode.header.stamp
+            # take start / end times from trajectory execution instead
+            #self.episode.length= msg.header.stamp - self.episode.header.stamp
             rospy.loginfo(f"finalize episode {self.episode.id} at {msg.header.stamp.to_sec()}")
             self.finalize_episode()
         if msg.state == 'start':
@@ -235,10 +236,12 @@ class Aggregator():
     def execute_trajectory_goal_cb(self, msg):
         if not self.tracksEpisode():
             rospy.logwarn('got trajectory goal, but not actively tracking an episode right now')
+        self.episode.start_execution = msg.header.stamp
     def execute_trajectory_result_cb(self, msg):
         if not self.tracksEpisode():
             rospy.logwarn('got trajectory goal, but not actively tracking an episode right now')
         self.episode.execution_status= msg.result.error_code
+        self.episode.length = msg.header.stamp - self.episode.header.stamp
 
     def monitored_planning_scene_cb(self, msg):
         pass

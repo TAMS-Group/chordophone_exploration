@@ -5,6 +5,8 @@ int32 id
 # stamp defines start time of episode
 std_msgs/Header header
 
+time start_execution
+
 # duration of episode
 duration length
 
