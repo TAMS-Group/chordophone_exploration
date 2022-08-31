@@ -208,8 +208,9 @@ class OnsetDetector():
 
 			no= NoteOnset()
 			no.header.stamp= t
-			no.note = librosa.hz_to_note(fundamental_frequency)
-			no.confidence = confidence
+			if fundamental_frequency != 0.0:
+				no.note = librosa.hz_to_note(fundamental_frequency)
+				no.confidence = confidence
 			self.pub_onset.publish(no)
 
 			m= Marker()
