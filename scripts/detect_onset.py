@@ -191,7 +191,7 @@ class OnsetDetector():
 			onset_envelope= onset_env_cqt,
 			units= 'time',
 			backtrack= False,
-			wait= 0.0*self.sr/self.hop_length, # I believe I don't want any wait time for data collection, but I used it for data collection: TODO: try with 0
+			#wait= 0.1*self.sr/self.hop_length,
 			delta= 4.0, normalize= False,
 			)
 
