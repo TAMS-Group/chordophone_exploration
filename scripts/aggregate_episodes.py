@@ -231,7 +231,7 @@ class Aggregator():
             self.episode.header= msg.header
     def action_parameter_cb(self, msg):
         if not self.tracksEpisode():
-            rospy.logwarn('got action parameters, but not actively tracking an episode right now')
+            rospy.logwarn(f'got action parameters at {msg.header.stamp.to_sec()}, but not actively tracking an episode right now')
         self.episode.action_parameters= msg
     def execute_trajectory_goal_cb(self, msg):
         if not self.tracksEpisode():
