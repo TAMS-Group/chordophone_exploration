@@ -162,8 +162,8 @@ class OnsetDetector():
 		msg.min_note= self.fmin_note
 		msg.hop_length= rospy.Duration(self.hop_length/self.sr)
 
-		msg.header.stamp= self.buffer_time+self.window_overlap_t
-		msg.data= self.buffer[:, self.overlap_hops:-self.overlap_hops].flatten()
+		msg.header.stamp= self.buffer_time + rospy.Duration(self.window_overlap_t)
+		msg.data= cqt[:, self.overlap_hops:-self.overlap_hops].flatten(order='F')
 		self.pub_cqt.publish(msg)
 
 	def audio_cb(self, msg):
