@@ -4,7 +4,16 @@ from rosbag import Bag
 import rospy
 import tf2_ros
 
-from tams_pr2_guzheng.msg import PluckEpisodeV1, BiotacStamped, EpisodeState, ActionParameters, NoteOnset, ExecutePathActionGoal, ExecutePathActionResult
+from tams_pr2_guzheng.msg import (
+    PluckEpisodeV1,
+    BiotacStamped,
+    EpisodeState,
+    ActionParameters,
+    NoteOnset,
+    CQTStamped,
+    ExecutePathActionGoal,
+    ExecutePathActionResult,
+    )
 
 from diagnostic_msgs.msg import DiagnosticStatus, DiagnosticArray
 from moveit_msgs.msg import ExecuteTrajectoryActionGoal, ExecuteTrajectoryActionResult, PlanningScene, DisplayTrajectory
@@ -60,6 +69,7 @@ class Aggregator():
 
             ('/guzheng/audio', AudioData, self.audio_cb),
             ('/guzheng/audio_info', AudioInfo, self.audio_info_cb),
+            ('/guzheng/cqt', CQTStamped, self.cqt_cb),
 
             # streams
             ('/hand/rh/tactile', BiotacAll, self.biotac_cb),
@@ -111,6 +121,8 @@ class Aggregator():
         self.episode.start_state.position= []
         self.episode.start_state.velocity= []
         self.episode.start_state.effort= []
+        self.episode.cqt= None
+
 
 
     def finalize_episode(self):
@@ -166,9 +178,8 @@ class Aggregator():
             rospy.logwarn(f'got ExecutePath result at {msg.header.stamp.to_sec()}, but no episode is tracked')
         self.episode.planned_path = msg.result.generated_path
         self.episode.executed_path = msg.result.executed_path
-        # TODO: enable with new recording
-        #self.episode.planned_trajectory = msg.result.generated_trajectory
-        #self.episode.executed_trajectory = msg.result.executed_trajectory
+        self.episode.planned_trajectory = msg.result.generated_trajectory
+        self.episode.executed_trajectory = msg.result.executed_trajectory
         pass
     def audio_info_cb(self, msg):
         # persists across whole aggregation
@@ -177,6 +188,14 @@ class Aggregator():
     def audio_cb(self, msg):
         if self.tracksEpisode():
             self.episode.audio_data.data+= msg.data
+    def cqt_cb(self, msg):
+        if not self.tracksEpisode():
+            return
+        # TODO: check whether msg.header.stamp matches to continue previous message
+        if self.episode.cqt is None:
+            self.episode.cqt= msg
+        else:
+            self.episode.cqt.data+= msg.data
     def onsets_cb(self, msg):
         if not self.tracksEpisode():
             rospy.logwarn(f"found note onset for note '{msg.note}' at {msg.header.stamp} without tracking an episode. Ignoring")
@@ -256,6 +275,9 @@ class Aggregator():
 
 if __name__ == '__main__':
     rospy.init_node('aggregator')
+    if len(sys.argv) < 2:
+        print("usage: {filename.bag|live}")
+        sys.exit(1)
     if sys.argv[1] == 'live':
         Aggregator().live()
         rospy.spin()

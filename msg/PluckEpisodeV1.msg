@@ -47,11 +47,9 @@ moveit_msgs/MoveItErrorCodes execution_status
 audio_common_msgs/AudioInfo audio_info
 audio_common_msgs/AudioData audio_data
 
-tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
+tams_pr2_guzheng/CQTStamped cqt
 
-# TODO: publisher not implemented yet
-#TODO
-std_msgs/Float32MultiArray cqt
+tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
 
 ## Tactile data
 
