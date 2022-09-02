@@ -7,7 +7,7 @@ from audio_common_msgs.msg import AudioData, AudioInfo
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32, Header, ColorRGBA
 from visualization_msgs.msg import MarkerArray, Marker
-from tams_pr2_guzheng.msg import NoteOnset
+from tams_pr2_guzheng.msg import NoteOnset, CQTStamped
 
 
 import librosa
@@ -24,8 +24,6 @@ import time
 
 
 class OnsetDetector():
-	buffer= np.array([], dtype= float)
-
 	@staticmethod
 	def unpack_data(data):
 		return np.array(struct.unpack('{0}h'.format(int(len(data)/2)), bytes(data)), dtype= float)
@@ -50,9 +48,9 @@ class OnsetDetector():
 		self.sr= 44100
 		self.hop_length= 512
 
-		self.fmin= librosa.note_to_hz('C2')
+		self.fmin_note= 'C2'
+		self.fmin= librosa.note_to_hz(self.fmin_note)
 		self.semitones= 84
-		self.fmax= librosa.note_to_hz('D6') # * 2**4 from D2 would be the range of the guzheng
 
 		self.cmap= plt.get_cmap('gist_rainbow').copy()
 		self.cmap.set_bad((0,0,0,1)) # make sure they are visible
@@ -64,12 +62,12 @@ class OnsetDetector():
 		self.window= int(self.sr*self.window_t)
 		self.window_overlap= int(self.sr*self.window_overlap_t)
 
+		self.overlap_hops= int(self.window_overlap/self.hop_length)
+
 		# preload model to not block the callback on first message
 		# capacities: 'tiny', 'small', 'medium', 'large', 'full'
 		self.crepe_model= 'full'
 		crepe.core.build_and_load_model(self.crepe_model)
-
-		self.buffer_time= None
 
 		if not self.check_audio_format():
 			rospy.signal_shutdown('incompatible audio format')
@@ -78,16 +76,18 @@ class OnsetDetector():
 		self.last_time = rospy.Time.now()
 
 		self.cv_bridge= cv_bridge.CvBridge()
-		self.spectrogram= None
-		self.previous_onsets= []
+
+		self.reset()
+
 		self.pub_spectrogram= rospy.Publisher('spectrogram', Image, queue_size= 1, tcp_nodelay= True)
 
 		self.pub_compute_time= rospy.Publisher('~compute_time', Float32, queue_size= 1, tcp_nodelay= True)
 
+		self.pub_cqt= rospy.Publisher('cqt', CQTStamped, queue_size= 100, tcp_nodelay= True)
 		self.pub_onset= rospy.Publisher('onsets', NoteOnset, queue_size= 100, tcp_nodelay= True)
 		self.pub= rospy.Publisher('onsets_markers', MarkerArray, queue_size= 100, tcp_nodelay= True)
 
-		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 100, tcp_nodelay= True)
+		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 500, tcp_nodelay= True)
 
 	def reset(self):
 		# audio buffer
@@ -103,10 +103,8 @@ class OnsetDetector():
 			self.spectrogram= None
 			return
 
-		overlap_hops= int(self.window_overlap/self.hop_length)
-
 		# throw away overlap
-		spec= spec[:, overlap_hops:-overlap_hops]
+		spec= spec[:, self.overlap_hops:-self.overlap_hops]
 		onsets= [o-self.window_overlap_t for o in onsets]
 
 		log_spec= np.log(spec)
@@ -156,6 +154,16 @@ class OnsetDetector():
 		else:
 			return ColorRGBA(*self.cmap.get_bad())
 
+	def publish_cqt(self, cqt):
+		msg= CQTStamped()
+		msg.number_of_semitones= self.semitones
+		msg.min_note= self.fmin_note
+		msg.hop_length= rospy.Duration(self.hop_length/self.sr)
+
+		msg.header.stamp= self.buffer_time+self.window_overlap_t
+		msg.data= self.buffer[:, self.overlap_hops:-self.overlap_hops].flatten()
+		self.pub_cqt.publish(msg)
+
 	def audio_cb(self, msg):
 		# handle bag loop graciously
 		now = rospy.Time.now()
@@ -164,13 +172,17 @@ class OnsetDetector():
 			self.reset()
 			self.last_time= now
 
+		# initially set time from now, later increment with each audio msg
 		if self.buffer_time is None:
 			self.buffer_time= now
 
 		self.buffer= np.concatenate([self.buffer, OnsetDetector.unpack_data(msg.data)])
 
+		# aggregate buffer until window+overlaps are full
 		if self.buffer.shape[0] < self.window+2*self.window_overlap:
 			return
+
+		# TODO: it would be better to do the computation below asynchronously to be sure not to loose audio data
 
 		# constant q transform with 96 half-tones from C2
 		# in theory we only need notes from D2-D6, but in practice tuning is often too low
@@ -181,6 +193,8 @@ class OnsetDetector():
 			hop_length= self.hop_length,
 			fmin= self.fmin,
 			n_bins = self.semitones))
+
+		self.publish_cqt(cqt)
 
 		onset_env_cqt= librosa.onset.onset_strength(
 			sr=self.sr,
@@ -231,6 +245,7 @@ class OnsetDetector():
 		else:
 			rospy.logdebug('found {} onsets'.format(len(onsets_cqt)))
 
+		# advance buffer, keep one overlap for next processing
 		self.buffer_time+= rospy.Duration(self.window_t)
 		self.buffer= self.buffer[(-2*self.window_overlap):]
 

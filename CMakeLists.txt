@@ -40,9 +40,10 @@ DIRECTORY
   msg
 FILES
   ActionParameters.msg
+  BiotacStamped.msg
+  CQTStamped.msg
   EpisodeState.msg
   NoteOnset.msg
-  BiotacStamped.msg
   PluckEpisodeV1.msg
 )
 

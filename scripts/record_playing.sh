@@ -22,8 +22,9 @@ rosbag record \
   \
   /guzheng/audio \
   /guzheng/audio_info \
-  /guzheng/onset_detector/compute_time \
+  /guzheng/cqt \
   /guzheng/onsets \
+  /guzheng/onset_detector/compute_time \
   \
   /hand/rh/tactile \
   /guzheng/plucks \
