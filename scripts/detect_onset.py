@@ -51,6 +51,8 @@ class OnsetDetector():
 		self.fmin_note= 'C2'
 		self.fmin= librosa.note_to_hz(self.fmin_note)
 		self.semitones= 84
+		self.fmax_note= 'C8'
+		self.fmax= librosa.note_to_hz(self.fmax_note)
 
 		self.cmap= plt.get_cmap('gist_rainbow').copy()
 		self.cmap.set_bad((0,0,0,1)) # make sure they are visible
@@ -92,7 +94,7 @@ class OnsetDetector():
 	def reset(self):
 		# audio buffer
 		self.buffer_time= None
-		self.buffer= self.buffer[0:0]
+		self.buffer= np.array([], dtype= float)
 
 		# visualization
 		self.spectrogram= None
