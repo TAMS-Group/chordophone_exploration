@@ -140,7 +140,9 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 
 	{
 		trajectory_processing::TimeOptimalTrajectoryGeneration time_parameterization{ 1.0, 0.2 };
-		time_parameterization.computeTimeStamps(traj);
+		if(!time_parameterization.computeTimeStamps(traj)){
+			throw std::runtime_error{"could not parameterize path"};
+		}
 		////slow down to half maximum speed
 		//time_parameterization.computeTimeStamps(traj, 0.5, 1.0);
 	}
