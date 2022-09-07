@@ -353,14 +353,19 @@ int main(int argc, char** argv){
 		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
 
 		moveit_msgs::RobotTrajectory executed_trajectory_msg;
-		executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
-		{
-			moveit_msgs::DisplayTrajectory dtrajectory;
-			dtrajectory.model_id = psm.getRobotModel()->getName();
-			moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
-			dtrajectory.trajectory.reserve(1);
-			dtrajectory.trajectory.push_back(executed_trajectory_msg);
-			pub_executed_traj.publish(dtrajectory);
+		if(!executed_trajectory.empty()){
+			executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
+			{
+				moveit_msgs::DisplayTrajectory dtrajectory;
+				dtrajectory.model_id = psm.getRobotModel()->getName();
+				moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
+				dtrajectory.trajectory.reserve(1);
+				dtrajectory.trajectory.push_back(executed_trajectory_msg);
+				pub_executed_traj.publish(dtrajectory);
+			}
+		}
+		else {
+			ROS_ERROR("Recorded trajectory is empty? It shouldn't be. Not publishing anything.");
 		}
 
 		nav_msgs::Path executed_path{ getLinkPath({
