@@ -23,6 +23,8 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
 )
 
+find_package(backward_ros QUIET)
+
 generate_dynamic_reconfigure_options(
   cfg/Offsets.cfg
   cfg/Threshold.cfg
