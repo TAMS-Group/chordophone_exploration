@@ -47,17 +47,19 @@ class RunEpisode():
         return ap
 
     def get_path(self, note):
-        y_start = random.uniform(-0.005, 0.005)
-        z_start = random.uniform(-0.005, 0.005)
-        y_rand = random.uniform(-.01, 0.005)
-        z_rand = random.uniform(.0, 0.01)
+        y_start = random.uniform(-0.010, 0.000)
+        z_start = random.uniform(0.0, 0.010)
+        #y_start = -0.015
+        #z_start = 0.0
+        y_rand = random.uniform(-.010, 0.000)
+        z_rand = random.uniform(.0, 0.015)
 
         # waypoints relative to sampled start
         waypoints = [
             [.05, 0.00 +0.000,        0.01+0.015],
-            [.05,-0.015+0.000,        0.00+0.015],
-            [.05,-0.020+0.000+y_rand, 0.00+0.015],
-            [.05,-0.025+0.000+y_rand, 0.02+0.015+z_rand],
+            [.05,-0.006+0.000,        0.00+0.015],
+            [.05,-0.006+0.000+y_rand, 0.00+0.015],
+            [.05,-0.020+0.000+y_rand, 0.01+0.015+z_rand],
 # back to start
 #            [.05, 0.00 +0.000,        0.01+0.015]
             ]
