@@ -226,6 +226,7 @@ int main(int argc, char** argv){
 	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
 	ros::Publisher pub_executed_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
 	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
+	ros::Publisher pub_path_commanded { nh.advertise<nav_msgs::Path>("pluck/commanded_path", 1, true) };
 	ros::Publisher pub_path_planned { nh.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
 	ros::Publisher pub_path_executed { nh.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
 
@@ -263,9 +264,9 @@ int main(int argc, char** argv){
 	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
 	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
 
-   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> server;
+   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> execute_path_server;
 
-	auto actionCB{ [&](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+	auto actionCB{ [&, &server= execute_path_server](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
       auto& path{ goal->path };
 		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
@@ -281,27 +282,36 @@ int main(int argc, char** argv){
 		// update scene + start trajectory at current state
 		if(!psm.requestPlanningSceneState()){
 			ROS_ERROR_STREAM("failed to get current scene from move_group");
+			server->setAborted();
 			return;
 		}
 
 		// transform requested path to planning frame
 		nav_msgs::Path path_transformed{ path };
 		const auto& planning_frame{ scene.getPlanningFrame() };
+		path_transformed.header.frame_id= planning_frame;
 		for(auto& pose : path_transformed.poses){
 			if(pose.header.frame_id.empty())
-				pose.header.frame_id = path_transformed.header.frame_id;
+		      pose.header.frame_id = path.header.frame_id;
 			pose = tf_buffer->transform(pose, planning_frame);
 		}
+		pub_path_commanded.publish( path_transformed );
 
 		// compute trajectory
-		robot_trajectory::RobotTrajectory trajectory{ generateTrajectory(
-			         {
-		   .path = path_transformed,
-		   .group = group_name,
-		   .tip = tip_name,
-			.scene = scene,
-			}
-		) };
+		robot_trajectory::RobotTrajectory trajectory{ scene.getRobotModel() };
+		try {
+			trajectory = generateTrajectory({
+			   .path = path_transformed,
+			   .group = group_name,
+			   .tip = tip_name,
+				.scene = scene,
+			});
+		}
+		catch(const std::runtime_error& e){
+			ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
+			server->setAborted();
+			return;
+		}
 
 		// propagate result
 		moveit_msgs::RobotTrajectory trajectory_msg;
@@ -375,8 +385,78 @@ int main(int argc, char** argv){
 
 		server->setSucceeded(result);
 	} };
-   server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/execute_path", actionCB, false);
-   server->start();
+   execute_path_server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/execute_path", actionCB, false);
+   execute_path_server->start();
+
+   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> move_server;
+
+	auto moveActionCB{ [&,&server=move_server](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+      auto& path{ goal->path };
+		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+      std::string tip_name{ "rh_" + (goal->finger.empty() ? finger : goal->finger) + "_biotac_link" };
+      if(!scene.getRobotModel()->hasLinkModel(tip_name)){
+          ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
+          server->setAborted();
+          return;
+      }
+
+		ROS_INFO("planning trajectory");
+
+		// update scene + start trajectory at current state
+		if(!psm.requestPlanningSceneState()){
+			ROS_ERROR_STREAM("failed to get current scene from move_group");
+			server->setAborted();
+			return;
+		}
+
+		// transform requested path to planning frame
+		nav_msgs::Path path_transformed{ path };
+		const auto& planning_frame{ scene.getPlanningFrame() };
+		for(auto& pose : path_transformed.poses){
+			if(pose.header.frame_id.empty())
+				pose.header.frame_id = path_transformed.header.frame_id;
+			pose = tf_buffer->transform(pose, planning_frame);
+		}
+
+		// compute trajectory
+		robot_trajectory::RobotTrajectory trajectory{ scene.getRobotModel() };
+		try {
+			trajectory = generateTrajectory({
+			   .path = path_transformed,
+			   .group = group_name,
+			   .tip = tip_name,
+				.scene = scene,
+			});
+		}
+		catch(const std::runtime_error& e){
+			ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
+			server->setAborted();
+			return;
+		}
+
+		// propagate result
+		moveit_msgs::RobotTrajectory trajectory_msg;
+		trajectory.getRobotTrajectoryMsg(trajectory_msg);
+		{
+			moveit_msgs::DisplayTrajectory dtrajectory;
+			dtrajectory.model_id = psm.getRobotModel()->getName();
+			moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
+			dtrajectory.trajectory.reserve(1);
+			dtrajectory.trajectory.push_back(trajectory_msg);
+			pub_traj.publish(dtrajectory);
+			ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+		}
+
+		auto status{ mgi.execute(trajectory_msg) };
+		ROS_INFO_STREAM("status after execution: " << status);
+
+		ExecutePathResult result;
+
+		server->setSucceeded(result);
+	} };
+   move_server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/goto_start", moveActionCB, false);
+   move_server->start();
 
 	ros::waitForShutdown();
 	return 0;

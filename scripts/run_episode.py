@@ -8,10 +8,13 @@ import actionlib
 from tams_pr2_guzheng.msg import ExecutePathAction, ExecutePathGoal, ExecutePathResult, EpisodeState, ActionParameters
 
 import random
-
+import copy
 
 class RunEpisode():
     def __init__(self):
+        self.goto_start_client = actionlib.SimpleActionClient('pluck/goto_start', ExecutePathAction)
+        self.goto_start_client.wait_for_server()
+
         self.execute_path_client = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
         self.execute_path_client.wait_for_server()
 
@@ -33,14 +36,15 @@ class RunEpisode():
         es.episode = self.episode_id
         self.state_pub.publish(es)
 
-    def publishParameters(self, parameter_type, parameters, now= None):
+    @staticmethod
+    def makeParameters(parameter_type, parameters, now= None):
         ap= ActionParameters()
         ap.header.stamp = rospy.Time.now() if now is None else now
         ap.actionspace_type= parameter_type
         ap.action_parameters= parameters
-        self.parameter_pub.publish(ap)
+        return ap
 
-    def run_episode(self, note, repeat= 1):
+    def get_path(self, note):
         y_rand = random.uniform(-.01, 0.005)
         z_rand = random.uniform(.0, 0.01)
 
@@ -49,29 +53,47 @@ class RunEpisode():
             [.05,-0.015+0.000,        0.00+0.015],
             [.05,-0.020+0.000+y_rand, 0.00+0.015],
             [.05,-0.025+0.000+y_rand, 0.02+0.015+z_rand],
-            [.05, 0.00 +0.000,        0.01+0.015]
+#            [.05, 0.00 +0.000,        0.01+0.015]
             ]
+
+        path = Path()
+        path.header.frame_id = 'guzheng/{}/head'.format(note)
+
+        for x, y, z in waypoints:
+            p = PoseStamped()
+            p.pose.position.x = x
+            p.pose.position.y = y
+            p.pose.position.z = z
+            p.pose.orientation.w = 1.0
+            path.poses.append(p)
+
+        return path, RunEpisode.makeParameters("y z waypoint offsets", [y_rand, z_rand])
+
+    def run_episode(self, note, repeat= 1):
+        path, params = RunEpisode.get_path(self, note)
+
+        finger= 'ff'
 
         for i in range(repeat):
             self.new_episode()
 
-            path = Path()
-            path.header.frame_id = 'guzheng/{}/head'.format(note)
+            approach_path= copy.deepcopy(path)
+            approach_path.poses= approach_path.poses[0:1]
+            approach_pose = copy.deepcopy(approach_path.poses[0])
+            approach_pose.pose.position.z+= 0.020
+            approach_path.poses.insert(0, approach_pose)
+            self.goto_start_client.send_goal(ExecutePathGoal(path= approach_path, finger= finger))
+            self.goto_start_client.wait_for_result()
 
-            for x, y, z in waypoints:
-                p = PoseStamped()
-                p.pose.position.x = x  # 0 - 0.15
-                p.pose.position.y = y
-                p.pose.position.z = z
-                p.pose.orientation.w = 1.0
-                path.poses.append(p)
+            if rospy.is_shutdown():
+                return
 
             now = rospy.Time.now()
             self.publishState("start", now)
-            self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= 'ff'))
-            self.publishParameters("y z waypoint offsets", [y_rand, z_rand], now= now)
-
+            self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= finger))
+            self.parameter_pub.publish(params)
             self.execute_path_client.wait_for_result()
+            # wait to collect data
             rospy.sleep(rospy.Duration(2.0))
             self.publishState("end")
             rospy.sleep(rospy.Duration(1.0))
