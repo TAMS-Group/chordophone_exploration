@@ -11,12 +11,14 @@ import random
 import copy
 
 class RunEpisode():
-    def __init__(self):
+    def __init__(self, just_play= False):
         self.goto_start_client = actionlib.SimpleActionClient('pluck/goto_start', ExecutePathAction)
         self.goto_start_client.wait_for_server()
 
         self.execute_path_client = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
         self.execute_path_client.wait_for_server()
+
+        self.just_play= just_play
 
         self.state_pub = rospy.Publisher('episode/state', EpisodeState, queue_size=10, tcp_nodelay= True)
         self.parameter_pub = rospy.Publisher('episode/action_parameters', ActionParameters , queue_size=10, tcp_nodelay= True)
@@ -77,6 +79,10 @@ class RunEpisode():
 
         return path, RunEpisode.makeParameters("y z waypoint offsets / yz start", [y_rand, z_rand, y_start, z_start])
 
+    def sleep(self, t):
+        if not self.just_play:
+            rospy.sleep(rospy.Duration(t))
+
     def run_episode(self, note, repeat= 1):
         path, params = RunEpisode.get_path(self, note)
 
@@ -102,20 +108,28 @@ class RunEpisode():
             self.parameter_pub.publish(params)
             self.execute_path_client.wait_for_result()
             # wait to collect data
-            rospy.sleep(rospy.Duration(2.0))
+            self.sleep(2.0)
             self.publishState("end")
-            rospy.sleep(rospy.Duration(1.0))
+            self.sleep(1.0)
 
 def main():
     rospy.init_node('run_episode')
 
-    re= RunEpisode()
+    just_play= rospy.get_param("~just_play", False)
+    re= RunEpisode(just_play= just_play)
 
     note= rospy.get_param("~note", "d6")
 
     repeat= rospy.get_param("~repeat", 1)
 
-    if not rospy.get_param("~continuous", False):
+    if just_play:
+        notes=["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
+        for n in notes:
+            re.run_episode(note=n, repeat= 1)
+        for n in reversed(notes):
+            re.run_episode(note=n, repeat= 1)
+
+    elif not rospy.get_param("~continuous", False):
         re.run_episode(note= note, repeat= repeat)
         rospy.sleep(rospy.Duration(1.0))
     else:
