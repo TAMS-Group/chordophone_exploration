@@ -102,8 +102,6 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		constraints.add<bio_ik::PositionGoal>(
 		         args.tip,
 		         tf2::Vector3{expected_tip_position.x(),expected_tip_position.y(),expected_tip_position.z()},
-					/*TODO: this is nonsense, the offset should be in the tip frame!*/
-		         //tf2::Vector3{expected_tip_position.x()+0.01,expected_tip_position.y(),expected_tip_position.z()+0.014},
 		         1.0
 		         );
 		constraints.add<bio_ik::DirectionGoal>(
@@ -139,7 +137,10 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 	}
 
 	{
-		trajectory_processing::TimeOptimalTrajectoryGeneration time_parameterization{ 1.0, 0.2 };
+		constexpr double path_tolerance{ 0.1 };
+      constexpr double resample_dt{ 0.05 };
+      constexpr double min_angle_change{ 0.001 };
+		trajectory_processing::TimeOptimalTrajectoryGeneration time_parameterization{ path_tolerance, resample_dt, min_angle_change };
 		if(!time_parameterization.computeTimeStamps(traj)){
 			throw std::runtime_error{"could not parameterize path"};
 		}
