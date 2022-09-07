@@ -262,6 +262,7 @@ int main(int argc, char** argv){
    mgi.setMaxAccelerationScalingFactor(1.0);
 
 	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
+	csm->startStateMonitor();
 	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
 
    std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> execute_path_server;
@@ -341,12 +342,12 @@ int main(int argc, char** argv){
 			ros::Duration(1.0).sleep();
 		}
 
-		csm->startStateMonitor();
+		//csm->startStateMonitor();
 		tm.clearTrajectory();
 		tm.startTrajectoryMonitor();
 		auto status{ mgi.execute(trajectory_msg) };
 		tm.stopTrajectoryMonitor();
-		csm->stopStateMonitor();
+		//csm->stopStateMonitor();
 		ROS_INFO_STREAM("status after execution: " << status);
 		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
 
