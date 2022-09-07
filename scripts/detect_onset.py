@@ -76,6 +76,7 @@ class OnsetDetector():
 			return
 
 		self.last_time = rospy.Time.now()
+		self.last_seq = 0
 
 		self.cv_bridge= cv_bridge.CvBridge()
 
@@ -167,12 +168,23 @@ class OnsetDetector():
 		self.pub_cqt.publish(msg)
 
 	def audio_cb(self, msg):
+		if hasattr(msg, 'header'):
+			now = msg.header.stamp
+			seq = msg.header.seq
+		else:
+			now = rospy.Time.now()
+			seq = self.last_seq+1
+
 		# handle bag loop graciously
-		now = rospy.Time.now()
 		if now < self.last_time:
 			rospy.loginfo('detected bag loop')
 			self.reset()
 			self.last_time= now
+			self.last_seq= seq
+
+		if seq != self.last_seq+1 and self.buffer_time is not None:
+			rospy.logwarn(f'sample drop detected: seq jumped from {self.last_seq} to {seq} (difference of  {seq-self.last_seq})')
+		self.last_seq = seq
 
 		# initially set time from now, later increment with each audio msg
 		if self.buffer_time is None:
