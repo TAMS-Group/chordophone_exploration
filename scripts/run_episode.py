@@ -45,16 +45,24 @@ class RunEpisode():
         return ap
 
     def get_path(self, note):
+        y_start = random.uniform(-0.005, 0.005)
+        z_start = random.uniform(-0.005, 0.005)
         y_rand = random.uniform(-.01, 0.005)
         z_rand = random.uniform(.0, 0.01)
 
+        # waypoints relative to sampled start
         waypoints = [
             [.05, 0.00 +0.000,        0.01+0.015],
             [.05,-0.015+0.000,        0.00+0.015],
             [.05,-0.020+0.000+y_rand, 0.00+0.015],
             [.05,-0.025+0.000+y_rand, 0.02+0.015+z_rand],
+# back to start
 #            [.05, 0.00 +0.000,        0.01+0.015]
             ]
+
+        for w in waypoints:
+            w[1]+= y_start
+            w[2]+= z_start
 
         path = Path()
         path.header.frame_id = 'guzheng/{}/head'.format(note)
@@ -67,7 +75,7 @@ class RunEpisode():
             p.pose.orientation.w = 1.0
             path.poses.append(p)
 
-        return path, RunEpisode.makeParameters("y z waypoint offsets", [y_rand, z_rand])
+        return path, RunEpisode.makeParameters("y z waypoint offsets / yz start", [y_rand, z_rand, y_start, z_start])
 
     def run_episode(self, note, repeat= 1):
         path, params = RunEpisode.get_path(self, note)
