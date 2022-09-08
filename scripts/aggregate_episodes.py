@@ -17,14 +17,15 @@ from tams_pr2_guzheng.msg import (
 
 from diagnostic_msgs.msg import DiagnosticStatus, DiagnosticArray
 from moveit_msgs.msg import ExecuteTrajectoryActionGoal, ExecuteTrajectoryActionResult, PlanningScene, DisplayTrajectory
-from audio_common_msgs.msg import AudioInfo, AudioData
+from audio_common_msgs.msg import AudioInfo, AudioData, AudioDataStamped
 from visualization_msgs.msg import MarkerArray
 from sr_robot_msgs.msg import BiotacAll
 from sensor_msgs.msg import JointState
-from geometry_msgs.msg import PoseStamped, Pose
+from geometry_msgs.msg import PoseStamped, Pose, Point
 from tf2_msgs.msg import TFMessage
-from std_msgs.msg import Bool as BoolMsg
+from std_msgs.msg import Bool as BoolMsg, Float32 as Float32Msg, Header
 from nav_msgs.msg import Path
+from dynamic_reconfigure.msg import Config as DynamicReconfigureConfig
 
 import pickle
 
@@ -34,6 +35,10 @@ import sys
 class Aggregator():
     def __init__(self):
         self.audio_info= None
+        self.audio_delay= None
+        self.finger_tip_offset= Point()
+
+        self.episode_count= 0
         self.tf= tf2_ros.Buffer(cache_time= rospy.Duration(30))
         self.start_episode()
 
@@ -46,6 +51,10 @@ class Aggregator():
             ('/diagnostics_agg', DiagnosticArray, self.diagnostics_cb),
             ('/mannequin_mode_active', BoolMsg, self.mannequin_mode_cb),
             ('/move_group/monitored_planning_scene', PlanningScene, self.monitored_planning_scene_cb),
+            ('/guzheng/onset_detector/compute_time', Float32Msg, self.compute_time_cb),
+
+            ('/guzheng/onset_projector/parameter_updates', DynamicReconfigureConfig, self.onset_parameter_cb),
+            ('/guzheng/pluck_projector/parameter_updates', DynamicReconfigureConfig, self.pluck_parameter_cb),
 
             # episode parameters
             ('/episode/state', EpisodeState, self.state_cb),
@@ -68,6 +77,7 @@ class Aggregator():
             ('/guzheng/plucks', MarkerArray, self.plucks_cb),
 
             ('/guzheng/audio', AudioData, self.audio_cb),
+#            ('/guzheng/audio_stamped', AudioDataStamped, self.audio_cb),
             ('/guzheng/audio_info', AudioInfo, self.audio_info_cb),
             ('/guzheng/cqt', CQTStamped, self.cqt_cb),
 
@@ -107,16 +117,20 @@ class Aggregator():
         #rospy.loginfo(f'Storing episodes in {pkl_name}')
         #pickle.dump(self.episodes, open(pkl_name, 'wb'))
         episode_bag_name = name+'_extracted_episodes.bag'
-        rospy.loginfo(f'write all episodes to {episode_bag_name}')
+        rospy.loginfo(f'write all {len(self.episodes)} episodes to {episode_bag_name}')
         with Bag(episode_bag_name, 'w') as bag:
-            for e in self.episodes:
+            for i,e in enumerate(self.episodes):
+                rospy.loginfo(f"writing episode {i}")
                 bag.write('/pluck_episodes', e, e.header.stamp)
+        rospy.loginfo('done')
         self.store= False
 
     def start_episode(self):
         self.episode= PluckEpisodeV1()
         self.episode.id= None
+        self.episode.audio_data.header= None
         self.episode.audio_info= self.audio_info
+        self.episode.audio_delay= self.audio_delay
         self.episode.start_state.name= []
         self.episode.start_state.position= []
         self.episode.start_state.velocity= []
@@ -126,12 +140,14 @@ class Aggregator():
 
 
     def finalize_episode(self):
+        if self.episode.audio_data.header is None:
+            self.episode.audio_data.header = Header()
         if self.episode.id is not None:
             self.episode_pub.publish(self.episode)
             if self.store:
                 self.episodes.append(self.episode)
         else:
-            rospy.loginfo('not publishing partial episode due to missing data')
+            rospy.logwarn('not publishing partial episode due to missing data')
 
         self.start_episode()
 
@@ -156,6 +172,14 @@ class Aggregator():
     def tf_static_cb(self, msg):
         for t in msg.transforms:
             self.tf.set_transform_static(t, "bag")
+    def pluck_parameter_cb(self, msg):
+        pass
+
+    def onset_parameter_cb(self, msg):
+        self.audio_delay = rospy.Duration(next(p.value for p in msg.doubles if p.name == 'delta_t'))
+        self.finger_tip_offset.x = next(p.value for p in msg.doubles if p.name == 'offset_x')
+        self.finger_tip_offset.y = next(p.value for p in msg.doubles if p.name == 'offset_y')
+        self.finger_tip_offset.z = next(p.value for p in msg.doubles if p.name == 'offset_z')
 
     def pluck_executed_path_cb(self, msg):
         if not self.tracksEpisode():
@@ -166,12 +190,12 @@ class Aggregator():
             rospy.logwarn("received executed trajectory, but not tracking an episode")
         self.episode.executed_trajectory= msg.trajectory[0].joint_trajectory
     def pluck_planned_path_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn("received planned path, but not tracking an episode")
+        #if not self.tracksEpisode():
+        #    rospy.logwarn("received planned path, but not tracking an episode")
         self.episode.planned_path= msg
     def pluck_planned_trajectory_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn("received planned trajectory, but not tracking an episode")
+        #if not self.tracksEpisode():
+        #    rospy.logwarn("received planned trajectory, but not tracking an episode")
         self.episode.planned_trajectory= msg.trajectory[0].joint_trajectory
     def pluck_execute_path_result_cb(self, msg):
         if not self.tracksEpisode():
@@ -187,6 +211,8 @@ class Aggregator():
         self.episode.audio_info= self.audio_info
     def audio_cb(self, msg):
         if self.tracksEpisode():
+            if self.episode.audio_data.header is None and hasattr(msg, "header"):
+                self.episode.audio_data.header= msg.header
             self.episode.audio_data.data+= msg.data
     def cqt_cb(self, msg):
         if not self.tracksEpisode():
@@ -198,23 +224,24 @@ class Aggregator():
             self.episode.cqt.data+= msg.data
     def onsets_cb(self, msg):
         if not self.tracksEpisode():
-            rospy.logwarn(f"found note onset for note '{msg.note}' at {msg.header.stamp} without tracking an episode. Ignoring")
+            rospy.logwarn(f"found note onset for note '{msg.note}' at {msg.header.stamp.to_sec()} without tracking an episode. Ignoring")
         else:
             self.episode.detected_audio_onsets.append(msg)
     def plucks_cb(self, msg):
         if not self.tracksEpisode():
-            rospy.logwarn(f"found pluck event at {msg.header.stamp} without tracking an episode. Ignoring")
+            rospy.logwarn(f"found pluck event at {msg.markers[0].header.stamp.to_sec()} without tracking an episode. Ignoring")
         elif len(msg.markers) == 0:
             rospy.logerr("found empty plucks marker message")
         else:
             self.episode.detected_tactile_plucks.append(msg.markers[0].header.stamp)
     def execute_path_cb(self, msg):
-        rospy.loginfo(f'execute path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
-        if not self.tracksEpisode():
-            rospy.logwarn(f"got execute path goal at {msg.header.stamp}, but not tracking an episode")
+        rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
+        #if not self.tracksEpisode():
+        #    rospy.logwarn(f"got execute path goal at {msg.header.stamp}, but not tracking an episode")
         self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
         self.episode.commanded_path= msg.goal.path
         self.episode.finger= msg.goal.finger
+        self.episode.calibrated_tip= self.finger_tip_offset
         try:
             self.episode.string_head_frame = self.tf.lookup_transform('base_footprint', msg.goal.path.header.frame_id, rospy.Time())
         except Exception as e:
@@ -242,27 +269,28 @@ class Aggregator():
         if msg.state == 'end':
             # take start / end times from trajectory execution instead
             #self.episode.length= msg.header.stamp - self.episode.header.stamp
-            rospy.loginfo(f"finalize episode {self.episode.id} at {msg.header.stamp.to_sec()}")
+            rospy.loginfo(f"  finalize episode at {msg.header.stamp.to_sec()}")
             self.finalize_episode()
         if msg.state == 'start':
-            rospy.loginfo(f'episode starts at {msg.header.stamp.to_sec()} with id {msg.episode}')
+            rospy.loginfo(f'{self.episode_count}th episode starts at {msg.header.stamp.to_sec()} with id {msg.episode}')
+            self.episode_count+= 1
             self.episode.id= msg.episode
             self.episode.header= msg.header
     def action_parameter_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn(f'got action parameters at {msg.header.stamp.to_sec()}, but not actively tracking an episode right now')
         self.episode.action_parameters= msg
     def execute_trajectory_goal_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn('got trajectory goal, but not actively tracking an episode right now')
+        # this should always be called twice for moving *towards start* and for *plucking*
+        # the second call always overwrites the first one
         self.episode.start_execution = msg.header.stamp
     def execute_trajectory_result_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn('got trajectory goal, but not actively tracking an episode right now')
+        # this should always be called twice for moving *towards start* and for *plucking*
+        # the second call always overwrites the first one
         self.episode.execution_status= msg.result.error_code
         self.episode.length = msg.header.stamp - self.episode.header.stamp
 
     def monitored_planning_scene_cb(self, msg):
+        pass
+    def compute_time_cb(self, msg):
         pass
     def mannequin_mode_cb(self, msg):
         if msg.data:
@@ -270,7 +298,7 @@ class Aggregator():
     def diagnostics_cb(self, msg):
         for status in msg.status:
             if status.level >= DiagnosticStatus.ERROR:
-                rospy.logerr('Diagnostics error at {}:\n{}: {}'.format(msg.header.stamp, status.name, status.message))
+                rospy.logerr('diagnostics at {}: {}: {}'.format(msg.header.stamp, status.name, status.message))
 
 
 if __name__ == '__main__':
@@ -283,3 +311,4 @@ if __name__ == '__main__':
         rospy.spin()
     else:
         Aggregator().bag(Bag(sys.argv[1]))
+        rospy.signal_shutdown("")

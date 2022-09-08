@@ -20,7 +20,7 @@ rosbag record \
   /pluck/planned_path \
   /pluck/executed_path \
   \
-  /guzheng/audio \
+  /guzheng/audio_stamped \
   /guzheng/audio_info \
   /guzheng/cqt \
   /guzheng/onsets \

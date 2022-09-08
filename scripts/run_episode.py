@@ -107,6 +107,7 @@ class RunEpisode():
             now = rospy.Time.now()
             self.publishState("start", now)
             self.execute_path_client.send_goal(ExecutePathGoal(path= path, finger= finger))
+            params.header.stamp = now
             self.parameter_pub.publish(params)
             self.execute_path_client.wait_for_result()
             # wait to collect data

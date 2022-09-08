@@ -90,9 +90,11 @@ class OnsetDetector():
 		self.pub_onset= rospy.Publisher('onsets', NoteOnset, queue_size= 100, tcp_nodelay= True)
 		self.pub= rospy.Publisher('onsets_markers', MarkerArray, queue_size= 100, tcp_nodelay= True)
 
-		self.sub= rospy.Subscriber('audio', AudioData, self.audio_cb, queue_size= 500, tcp_nodelay= True)
+		self.sub= rospy.Subscriber('audio_stamped', AudioDataStamped, self.audio_cb, queue_size= 500, tcp_nodelay= True)
 
 	def reset(self):
+		self.first_input= True
+
 		# audio buffer
 		self.buffer_time= None
 		self.buffer= np.array([], dtype= float)
@@ -168,25 +170,21 @@ class OnsetDetector():
 		self.pub_cqt.publish(msg)
 
 	def audio_cb(self, msg):
-		if hasattr(msg, 'header'):
-			now = msg.header.stamp
-			seq = msg.header.seq
-		else:
-			now = rospy.Time.now()
-			seq = self.last_seq+1
+		now = msg.header.stamp
+		seq = msg.header.seq
 
 		# handle bag loop graciously
 		if now < self.last_time:
 			rospy.loginfo('detected bag loop')
 			self.reset()
-			self.last_time= now
-			self.last_seq= seq
-
-		if seq != self.last_seq+1 and self.buffer_time is not None:
+		if seq != self.last_seq+1 and not self.first_input:
 			rospy.logwarn(f'sample drop detected: seq jumped from {self.last_seq} to {seq} (difference of  {seq-self.last_seq})')
+			self.reset()
+
+		self.last_time= now
 		self.last_seq = seq
 
-		# initially set time from now, later increment with each audio msg
+		# take time from message headers and increment based on data as long as no messages are dropped in ROS
 		if self.buffer_time is None:
 			self.buffer_time= now
 
