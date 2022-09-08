@@ -25,6 +25,7 @@ geometry_msgs/TransformStamped string_head_frame
 string finger # one of th/ff/mf/rf/lf
 geometry_msgs/PoseStamped finger_start_pose # in string frame
 
+geometry_msgs/Point calibrated_tip
 
 ## Generated Action
 
@@ -45,11 +46,13 @@ moveit_msgs/MoveItErrorCodes execution_status
 ## Audio data
 
 audio_common_msgs/AudioInfo audio_info
-audio_common_msgs/AudioData audio_data
+audio_common_msgs/AudioDataStamped audio_data
 
 tams_pr2_guzheng/CQTStamped cqt
 
 tams_pr2_guzheng/NoteOnset[] detected_audio_onsets
+
+duration audio_delay
 
 ## Tactile data
 
