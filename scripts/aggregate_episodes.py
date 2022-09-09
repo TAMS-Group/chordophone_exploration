@@ -165,7 +165,6 @@ class Aggregator():
                 self.episode.start_state.position.extend(msg.position)
                 self.episode.start_state.velocity.extend(msg.velocity)
                 self.episode.start_state.effort.extend(msg.effort)
-        pass
     def tf_cb(self, msg):
         for t in msg.transforms:
             self.tf.set_transform(t, "bag")
