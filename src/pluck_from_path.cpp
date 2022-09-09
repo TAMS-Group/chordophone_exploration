@@ -161,11 +161,14 @@ nav_msgs::Path getLinkPath(LinkPathArgs args){
 	path.header.frame_id = args.frame;
 
 	auto& t { args.trajectory };
+	double duration_from_start{ 0.0 };
 	for(size_t i{ 0 }; i < t.getWayPointCount(); ++i){
 		auto& wp { *t.getWayPointPtr(i) };
 		wp.updateLinkTransforms();
 		Eigen::Isometry3d wp_tip{ wp.getGlobalLinkTransform(args.tip) };
 		geometry_msgs::PoseStamped wp_pose;
+		wp_pose.header.stamp = ros::Time(duration_from_start);
+		duration_from_start+= t.getWayPointDurationFromPrevious(i);
 		wp_pose.header.frame_id = wp.getRobotModel()->getRootLinkName();
 		wp_pose.pose = tf2::toMsg(wp_tip);
 		path.poses.emplace_back( args.tf.transform(wp_pose, args.frame) );
