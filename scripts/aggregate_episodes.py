@@ -32,6 +32,12 @@ import pickle
 import re
 import sys
 
+def string_link(note):
+    return 'guzheng/'+note+'/head'
+
+def finger_link(finger):
+    return 'rh_'+finger+'_biotac_link'
+
 class Aggregator():
     def __init__(self):
         self.audio_info= None
@@ -140,6 +146,16 @@ class Aggregator():
 
 
     def finalize_episode(self):
+        try:
+            self.episode.string_head_frame = self.tf.lookup_transform('base_footprint', string_link(self.episode.string), rospy.Time())
+        except tf2_ros.TransformException as e:
+            rospy.logwarn(e)
+        try:
+            finger_tf= self.tf.lookup_transform(string_link(self.episode.string), finger_link(self.episode.finger), self.episode.header.stamp)
+            self.episode.finger_start_pose= PoseStamped(header= finger_tf.header, pose= Pose(position= finger_tf.transform.translation, orientation= finger_tf.transform.rotation))
+        except tf2_ros.TransformException as e:
+            rospy.logwarn(e)
+
         if self.episode.audio_data.header is None:
             self.episode.audio_data.header = Header()
         if self.episode.id is not None:
@@ -241,15 +257,6 @@ class Aggregator():
         self.episode.commanded_path= msg.goal.path
         self.episode.finger= msg.goal.finger
         self.episode.calibrated_tip= self.finger_tip_offset
-        try:
-            self.episode.string_head_frame = self.tf.lookup_transform('base_footprint', msg.goal.path.header.frame_id, rospy.Time())
-        except Exception as e:
-            rospy.logwarn(e)
-        try:
-            finger_tf= self.tf.lookup_transform(msg.goal.path.header.frame_id, 'rh_'+self.episode.finger+'_biotac_link', rospy.Time())
-            self.episode.finger_start_pose= PoseStamped(header= finger_tf.header, pose= Pose(position= finger_tf.transform.translation, orientation= finger_tf.transform.rotation))
-        except Exception as e:
-            rospy.logwarn(e)
     def biotac_cb(self, msg):
         fingers= ['ff', 'mf', 'rf', 'lf', 'th']
         if self.tracksEpisode() and self.episode.finger != '' and self.episode.finger not in fingers:
