@@ -13,7 +13,9 @@ from itertools import combinations
 class Plotter():
     def __init__(self, just_play=False):
         self.parameters= []
+        self.samples = 0
         self.lock = Lock()
+
          
         self.parameter_sub = rospy.Subscriber(
             'episode/action_parameters',
@@ -25,9 +27,12 @@ class Plotter():
     def cb(self, msg):
         with self.lock:
             self.parameters.append(msg.action_parameters)
+            self.samples+= 1
 
 def main():
     rospy.init_node('plot_parameters')
+
+    samples= rospy.get_param('~samples', 0)
 
     p= Plotter() 
 
@@ -39,6 +44,8 @@ def main():
 
         idx= 1
         with p.lock:
+            if samples > 0 and p.samples > samples:
+                break
             for i,j in combinations(range(4),2):
                 plt.subplot(2,3, idx)
                 idx+= 1
