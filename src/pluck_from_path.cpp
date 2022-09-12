@@ -266,6 +266,7 @@ int main(int argc, char** argv){
    mgi.setMaxAccelerationScalingFactor(1.0);
 
 	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
+	csm->enableCopyDynamics(true);
 	csm->startStateMonitor();
 	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
 
