@@ -168,10 +168,17 @@ nav_msgs::Path getLinkPath(LinkPathArgs args){
 		Eigen::Isometry3d wp_tip{ wp.getGlobalLinkTransform(args.tip) };
 		geometry_msgs::PoseStamped wp_pose;
 		wp_pose.header.stamp = ros::Time(duration_from_start);
-		duration_from_start+= t.getWayPointDurationFromPrevious(i);
+		duration_from_start+= std::max(0.0, t.getWayPointDurationFromPrevious(i));
 		wp_pose.header.frame_id = wp.getRobotModel()->getRootLinkName();
 		wp_pose.pose = tf2::toMsg(wp_tip);
-		path.poses.emplace_back( args.tf.transform(wp_pose, args.frame) );
+
+		// cache stamp because these are from trajectory start (not determined yet)
+		// instead of 1970 and that breaks TF.
+		auto wp_pose_stamp{ wp_pose.header.stamp };
+		wp_pose.header.stamp= ros::Time();
+		wp_pose= args.tf.transform(wp_pose, args.frame);
+		wp_pose.header.stamp= wp_pose_stamp;
+		path.poses.emplace_back( wp_pose );
 	}
 	return path;
 }
@@ -234,7 +241,7 @@ int main(int argc, char** argv){
 	ros::Publisher pub_path_planned { nh.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
 	ros::Publisher pub_path_executed { nh.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
 
-	auto tf_buffer{ std::make_shared<tf2_ros::Buffer>() };
+	auto tf_buffer{ std::make_shared<tf2_ros::Buffer>(ros::Duration(30.0)) };
 	tf2_ros::TransformListener tf_listener{ *tf_buffer };
 
 	planning_scene_monitor::PlanningSceneMonitor psm{ "robot_description", tf_buffer };
@@ -268,7 +275,7 @@ int main(int argc, char** argv){
 	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
 	csm->enableCopyDynamics(true);
 	csm->startStateMonitor();
-	planning_scene_monitor::TrajectoryMonitor tm{ csm, 50.0 };
+	planning_scene_monitor::TrajectoryMonitor tm{ csm, 100.0 };
 
    std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> execute_path_server;
 
