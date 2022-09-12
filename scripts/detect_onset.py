@@ -94,6 +94,8 @@ class OnsetDetector:
 
         self.reset()
 
+        self.first_input = True
+
     def start(self):
         self.pub_spectrogram = rospy.Publisher(
             "spectrogram", Image, queue_size=1, tcp_nodelay=True
@@ -122,8 +124,6 @@ class OnsetDetector:
         )
 
     def reset(self):
-        self.first_input = True
-
         # audio buffer
         self.buffer_time = None
         self.buffer = np.array([], dtype=float)
@@ -235,18 +235,24 @@ class OnsetDetector:
         now = msg.header.stamp
         seq = msg.header.seq
 
+        msg_data = OnsetDetector.unpack_data(msg.data)
+
         # handle bag loop graciously
         if now < self.last_time:
             rospy.loginfo("detected bag loop")
             self.reset()
         if seq != self.last_seq + 1 and not self.first_input:
+            jump = seq-self.last_seq
             rospy.logwarn(
                 f"sample drop detected: seq jumped"
                 f"from {self.last_seq} to {seq}"
-                f"(difference of  {seq-self.last_seq})"
+                f"(difference of {jump})"
             )
+            end_of_buffer_time = self.buffer_time + (self.buffer.shape[0]/self.sr)
             self.reset()
+            self.buffer_time = end_of_buffer_time + (jump-1) * (len(msg_data)/self.sr)
 
+        self.first_input = False
         self.last_time = now
         self.last_seq = seq
 
@@ -257,7 +263,7 @@ class OnsetDetector:
 
         self.buffer = np.concatenate([
             self.buffer,
-            OnsetDetector.unpack_data(msg.data)
+            msg_data
             ])
 
         # aggregate buffer until window+overlaps are full
