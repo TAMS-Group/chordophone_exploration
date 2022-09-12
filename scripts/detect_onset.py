@@ -16,6 +16,7 @@ import crepe.core
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.colors import ListedColormap
 
 import struct
 # import time
@@ -65,7 +66,9 @@ class OnsetDetector:
         self.fmax_note = "C8"
         self.fmax = librosa.note_to_hz(self.fmax_note)
 
-        self.cmap = plt.get_cmap("gist_rainbow").copy()
+        #self.cmap = plt.get_cmap("gist_rainbow").copy()
+        hsv = plt.get_cmap("hsv")
+        self.cmap = ListedColormap(np.vstack((hsv(np.linspace(0,1, 86)), hsv(np.linspace(0,1, 85)), hsv(np.linspace(0,1,85)))))
         self.cmap.set_bad((0, 0, 0, 1))  # make sure they are visible
 
         # number of samples for analysis window
@@ -218,7 +221,7 @@ class OnsetDetector:
     def color_from_freq(self, freq):
         if freq > 0.0:
             return ColorRGBA(
-                *self.cmap((freq - self.fmin) / (self.fmax - self.fmin))
+                *self.cmap((np.log(freq) - np.log(self.fmin)) / (np.log(self.fmax) - np.log(self.fmin)))
                 )
         else:
             return ColorRGBA(*self.cmap.get_bad())
@@ -338,7 +341,10 @@ class OnsetDetector:
             self.pub_onset.publish(no)
 
             m = Marker()
-            m.ns = "audio_onset"
+            if fundamental_frequency != 0.0:
+                m.ns = librosa.hz_to_note(fundamental_frequency)
+            else:
+                m.ns = "unknown"
             m.type = Marker.SPHERE
             m.action = Marker.ADD
             m.header.stamp = t
