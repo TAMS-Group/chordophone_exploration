@@ -200,6 +200,8 @@ def main():
 
     note = rospy.get_param("~note", "d6")
 
+    continuous = rospy.get_param("~continuous", False)
+    runs = rospy.get_param("~runs", 0)
     repeat = rospy.get_param("~repeat", 1)
 
     if just_play:
@@ -208,8 +210,11 @@ def main():
             re.run_episode(note=n, repeat=1)
         for n in reversed(notes):
             re.run_episode(note=n, repeat=1)
-
-    elif not rospy.get_param("~continuous", False):
+    elif runs > 0:
+        for i in range(runs):
+            re.run_episode(note=note, repeat=repeat)
+            rospy.sleep(rospy.Duration(1.0))
+    elif not continuous:
         re.run_episode(note=note, repeat=repeat)
         rospy.sleep(rospy.Duration(1.0))
     else:
