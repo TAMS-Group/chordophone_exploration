@@ -250,7 +250,7 @@ class OnsetDetector:
         now = msg.header.stamp
         seq = msg.header.seq
 
-        msg_data = OnsetDetector.unpack_data(msg.data)
+        msg_data = OnsetDetector.unpack_data(msg.audio.data)
 
         # handle bag loop graciously
         if now < self.last_time:

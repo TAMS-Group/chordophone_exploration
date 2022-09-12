@@ -10,8 +10,8 @@ msg_cnt = 0
 def cb(msg):
   global msg_cnt
   msg_cnt += 1
-  rospy.loginfo(len(msg.data))
-  dump.write(bytes(msg.data))
+  rospy.loginfo(len(msg.audio.data))
+  dump.write(bytes(msg.audio.data))
 
 def setup():
   global dump

@@ -228,7 +228,7 @@ class Aggregator():
         if self.tracksEpisode():
             if self.episode.audio_data.header is None and hasattr(msg, "header"):
                 self.episode.audio_data.header= msg.header
-            self.episode.audio_data.data+= msg.data
+            self.episode.audio_data.audio.data+= msg.audio.data
     def cqt_cb(self, msg):
         if not self.tracksEpisode():
             return
