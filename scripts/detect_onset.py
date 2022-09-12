@@ -272,7 +272,6 @@ class OnsetDetector:
         self.last_seq = seq
 
         # take time from message headers and increment based on data
-        # as long as no messages are dropped in ROS
         if self.buffer_time is None:
             self.buffer_time = now
 
