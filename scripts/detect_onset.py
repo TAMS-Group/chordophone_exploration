@@ -92,6 +92,10 @@ class OnsetDetector:
 
         self.cv_bridge = cv_bridge.CvBridge()
 
+        self.buffer = np.array([0.0]*self.sr, dtype=float)
+        # warm up classifier / jit caches
+        _ = self.cqt()
+        _ = self.fundamental_frequency_for_onset(0.0)
         self.reset()
 
         self.first_input = True
@@ -231,6 +235,17 @@ class OnsetDetector:
             cqt[:, self.overlap_hops:-self.overlap_hops].flatten(order="F")
         self.pub_cqt.publish(msg)
 
+    def cqt(self):
+        return np.abs(
+            librosa.cqt(
+                y=self.buffer,
+                sr=self.sr,
+                hop_length=self.hop_length,
+                fmin=self.fmin,
+                n_bins=self.semitones,
+            )
+        )
+
     def audio_cb(self, msg):
         now = msg.header.stamp
         seq = msg.header.seq
@@ -275,15 +290,7 @@ class OnsetDetector:
         # constant q transform with 96 half-tones from C2
         # in theory we only need notes from D2-D6, but in practice tuning
         # is often too low and harmonics are needed above D6
-        cqt = np.abs(
-            librosa.cqt(
-                y=self.buffer,
-                sr=self.sr,
-                hop_length=self.hop_length,
-                fmin=self.fmin,
-                n_bins=self.semitones,
-            )
-        )
+        cqt = self.cqt()
 
         self.publish_cqt(cqt)
 
