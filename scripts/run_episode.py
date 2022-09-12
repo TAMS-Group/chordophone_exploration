@@ -47,9 +47,12 @@ class RunEpisode():
         rospy.sleep(rospy.Duration(1.0))
 
         self.episode_id = 0
+        self.episode_cnt = 0
 
     def new_episode(self):
         self.episode_id = random.randint(0, 1 << 30)
+        self.episode_cnt+= 1
+        rospy.loginfo(f'run episode number {self.episode_cnt}')
 
     def publishState(self, state, now=None):
         es = EpisodeState()
