@@ -113,12 +113,13 @@ class RunEpisode():
 
     @staticmethod
     def get_path_yz_start_y_offset_lift_angle(note):
-        y_start = random.uniform(-0.010, 0.000)
-        z_start = random.uniform(0.0, 0.010)
+        y_start = random.uniform(-0.010, 0.005)
+        z_start = random.uniform(-0.002, 0.005)
 #        y_start = -0.015
 #        z_start = 0.0
         y_rand = random.uniform(-.010, 0.000)
-        lift_rand = random.uniform(tau/10, tau/4)
+
+        lift_rand = random.uniform(tau/16, tau/4)
 
         lift_dist = 0.015
         lift_wp_y = y_rand - lift_dist * np.cos(lift_rand)
