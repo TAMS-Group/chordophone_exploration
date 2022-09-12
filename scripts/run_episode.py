@@ -15,6 +15,8 @@ from tams_pr2_guzheng.msg import (
 import random
 import copy
 
+import numpy as np
+from math import tau
 
 class RunEpisode():
     def __init__(self, just_play=False):
@@ -56,6 +58,10 @@ class RunEpisode():
         es.episode = self.episode_id
         self.state_pub.publish(es)
 
+    def sleep(self, t):
+        if not self.just_play:
+            rospy.sleep(rospy.Duration(t))
+
     @staticmethod
     def makeParameters(parameter_type, parameters, now=None):
         ap = ActionParameters()
@@ -64,7 +70,8 @@ class RunEpisode():
         ap.action_parameters = parameters
         return ap
 
-    def get_path(self, note):
+    @staticmethod
+    def get_path_yz_offsets_yz_start(note):
         y_start = random.uniform(-0.010, 0.000)
         z_start = random.uniform(0.0, 0.010)
 #        y_start = -0.015
@@ -101,12 +108,52 @@ class RunEpisode():
             "y z waypoint offsets / yz start",
             [y_rand, z_rand, y_start, z_start])
 
-    def sleep(self, t):
-        if not self.just_play:
-            rospy.sleep(rospy.Duration(t))
+    @staticmethod
+    def get_path_yz_start_y_offset_lift_angle(note):
+        y_start = random.uniform(-0.010, 0.000)
+        z_start = random.uniform(0.0, 0.010)
+#        y_start = -0.015
+#        z_start = 0.0
+        y_rand = random.uniform(-.010, 0.000)
+        lift_rand = random.uniform(tau/10, tau/4)
+
+        lift_dist = 0.015
+        lift_wp_y = y_rand - lift_dist * np.cos(lift_rand)
+        lift_wp_z = lift_dist * np.sin(lift_rand)
+
+        # waypoints relative to sampled start
+        waypoints = [
+            [.05,  0.000 + 0.000,          0.01 + 0.015],
+            [.05, -0.006 + 0.000,          0.00 + 0.015],
+            [.05, -0.006 + 0.000 + y_rand, 0.00 + 0.015],
+            [.05, -0.006 + 0.000 + lift_wp_y, 0.00 + 0.015 + lift_wp_z],
+            # back to start
+            # [.05, 0.00 +0.000,        0.01+0.015]
+            ]
+        print(f'lift_rand: {lift_rand/tau}')
+
+        for w in waypoints:
+            w[1] += y_start
+            w[2] += z_start
+
+        path = Path()
+        path.header.frame_id = 'guzheng/{}/head'.format(note)
+
+        for x, y, z in waypoints:
+            p = PoseStamped()
+            p.pose.position.x = x
+            p.pose.position.y = y
+            p.pose.position.z = z
+            p.pose.orientation.w = 1.0
+            path.poses.append(p)
+
+        return path, RunEpisode.makeParameters(
+            "yz start / y offset / lift angle",
+            [y_start, z_start, y_rand, lift_rand])
 
     def run_episode(self, note, repeat=1):
-        path, params = RunEpisode.get_path(self, note)
+        # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
+        path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note)
 
         finger = 'ff'
 
