@@ -130,7 +130,6 @@ class RunEpisode():
             # back to start
             # [.05, 0.00 +0.000,        0.01+0.015]
             ]
-        print(f'lift_rand: {lift_rand/tau}')
 
         for w in waypoints:
             w[1] += y_start
