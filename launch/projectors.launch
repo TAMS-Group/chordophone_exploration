@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(dirname)/project_onsets.launch" />
+  <include file="$(dirname)/project_plucks.launch" />
+
+  <node name="forward_dynamic_parameters_to_pluck_projector"
+        pkg="tams_pr2_guzheng"
+        type="forward_dynamic_reconfigure_parameters.py"
+        ns="guzheng">
+    <remap from="source" to="onset_projector" />
+    <remap from="follower" to="pluck_projector" />
+  </node>
+</launch>

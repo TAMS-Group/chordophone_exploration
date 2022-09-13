@@ -6,7 +6,6 @@ import cv_bridge
 from audio_common_msgs.msg import AudioDataStamped, AudioInfo
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32, ColorRGBA
-from visualization_msgs.msg import MarkerArray, Marker
 from tams_pr2_guzheng.msg import NoteOnset, CQTStamped
 
 import librosa
@@ -68,9 +67,13 @@ class OnsetDetector:
         self.fmax_note = "C8"
         self.fmax = librosa.note_to_hz(self.fmax_note)
 
-        #self.cmap = plt.get_cmap("gist_rainbow").copy()
+        # self.cmap = plt.get_cmap("gist_rainbow").copy()
         hsv = plt.get_cmap("hsv")
-        self.cmap = ListedColormap(np.vstack((hsv(np.linspace(0,1, 86)), hsv(np.linspace(0,1, 85)), hsv(np.linspace(0,1,85)))))
+        self.cmap = ListedColormap(np.vstack((
+            hsv(np.linspace(0, 1, 86)),
+            hsv(np.linspace(0, 1, 85)),
+            hsv(np.linspace(0, 1, 85)))
+            ))
         self.cmap.set_bad((0, 0, 0, 1))  # make sure they are visible
 
         # number of samples for analysis window
@@ -119,9 +122,6 @@ class OnsetDetector:
         )
         self.pub_onset = rospy.Publisher(
             "onsets", NoteOnset, queue_size=100, tcp_nodelay=True
-        )
-        self.pub = rospy.Publisher(
-            "onsets_markers", MarkerArray, queue_size=100, tcp_nodelay=True
         )
 
         self.sub = rospy.Subscriber(
@@ -209,11 +209,14 @@ class OnsetDetector:
         thresholded_freq = freq[confidence_mask]
         thresholded_confidence = confidence[confidence_mask]
         if len(thresholded_freq) > 0:
-            buckets= {}
+            buckets = {}
             for f, c in zip(thresholded_freq, thresholded_confidence):
-                note= librosa.hz_to_note(f)
+                note = librosa.hz_to_note(f)
                 buckets[note] = buckets.get(note, []) + [c]
-            winner = max(buckets, key=lambda a: reduce(lambda x,y: x+y, buckets.get(a)))
+
+            def add_confidence(note):
+                return reduce(lambda x, y: x + y, buckets.get(note))
+            winner = max(buckets, key=lambda a: add_confidence)
             winner_freq = librosa.note_to_hz(winner)
             rospy.loginfo(f"found frequency {winner} ({winner_freq})")
             return winner_freq, max(buckets[winner])
@@ -223,7 +226,10 @@ class OnsetDetector:
     def color_from_freq(self, freq):
         if freq > 0.0:
             return ColorRGBA(
-                *self.cmap((np.log(freq) - np.log(self.fmin)) / (np.log(self.fmax) - np.log(self.fmin)))
+                *self.cmap(
+                    (np.log(freq) - np.log(self.fmin)) /
+                    (np.log(self.fmax) - np.log(self.fmin))
+                    )
                 )
         else:
             return ColorRGBA(*self.cmap.get_bad())
@@ -268,9 +274,11 @@ class OnsetDetector:
                 f"from {self.last_seq} to {seq}"
                 f"(difference of {jump})"
             )
-            end_of_buffer_time = self.buffer_time + (self.buffer.shape[0]/self.sr)
+            end_of_buffer_time = \
+                self.buffer_time + (self.buffer.shape[0]/self.sr)
             self.reset()
-            self.buffer_time = end_of_buffer_time + (jump-1) * (len(msg_data)/self.sr)
+            self.buffer_time = \
+                end_of_buffer_time + (jump-1) * (len(msg_data)/self.sr)
 
         self.first_input = False
         self.last_time = now
@@ -327,8 +335,6 @@ class OnsetDetector:
 
         self.update_spectrogram(cqt, onsets_cqt)
 
-        markers = MarkerArray()
-
         # publish events and plot visualization
         for o in onsets_cqt:
             fundamental_frequency, confidence = \
@@ -341,21 +347,6 @@ class OnsetDetector:
                 no.note = librosa.hz_to_note(fundamental_frequency)
                 no.confidence = confidence
             self.pub_onset.publish(no)
-
-            m = Marker()
-            if fundamental_frequency != 0.0:
-                m.ns = librosa.hz_to_note(fundamental_frequency)
-            else:
-                m.ns = "unknown"
-            m.type = Marker.SPHERE
-            m.action = Marker.ADD
-            m.header.stamp = t
-            m.scale.x = 0.005
-            m.scale.y = 0.005
-            m.scale.z = 0.005
-            m.color = self.color_from_freq(fundamental_frequency)
-            markers.markers.append(m)
-        self.pub.publish(markers)
 
         if len(onsets_cqt) == 0:
             rospy.logdebug("found no onsets")
