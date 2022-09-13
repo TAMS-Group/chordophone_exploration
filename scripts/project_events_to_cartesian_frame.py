@@ -44,6 +44,7 @@ class Projector:
 		self.config= None
 		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
 
+		self.marker_scale= rospy.get_param("~marker_scale", 1.0)
 		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
 		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
 
@@ -105,6 +106,9 @@ class Projector:
 		# the namespace can be defined by the sender though
 		marker.id= self.id
 		self.id= self.id+1
+		marker.scale.x *= self.marker_scale
+		marker.scale.y *= self.marker_scale
+		marker.scale.z *= self.marker_scale
 
 		self.events.append((marker, buffer))
 		self.publish()
