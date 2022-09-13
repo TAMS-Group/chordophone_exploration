@@ -18,6 +18,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 
+from functools import reduce
+
 import struct
 # import time
 
@@ -205,16 +207,16 @@ class OnsetDetector:
         confidence_mask = confidence > confidence_threshold
 
         thresholded_freq = freq[confidence_mask]
+        thresholded_confidence = confidence[confidence_mask]
         if len(thresholded_freq) > 0:
-            # TODO: majority voting
-            pitch = np.average(
-                thresholded_freq,
-                weights=confidence[confidence_mask]
-                )
-            rospy.loginfo(
-                f"found frequency {pitch} ({librosa.hz_to_note(pitch)})"
-            )
-            return pitch, np.max(confidence[confidence_mask])
+            buckets= {}
+            for f, c in zip(thresholded_freq, thresholded_confidence):
+                note= librosa.hz_to_note(f)
+                buckets[note] = buckets.get(note, []) + [c]
+            winner = max(buckets, key=lambda a: reduce(lambda x,y: x+y, buckets.get(a)))
+            winner_freq = librosa.note_to_hz(winner)
+            rospy.loginfo(f"found frequency {winner} ({winner_freq})")
+            return winner_freq, max(buckets[winner])
         else:
             return 0.0, 0.0
 
