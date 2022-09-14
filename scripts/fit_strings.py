@@ -17,6 +17,7 @@ from skimage.measure import LineModelND, ransac
 from threading import Lock
 
 
+# TODO read pluck events and improve ransac fit with them
 class StringFitter:
     def __init__(self):
         self.lock = Lock()
@@ -27,7 +28,8 @@ class StringFitter:
             'guzheng/fitted_strings',
             MarkerArray,
             queue_size=1,
-            tcp_nodelay=True)
+            tcp_nodelay=True,
+            latch=True)
 
     def start(self):
         self.sub_notes = rospy.Subscriber(
@@ -82,7 +84,7 @@ class StringFitter:
         m.ns = string["key"]
         m.id = 0
         m.action = Marker.ADD
-        m.type= Marker.CYLINDER
+        m.type = Marker.CYLINDER
         m.header.frame_id = 'base_footprint'
         m.scale.x = m.scale.y = 0.003
         m.scale.z = np.sqrt(np.sum((string["end"]-string["bridge"])**2))
@@ -166,7 +168,9 @@ class StringFitter:
                     residual_threshold=0.01,
                     max_trials=1000
                     )
-                rospy.loginfo(f'fit {k} with {len(pts)} points ({np.sum(inliers)} inliers)')
+                rospy.loginfo(
+                    f'fit {k} with {len(pts)} points '
+                    f'({np.sum(inliers)} inliers)')
                 if np.sum(inliers) < 5:
                     rospy.loginfo('skipped because of few inliers')
                     continue
