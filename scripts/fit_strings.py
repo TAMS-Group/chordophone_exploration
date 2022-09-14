@@ -154,9 +154,8 @@ class StringFitter:
 
     def fit(self):
         strings = []
-        for k in self.onsets.keys():
+        for k in sorted(self.onsets.keys()):
             if len(self.onsets[k]) >= 5:
-                rospy.loginfo(f'fit {k}')
                 pts = np.array(
                     [(p.x, p.y, p.z) for p in self.onsets[k]],
                     dtype=float)
@@ -167,12 +166,16 @@ class StringFitter:
                     residual_threshold=0.01,
                     max_trials=1000
                     )
+                rospy.loginfo(f'fit {k} with {len(pts)} points ({np.sum(inliers)} inliers)')
                 if np.sum(inliers) < 5:
+                    rospy.loginfo('skipped because of few inliers')
                     continue
-                inlier_pts = pts[inliers]
 
                 origin = model.params[0]
                 direction = model.params[1]
+
+                inlier_pts = pts[inliers]
+
                 if direction[1] < 0:
                     direction = -direction
 
@@ -184,7 +187,6 @@ class StringFitter:
                     np.max((inlier_pts - model.params[0]) @ direction)
                 end_pt = model.params[0] + max_pos_on_string * direction
 
-                rospy.loginfo(model.params)
                 strings.append({
                     "key": k.replace("♯", "is"),
                     "bridge": bridge_pt,
