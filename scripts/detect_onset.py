@@ -275,10 +275,10 @@ class OnsetDetector:
                 f"(difference of {jump})"
             )
             end_of_buffer_time = \
-                self.buffer_time + (self.buffer.shape[0]/self.sr)
+                self.buffer_time + rospy.Duration(self.buffer.shape[0]/self.sr)
             self.reset()
             self.buffer_time = \
-                end_of_buffer_time + (jump-1) * (len(msg_data)/self.sr)
+                end_of_buffer_time + rospy.Duration((jump-1) * (len(msg_data)/self.sr))
 
         self.first_input = False
         self.last_time = now
