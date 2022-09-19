@@ -161,7 +161,7 @@ class StringFitter:
     def fit(self):
         strings = []
         for k in sorted(self.onsets.keys()):
-            if len(self.onsets[k]) >= 5:
+            if len(self.onsets[k]) > 2:
                 pts = np.array(
                     [(p.x, p.y, p.z) for p in self.onsets[k]],
                     dtype=float)
@@ -175,7 +175,7 @@ class StringFitter:
                 rospy.loginfo(
                     f'fit {k} with {len(pts)} points '
                     f'({np.sum(inliers)} inliers)')
-                if np.sum(inliers) < 5:
+                if np.sum(inliers) < 2:
                     rospy.loginfo('skipped because of few inliers')
                     continue
 
