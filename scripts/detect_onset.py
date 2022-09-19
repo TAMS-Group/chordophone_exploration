@@ -203,7 +203,7 @@ class OnsetDetector:
             verbose=0
         )
 
-        confidence_threshold = 0.4
+        confidence_threshold = 0.2
         confidence_mask = confidence > confidence_threshold
 
         thresholded_freq = freq[confidence_mask]
@@ -216,7 +216,7 @@ class OnsetDetector:
 
             def add_confidence(note):
                 return reduce(lambda x, y: x + y, buckets.get(note))
-            winner = max(buckets, key=lambda a: add_confidence)
+            winner = max(buckets, key=lambda a: add_confidence(a))
             winner_freq = librosa.note_to_hz(winner)
             rospy.loginfo(f"found frequency {winner} ({winner_freq})")
             return winner_freq, max(buckets[winner])

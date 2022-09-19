@@ -36,7 +36,9 @@ class StringFitter:
             'guzheng/onsets_projected',
             MarkerArray,
             self.onsets_cb,
-            tcp_nodelay=True)
+            tcp_nodelay=True,
+            queue_size= 1,
+            )
 
     def onsets_cb(self, msg):
         with self.lock:
@@ -45,7 +47,6 @@ class StringFitter:
                 if m.ns != "unknown" and m.ns != "":
                     self.onsets[m.ns] = \
                         self.onsets.get(m.ns, []) + [m.pose.position]
-
             self.fit()
 
     @staticmethod
@@ -117,6 +118,9 @@ class StringFitter:
 
     @staticmethod
     def align_bridges(strings):
+        if len(strings) < 3:
+            return
+
         origins = np.array([s["bridge"] for s in strings], dtype=float)
 
         # TODO: do not assume projection plane is with normal (0,0,1)
@@ -180,7 +184,12 @@ class StringFitter:
 
                 inlier_pts = pts[inliers]
 
-                if direction[1] < 0:
+                # flip direction to face left for horizontal strings
+                if np.abs(direction[1]) > 1.5*np.abs(direction[2]) and direction[1] < 0:
+                    direction = -direction
+
+                # flip direction to face upwards for vertical strings
+                if np.abs(direction[2]) > 1.5*np.abs(direction[1]) and direction[2] < 0:
                     direction = -direction
 
                 min_pos_on_string = \
