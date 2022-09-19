@@ -254,6 +254,7 @@ class OnsetDetector:
         self.pub_cqt.publish(msg)
 
     def cqt(self):
+        # TODO: subtract mean background noise from CQT
         return np.abs(
             librosa.cqt(
                 y=self.buffer,
