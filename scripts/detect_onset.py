@@ -61,12 +61,16 @@ class OnsetDetector:
         self.sr = 44100
         self.hop_length = 512
 
-        self.fmin_note = "C4"
-        self.fmax_note = "C6"
-        self.semitones = 62
-        #self.fmin_note = "C2"
-        #self.fmax_note = "C8"
-        #self.semitones = 84
+        # # harp
+        # self.fmin_note = "C4"
+        # self.fmax_note = "C6"
+        # self.semitones = 62
+
+        # guzheng
+        self.fmin_note = "C2"
+        self.fmax_note = "C8"
+        self.semitones = 84
+
         self.fmin = librosa.note_to_hz(self.fmin_note)
         self.fmax = librosa.note_to_hz(self.fmax_note)
 

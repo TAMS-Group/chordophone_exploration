@@ -127,12 +127,15 @@ class StringFitter:
             # TODO: do not assume projection plane is with normal (0,0,1)
             # this is only true for guzheng and other lying chordophones
             # guzheng
-            #return o[:, 0:2]
-            # harp
             if len(o.shape) > 1:
-                return o[:,(0,2)]
+                return o[:,(0,1)]
             else:
-                return np.array(o)[[0,2]]
+                return np.array(o)[[0,1]]
+            # # harp
+            # if len(o.shape) > 1:
+            #     return o[:,(0,2)]
+            # else:
+            #     return np.array(o)[[0,2]]
 
         origins2d = project(origins)
         model, inliers = ransac(
