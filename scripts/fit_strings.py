@@ -48,12 +48,13 @@ class StringFitter:
                     self.onsets[m.ns] = \
                         self.onsets.get(m.ns, []) + [m.pose.position]
             self.fit()
+        self.sub_notes.unregister()
 
     @staticmethod
     def string_to_tf(string):
         tf = TransformStamped()
         tf.header.frame_id = 'base_footprint'
-        tf.child_frame_id = string["key"]
+        tf.child_frame_id = "guzheng/"+string["key"].lower()+"/head"
 
         tf.transform.translation.x = string["bridge"][0]
         tf.transform.translation.y = string["bridge"][1]
@@ -170,7 +171,7 @@ class StringFitter:
     def fit(self):
         strings = []
         for k in sorted(self.onsets.keys()):
-            if len(self.onsets[k]) > 2:
+            if len(self.onsets[k]) > 5:
                 pts = np.array(
                     [(p.x, p.y, p.z) for p in self.onsets[k]],
                     dtype=float)
@@ -184,7 +185,7 @@ class StringFitter:
                 rospy.loginfo(
                     f'fit {k} with {len(pts)} points '
                     f'({np.sum(inliers)} inliers)')
-                if np.sum(inliers) < 2:
+                if np.sum(inliers) < 5:
                     rospy.loginfo('skipped because of few inliers')
                     continue
 

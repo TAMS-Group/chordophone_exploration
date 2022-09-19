@@ -47,6 +47,7 @@ FILES
   EpisodeState.msg
   NoteOnset.msg
   PluckEpisodeV1.msg
+  RunEpisodeRequest.msg
 )
 
 generate_messages(

@@ -10,7 +10,9 @@ from tams_pr2_guzheng.msg import (
     ExecutePathAction,
     EpisodeState,
     ActionParameters,
-    ExecutePathGoal)
+    ExecutePathGoal,
+    RunEpisodeRequest,
+    )
 
 import random
 import copy
@@ -112,14 +114,17 @@ class RunEpisode():
             [y_rand, z_rand, y_start, z_start])
 
     @staticmethod
-    def get_path_yz_start_y_offset_lift_angle(note):
-        y_start = random.uniform(-0.010, 0.005)
-        z_start = random.uniform(-0.000, 0.005)
-#        y_start = -0.015
-#        z_start = 0.0
-        y_rand = random.uniform(-.010, 0.000)
+    def get_path_yz_start_y_offset_lift_angle(note, params= None):
+        if params is None:
+            y_start = random.uniform(-0.010, 0.005)
+            z_start = random.uniform(-0.000, 0.005)
+            # y_start = -0.015
+            # z_start = 0.0
+            y_rand = random.uniform(-.010, 0.000)
 
-        lift_rand = random.uniform(tau/10, tau/4)
+            lift_rand = random.uniform(tau/10, tau/4)
+        else:
+            y_start, z_start, y_rand, lift_rand = params
 
         lift_dist = 0.02
         lift_wp_y = y_rand - lift_dist * np.cos(lift_rand)
@@ -154,10 +159,11 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def run_episode(self, note, repeat=1):
+    def run_episode(self, note, repeat=1, params= None):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
-        path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note)
+        path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
 
+        # hardcoded because projectors / pluck detector are only setup for first finger
         finger = 'ff'
 
         for i in range(repeat):
@@ -204,20 +210,34 @@ def main():
     runs = rospy.get_param("~runs", 0)
     repeat = rospy.get_param("~repeat", 1)
 
+    listen = rospy.get_param("~listen", False)
+
+    if listen:
+        rospy.loginfo(f"subscribing to topic to wait for action parameter requests")
+
+        def param_cb(msg):
+            rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.params}")
+            re.run_episode(note= msg.note, params= msg.params)
+        rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
+
     if just_play:
+        rospy.loginfo("just going to play")
         notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
         for n in notes:
             re.run_episode(note=n, repeat=1)
         for n in reversed(notes):
             re.run_episode(note=n, repeat=1)
     elif runs > 0:
+        rospy.loginfo(f"running for {runs} episodes (with {repeat} repetitions each)")
         for i in range(runs):
             re.run_episode(note=note, repeat=repeat)
             rospy.sleep(rospy.Duration(1.0))
     elif not continuous:
+        rospy.loginfo(f"running one episode (with {repeat} repetitions)")
         re.run_episode(note=note, repeat=repeat)
         rospy.sleep(rospy.Duration(1.0))
     else:
+        rospy.loginfo("running continuously")
         while not rospy.is_shutdown():
             re.run_episode(note=note, repeat=repeat)
 
