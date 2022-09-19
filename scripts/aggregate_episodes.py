@@ -82,8 +82,7 @@ class Aggregator():
             ('/guzheng/onsets', NoteOnset, self.onsets_cb),
             ('/guzheng/plucks', MarkerArray, self.plucks_cb),
 
-            ('/guzheng/audio', AudioData, self.audio_cb),
-#            ('/guzheng/audio_stamped', AudioDataStamped, self.audio_cb),
+            ('/guzheng/audio_stamped', AudioDataStamped, self.audio_cb),
             ('/guzheng/audio_info', AudioInfo, self.audio_info_cb),
             ('/guzheng/cqt', CQTStamped, self.cqt_cb),
 
@@ -158,6 +157,9 @@ class Aggregator():
 
         if self.episode.audio_data.header is None:
             self.episode.audio_data.header = Header()
+        if self.episode.audio_delay is None:
+            rospy.logwarn("audio delay not yet available.")
+            self.episode.audio_delay = rospy.Time()
         if self.episode.id is not None:
             self.episode_pub.publish(self.episode)
             if self.store:
