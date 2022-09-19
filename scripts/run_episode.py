@@ -124,7 +124,7 @@ class RunEpisode():
 
             lift_rand = random.uniform(tau/10, tau/4)
         else:
-            y_start, z_start, y_rand, lift_rand = params
+            y_start, z_start, y_rand, lift_rand = params.action_parameters
 
         lift_dist = 0.02
         lift_wp_y = y_rand - lift_dist * np.cos(lift_rand)
@@ -216,11 +216,11 @@ def main():
         rospy.loginfo(f"subscribing to topic to wait for action parameter requests")
 
         def param_cb(msg):
-            rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.params}")
-            re.run_episode(note= msg.note, params= msg.params)
+            rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.parameters}")
+            re.run_episode(note= msg.string, params= msg.parameters)
         rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
-
-    if just_play:
+        rospy.spin()
+    elif just_play:
         rospy.loginfo("just going to play")
         notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
         for n in notes:
