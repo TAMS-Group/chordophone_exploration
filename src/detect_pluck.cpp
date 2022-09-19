@@ -11,10 +11,11 @@
 
 #include <deque>
 
-const ros::Duration FILTER_WIDTH{ 0.001 };
+const ros::Duration FILTER_WIDTH{ 0.02 };
 
 struct DetectContact {
   ros::Publisher pub;
+  ros::Publisher pub_detect;
   ros::Publisher pub_event;
   ros::Subscriber sub;
 
@@ -33,6 +34,7 @@ struct DetectContact {
     pnh.param<int>("finger_idx", finger_idx, 0);
     assert(finger_idx >= 0 && finger_idx < 5);
     pub = pnh.advertise<std_msgs::Float32>("signal", 1);
+    pub_detect = pnh.advertise<std_msgs::Float32>("detection", 1);
     pub_event = nh.advertise<visualization_msgs::MarkerArray>("plucks", 10);
 
     config_server.setCallback([this](tams_pr2_guzheng::ThresholdConfig c, uint32_t lvl){ this->config_cb(c,lvl); });
@@ -84,6 +86,15 @@ struct DetectContact {
         return m;
       }());
       pub_event.publish(ma);
+
+      std_msgs::Float32 data;
+		data.data= 1.0;
+      pub_detect.publish(data);
+    }
+    else {
+      std_msgs::Float32 data;
+		data.data= 0.0;
+      pub_detect.publish(data);
     }
   }
 };
