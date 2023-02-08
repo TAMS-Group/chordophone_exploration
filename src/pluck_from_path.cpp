@@ -227,255 +227,283 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	return img_ros;
 }
 
+
+class Server {
+  ros::NodeHandle nh_{"~"};
+  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> execute_path_{ nh_, "pluck/execute_path", [this](auto& goal){ execute_path(goal); }, false };
+  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> goto_start_{ nh_, "pluck/goto_start", [this](auto& goal){ goto_start(goal); }, false};
+
+  std::shared_ptr<tf2_ros::Buffer> tf_buffer_{ std::make_shared<tf2_ros::Buffer>(ros::Duration(30.0)) };
+  tf2_ros::TransformListener tf_listener_{ *tf_buffer_ };
+  planning_scene_monitor::PlanningSceneMonitor psm_{ "robot_description", tf_buffer_ };
+  std::shared_ptr<planning_scene_monitor::CurrentStateMonitor> csm_ {
+    [this]{
+      auto m= std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene_.getRobotModel(), tf_buffer_, nh_);
+      m->enableCopyDynamics(true);
+      m->startStateMonitor();
+      return m;
+    }()
+  };
+  planning_scene_monitor::TrajectoryMonitor tm{ csm_, 100.0 };
+
+  planning_scene::PlanningScene& scene_{ *psm_.getPlanningScene() };
+  const moveit::core::RobotModel& model_{ *scene_.getRobotModel() };
+
+  ros::Publisher pub_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
+  ros::Publisher pub_executed_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
+  ros::Publisher pub_img_{ nh_.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
+  ros::Publisher pub_path_commanded_{ nh_.advertise<nav_msgs::Path>("pluck/commanded_path", 1, true) };
+  ros::Publisher pub_path_planned_{ nh_.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
+  ros::Publisher pub_path_executed_{ nh_.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
+
+  rviz_visual_tools::RemoteControl remote{ nh_ };
+
+  std::string finger_{
+    [this]{
+      std::string f;
+      nh_.param<std::string>("finger", f, "ff");
+      const std::vector<std::string> fingers{ "th", "ff", "mf", "rf", "lf" };
+      if(std::find(fingers.begin(), fingers.end(), f) == fingers.end()){
+        ROS_FATAL_STREAM("finger must be one of th/ff/mf/rf/lf, but is '" << finger_ << "'");
+        throw std::runtime_error{"invalid finger specified"};
+      }
+      return f;
+    }()
+  };
+
+  std::string group_name_{
+    [this]{
+      std::string g;
+      nh_.param<std::string>("group", g, "right_arm");
+      if(!model_.hasJointModelGroup(g)){
+        ROS_FATAL_STREAM("JointModelGroup '" << group_name_ << "' does not exist");
+        throw std::runtime_error{"invalid group specified"};;
+      }
+      return g;
+    }()
+  };
+
+  moveit::planning_interface::MoveGroupInterface mgi_{
+    [this]{
+      moveit::planning_interface::MoveGroupInterface::Options o{ "right_arm_and_hand" };
+      o.robot_model_= scene_.getRobotModel();
+      o.group_name_ = group_name_;
+
+      moveit::planning_interface::MoveGroupInterface mgi{ o };
+      mgi.setMaxVelocityScalingFactor(1.0);
+      mgi.setMaxAccelerationScalingFactor(1.0);
+      return mgi;
+    }()
+  };
+
+public:
+  Server()
+  {
+    execute_path_.start();
+    goto_start_.start();
+  }
+
+  void execute_path(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+    auto& path{ goal->path };
+    ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
+    if(!model_.hasLinkModel(tip_name)){
+      ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
+      execute_path_.setAborted();
+      return;
+    }
+
+    ROS_INFO("planning trajectory");
+
+    // update scene + start trajectory at current state
+    if(!psm_.requestPlanningSceneState()){
+      ROS_ERROR_STREAM("failed to get current scene from move_group");
+      execute_path_.setAborted();
+      return;
+    }
+
+    // transform requested path to planning frame
+    nav_msgs::Path path_transformed{ path };
+    const auto& planning_frame{ scene_.getPlanningFrame() };
+    path_transformed.header.frame_id= planning_frame;
+    for(auto& pose : path_transformed.poses){
+      if(pose.header.frame_id.empty())
+        pose.header.frame_id = path.header.frame_id;
+      pose = tf_buffer_->transform(pose, planning_frame);
+    }
+    pub_path_commanded_.publish( path_transformed );
+
+    // compute trajectory
+    robot_trajectory::RobotTrajectory trajectory{ scene_.getRobotModel() };
+    try {
+      trajectory = generateTrajectory({
+                                        .path = path_transformed,
+                                        .group = group_name_,
+                                        .tip = tip_name,
+                                        .scene = scene_,
+                                      });
+    }
+    catch(const std::runtime_error& e){
+      ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
+      execute_path_.setAborted();
+      return;
+    }
+
+    // propagate result
+    moveit_msgs::RobotTrajectory trajectory_msg;
+    trajectory.getRobotTrajectoryMsg(trajectory_msg);
+    {
+      moveit_msgs::DisplayTrajectory dtrajectory;
+      dtrajectory.model_id = model_.getName();
+      moveit::core::robotStateToRobotStateMsg(scene_.getCurrentState(), dtrajectory.trajectory_start, false);
+      dtrajectory.trajectory.reserve(1);
+      dtrajectory.trajectory.push_back(trajectory_msg);
+      pub_traj_.publish(dtrajectory);
+      ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+    }
+
+    // create image to show trajectories
+    nav_msgs::Path generated_path { getLinkPath({
+                                                  .frame = path.header.frame_id,
+                                                  .tip = tip_name,
+                                                  .trajectory = trajectory,
+                                                  .tf = *tf_buffer_
+                                                }) };
+    pub_path_planned_.publish( generated_path );
+
+    // execute after confirmation from user
+    remote.waitForNextStep("execute trajectory?");
+    if(!remote.getAutonomous()){
+      ros::Duration(1.0).sleep();
+    }
+
+    //csm->startStateMonitor();
+    tm.clearTrajectory();
+    tm.startTrajectoryMonitor();
+    auto status{ mgi_.execute(trajectory_msg) };
+    tm.stopTrajectoryMonitor();
+    //csm->stopStateMonitor();
+    ROS_INFO_STREAM("status after execution: " << status);
+    robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
+
+    moveit_msgs::RobotTrajectory executed_trajectory_msg;
+    if(!executed_trajectory.empty()){
+      executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
+      {
+        moveit_msgs::DisplayTrajectory dtrajectory;
+        dtrajectory.model_id = model_.getName();
+        moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
+        dtrajectory.trajectory.reserve(1);
+        dtrajectory.trajectory.push_back(executed_trajectory_msg);
+        pub_executed_traj_.publish(dtrajectory);
+      }
+    }
+    else {
+      ROS_ERROR("Recorded trajectory is empty? It shouldn't be. Not publishing anything.");
+    }
+
+    nav_msgs::Path executed_path{ getLinkPath({
+                                                .frame = path.header.frame_id,
+                                                .tip = tip_name,
+                                                .trajectory = executed_trajectory,
+                                                .tf = *tf_buffer_
+                                              }) };
+    pub_img_.publish(
+          paintLocalPaths({
+                            .requested = path,
+                            .generated = generated_path,
+                            .executed = executed_path
+                          })
+          );
+
+    pub_path_executed_.publish( executed_path );
+
+    ExecutePathResult result;
+    result.generated_path = generated_path;
+    result.generated_trajectory = trajectory_msg.joint_trajectory;
+    result.executed_path = executed_path;
+    result.executed_trajectory = executed_trajectory_msg.joint_trajectory;
+
+    execute_path_.setSucceeded(result);
+  }
+
+  void goto_start(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+    auto& path{ goal->path };
+    ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
+    if(!model_.hasLinkModel(tip_name)){
+      ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
+      goto_start_.setAborted();
+      return;
+    }
+
+    ROS_INFO("planning trajectory");
+
+    // update scene + start trajectory at current state
+    if(!psm_.requestPlanningSceneState()){
+      ROS_ERROR_STREAM("failed to get current scene from move_group");
+      goto_start_.setAborted();
+      return;
+    }
+
+    // transform requested path to planning frame
+    nav_msgs::Path path_transformed{ path };
+    const auto& planning_frame{ scene_.getPlanningFrame() };
+    for(auto& pose : path_transformed.poses){
+      if(pose.header.frame_id.empty())
+        pose.header.frame_id = path_transformed.header.frame_id;
+      pose = tf_buffer_->transform(pose, planning_frame);
+    }
+
+    // compute trajectory
+    robot_trajectory::RobotTrajectory trajectory{ scene_.getRobotModel() };
+    try {
+      trajectory = generateTrajectory({
+                                        .path = path_transformed,
+                                        .group = group_name_,
+                                        .tip = tip_name,
+                                        .scene = scene_,
+                                      });
+    }
+    catch(const std::runtime_error& e){
+      ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
+      goto_start_.setAborted();
+      return;
+    }
+
+    // propagate result
+    moveit_msgs::RobotTrajectory trajectory_msg;
+    trajectory.getRobotTrajectoryMsg(trajectory_msg);
+    {
+      moveit_msgs::DisplayTrajectory dtrajectory;
+      dtrajectory.model_id = model_.getName();
+      moveit::core::robotStateToRobotStateMsg(scene_.getCurrentState(), dtrajectory.trajectory_start, false);
+      dtrajectory.trajectory.reserve(1);
+      dtrajectory.trajectory.push_back(trajectory_msg);
+      pub_traj_.publish(dtrajectory);
+      ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
+    }
+
+    auto status{ mgi_.execute(trajectory_msg) };
+    ROS_INFO_STREAM("status after execution: " << status);
+
+    ExecutePathResult result;
+
+    goto_start_.setSucceeded(result);
+  }
+};
+
 int main(int argc, char** argv){
    ros::init(argc, argv, "pluck_from_path");
    ros::NodeHandle nh, pnh{"~"};
 
 	ros::AsyncSpinner spinner{ 3 };
-   spinner.start();
+  spinner.start();
 
-	ros::Publisher pub_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
-	ros::Publisher pub_executed_traj { nh.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
-	ros::Publisher pub_img { nh.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
-	ros::Publisher pub_path_commanded { nh.advertise<nav_msgs::Path>("pluck/commanded_path", 1, true) };
-	ros::Publisher pub_path_planned { nh.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
-	ros::Publisher pub_path_executed { nh.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
+  Server server;
 
-	auto tf_buffer{ std::make_shared<tf2_ros::Buffer>(ros::Duration(30.0)) };
-	tf2_ros::TransformListener tf_listener{ *tf_buffer };
-
-	planning_scene_monitor::PlanningSceneMonitor psm{ "robot_description", tf_buffer };
-
-	auto& scene { *psm.getPlanningScene() };
-   ROS_INFO("finished loading scene");
-
-   std::string group_name;
-   pnh.param<std::string>("group", group_name, "right_arm");
-	if(!scene.getRobotModel()->hasJointModelGroup(group_name)){
-	  ROS_FATAL_STREAM("JointModelGroup '" << group_name << "' does not exist");
-	  return 1;
-	}
-   std::string finger;
-	pnh.param<std::string>("finger", finger, "ff");
-   const std::vector<std::string> fingers{ "th", "ff", "mf", "rf", "lf" };
-	if(std::find(fingers.begin(), fingers.end(), finger) == fingers.end()){
-	  ROS_FATAL_STREAM("finger must be one of th/ff/mf/rf/lf");
-	  return 1;
-	}
-
-	rviz_visual_tools::RemoteControl remote{ pnh };
-
-	moveit::planning_interface::MoveGroupInterface::Options options{ "right_arm_and_hand" };
-	options.robot_model_= psm.getRobotModel();
-	options.group_name_ = "right_arm";
-	moveit::planning_interface::MoveGroupInterface mgi{ options };
-   mgi.setMaxVelocityScalingFactor(1.0);
-   mgi.setMaxAccelerationScalingFactor(1.0);
-
-	auto csm { std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene.getRobotModel(), tf_buffer, nh) };
-	csm->enableCopyDynamics(true);
-	csm->startStateMonitor();
-	planning_scene_monitor::TrajectoryMonitor tm{ csm, 100.0 };
-
-   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> execute_path_server;
-
-	auto actionCB{ [&, &server= execute_path_server](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
-      auto& path{ goal->path };
-		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
-
-      std::string tip_name{ "rh_" + (goal->finger.empty() ? finger : goal->finger) + "_biotac_link" };
-      if(!scene.getRobotModel()->hasLinkModel(tip_name)){
-          ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
-          server->setAborted();
-          return;
-      }
-
-		ROS_INFO("planning trajectory");
-
-		// update scene + start trajectory at current state
-		if(!psm.requestPlanningSceneState()){
-			ROS_ERROR_STREAM("failed to get current scene from move_group");
-			server->setAborted();
-			return;
-		}
-
-		// transform requested path to planning frame
-		nav_msgs::Path path_transformed{ path };
-		const auto& planning_frame{ scene.getPlanningFrame() };
-		path_transformed.header.frame_id= planning_frame;
-		for(auto& pose : path_transformed.poses){
-			if(pose.header.frame_id.empty())
-		      pose.header.frame_id = path.header.frame_id;
-			pose = tf_buffer->transform(pose, planning_frame);
-		}
-		pub_path_commanded.publish( path_transformed );
-
-		// compute trajectory
-		robot_trajectory::RobotTrajectory trajectory{ scene.getRobotModel() };
-		try {
-			trajectory = generateTrajectory({
-			   .path = path_transformed,
-			   .group = group_name,
-			   .tip = tip_name,
-				.scene = scene,
-			});
-		}
-		catch(const std::runtime_error& e){
-			ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
-			server->setAborted();
-			return;
-		}
-
-		// propagate result
-		moveit_msgs::RobotTrajectory trajectory_msg;
-		trajectory.getRobotTrajectoryMsg(trajectory_msg);
-		{
-			moveit_msgs::DisplayTrajectory dtrajectory;
-			dtrajectory.model_id = psm.getRobotModel()->getName();
-			moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
-			dtrajectory.trajectory.reserve(1);
-			dtrajectory.trajectory.push_back(trajectory_msg);
-			pub_traj.publish(dtrajectory);
-			ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
-		}
-
-		// create image to show trajectories
-		nav_msgs::Path generated_path { getLinkPath({
-			                                        .frame = path.header.frame_id,
-			                                        .tip = tip_name,
-			                                        .trajectory = trajectory,
-			                                        .tf = *tf_buffer
-			                                     }) };
-		pub_path_planned.publish( generated_path );
-
-		// execute after confirmation from user
-		remote.waitForNextStep("execute trajectory?");
-		if(!remote.getAutonomous()){
-			ros::Duration(1.0).sleep();
-		}
-
-		//csm->startStateMonitor();
-		tm.clearTrajectory();
-		tm.startTrajectoryMonitor();
-		auto status{ mgi.execute(trajectory_msg) };
-		tm.stopTrajectoryMonitor();
-		//csm->stopStateMonitor();
-		ROS_INFO_STREAM("status after execution: " << status);
-		robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
-
-		moveit_msgs::RobotTrajectory executed_trajectory_msg;
-		if(!executed_trajectory.empty()){
-			executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
-			{
-				moveit_msgs::DisplayTrajectory dtrajectory;
-				dtrajectory.model_id = psm.getRobotModel()->getName();
-				moveit::core::robotStateToRobotStateMsg(executed_trajectory.getFirstWayPoint(), dtrajectory.trajectory_start, false);
-				dtrajectory.trajectory.reserve(1);
-				dtrajectory.trajectory.push_back(executed_trajectory_msg);
-				pub_executed_traj.publish(dtrajectory);
-			}
-		}
-		else {
-			ROS_ERROR("Recorded trajectory is empty? It shouldn't be. Not publishing anything.");
-		}
-
-		nav_msgs::Path executed_path{ getLinkPath({
-			                                        .frame = path.header.frame_id,
-			                                        .tip = tip_name,
-			                                        .trajectory = executed_trajectory,
-			                                        .tf = *tf_buffer
-			                                     }) };
-		pub_img.publish(
-		         paintLocalPaths({
-		                            .requested = path,
-		                            .generated = generated_path,
-		                            .executed = executed_path
-		                         })
-		         );
-
-		pub_path_executed.publish( executed_path );
-
-		ExecutePathResult result;
-		result.generated_path = generated_path;
-		result.generated_trajectory = trajectory_msg.joint_trajectory;
-		result.executed_path = executed_path;
-		result.executed_trajectory = executed_trajectory_msg.joint_trajectory;
-
-		server->setSucceeded(result);
-	} };
-   execute_path_server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/execute_path", actionCB, false);
-   execute_path_server->start();
-
-   std::unique_ptr<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>> move_server;
-
-	auto moveActionCB{ [&,&server=move_server](const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
-      auto& path{ goal->path };
-		ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
-
-      std::string tip_name{ "rh_" + (goal->finger.empty() ? finger : goal->finger) + "_biotac_link" };
-      if(!scene.getRobotModel()->hasLinkModel(tip_name)){
-          ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
-          server->setAborted();
-          return;
-      }
-
-		ROS_INFO("planning trajectory");
-
-		// update scene + start trajectory at current state
-		if(!psm.requestPlanningSceneState()){
-			ROS_ERROR_STREAM("failed to get current scene from move_group");
-			server->setAborted();
-			return;
-		}
-
-		// transform requested path to planning frame
-		nav_msgs::Path path_transformed{ path };
-		const auto& planning_frame{ scene.getPlanningFrame() };
-		for(auto& pose : path_transformed.poses){
-			if(pose.header.frame_id.empty())
-				pose.header.frame_id = path_transformed.header.frame_id;
-			pose = tf_buffer->transform(pose, planning_frame);
-		}
-
-		// compute trajectory
-		robot_trajectory::RobotTrajectory trajectory{ scene.getRobotModel() };
-		try {
-			trajectory = generateTrajectory({
-			   .path = path_transformed,
-			   .group = group_name,
-			   .tip = tip_name,
-				.scene = scene,
-			});
-		}
-		catch(const std::runtime_error& e){
-			ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
-			server->setAborted();
-			return;
-		}
-
-		// propagate result
-		moveit_msgs::RobotTrajectory trajectory_msg;
-		trajectory.getRobotTrajectoryMsg(trajectory_msg);
-		{
-			moveit_msgs::DisplayTrajectory dtrajectory;
-			dtrajectory.model_id = psm.getRobotModel()->getName();
-			moveit::core::robotStateToRobotStateMsg(scene.getCurrentState(), dtrajectory.trajectory_start, false);
-			dtrajectory.trajectory.reserve(1);
-			dtrajectory.trajectory.push_back(trajectory_msg);
-			pub_traj.publish(dtrajectory);
-			ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
-		}
-
-		auto status{ mgi.execute(trajectory_msg) };
-		ROS_INFO_STREAM("status after execution: " << status);
-
-		ExecutePathResult result;
-
-		server->setSucceeded(result);
-	} };
-   move_server = std::make_unique<actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction>>(nh, "pluck/goto_start", moveActionCB, false);
-   move_server->start();
-
-	ros::waitForShutdown();
+  ros::waitForShutdown();
 	return 0;
 }
