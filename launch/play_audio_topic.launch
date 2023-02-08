@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <node ns="guzheng" name="audio_play" pkg="audio_play" type="audio_play">
     <param name="format" value="wave" />
