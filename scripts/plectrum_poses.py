@@ -40,7 +40,6 @@ class PlectrumPoses:
         self.tf_broadcast = tf2_ros.StaticTransformBroadcaster()
         self.dr_servers= dict()
         for f in self.fingers:
-            finger= copy.copy(f)
             cb= lambda finger: lambda c,lvl: self.offset_cb(finger,c,lvl)
             self.dr_servers[f]= DynamicReconfigureServer(OffsetsConfig, cb(f), namespace=f)
         self.publish()
