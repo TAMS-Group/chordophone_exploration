@@ -4,11 +4,16 @@ import rospy
 
 from tf import transformations
 import tf2_ros
-from tf2_msgs.msg import TFMessage
 
+from dynamic_reconfigure.server import Server as DynamicReconfigureServer
+from tams_pr2_guzheng.cfg import OffsetsConfig
+
+from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import TransformStamped
 
 import numpy as np
+
+import copy
 
 def tf_for_finger(finger):
     tf = TransformStamped()
@@ -31,20 +36,33 @@ def tf_for_finger(finger):
 class PlectrumPoses:
     def __init__(self):
         self.fingers = ["th", "ff", "mf", "rf"]
+        self.tfs = [tf_for_finger(f) for f in self.fingers]
         self.tf_broadcast = tf2_ros.StaticTransformBroadcaster()
+        self.dr_servers= dict()
+        for f in self.fingers:
+            finger= copy.copy(f)
+            cb= lambda finger: lambda c,lvl: self.offset_cb(finger,c,lvl)
+            self.dr_servers[f]= DynamicReconfigureServer(OffsetsConfig, cb(f), namespace=f)
+        self.publish()
 
-    def run(self):
+    def offset_cb(self, finger, config, level):
+        tf= self.tfs[self.fingers.index(finger)].transform
+        tf.translation.x = config.offset_x
+        tf.translation.y = config.offset_y
+        tf.translation.z = config.offset_z
+        self.publish()
+        return config
+
+    def publish(self):
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
-        tf_msg = TFMessage(
-            transforms=[tf_for_finger(f) for f in self.fingers])
-        self.tf_broadcast.pub_tf.publish(tf_msg)
-        rospy.spin()
+        self.tf_broadcast.pub_tf.publish(TFMessage(transforms=self.tfs))
+
 
 def main():
     rospy.init_node('plectrum_poses')
     poses = PlectrumPoses()
-    poses.run()
+    rospy.spin()
 
 
 if __name__ == '__main__':
