@@ -19,136 +19,136 @@ import time
 from copy import deepcopy
 
 class LoopDetector:
-	def __init__(self):
-		self.time= rospy.Time.now()
-	def has_looped(self):
-		last_call= self.time
-		self.time= rospy.Time.now()
-		return last_call > self.time
-	def __bool__(self):
-		return self.has_looped()
+    def __init__(self):
+        self.time= rospy.Time.now()
+    def has_looped(self):
+        last_call= self.time
+        self.time= rospy.Time.now()
+        return last_call > self.time
+    def __bool__(self):
+        return self.has_looped()
 
 class Projector:
-	def __init__(self):
-		self.tf_buffer= tf2_ros.Buffer(rospy.Duration(30.0), debug= False)
-		self.tf_listener= tf2_ros.TransformListener(self.tf_buffer)
+    def __init__(self):
+        self.tf_buffer= tf2_ros.Buffer(rospy.Duration(30.0), debug= False)
+        self.tf_listener= tf2_ros.TransformListener(self.tf_buffer)
 
-		self.loop= LoopDetector()
+        self.loop= LoopDetector()
 
-		self.reset()
+        self.reset()
 
-		self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
-		self.pub_frame= rospy.Publisher('projection_frame', PoseStamped, queue_size= 1, latch= True, tcp_nodelay= True)
+        self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
+        self.pub_frame= rospy.Publisher('projection_frame', PoseStamped, queue_size= 1, latch= True, tcp_nodelay= True)
 
-		# server directly sets config correctly
-		self.config= None
-		self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
+        # server directly sets config correctly
+        self.config= None
+        self.dr_server= DynamicReconfigureServer(OffsetsConfig, self.offset_cb)
 
-		self.marker_scale= rospy.get_param("~marker_scale", 1.0)
-		self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
-		self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
+        self.marker_scale= rospy.get_param("~marker_scale", 1.0)
+        self.sub= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
+        self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
 
-	def reset(self):
-		self.id= 0
-		self.events= []
-		self.last_publish= time.time()
-		self.tf_buffer.clear()
+    def reset(self):
+        self.id= 0
+        self.events= []
+        self.last_publish= time.time()
+        self.tf_buffer.clear()
 
-	def offset_cb(self, config, level):
-		self.config= config
-		self.publish()
-		return config
+    def offset_cb(self, config, level):
+        self.config= config
+        self.publish()
+        return config
 
-	def event_header_cb(self, msg):
-		m= Marker()
-		m.type= Marker.SPHERE
-		m.action= Marker.ADD
-		m.ns= "event"
-		m.color.a= 1.0
-		m.color.r= 0.8
-		m.color.g= 0.0
-		m.color.b= 0.8
-		m.scale.x= 0.01
-		m.scale.y= 0.01
-		m.scale.z= 0.01
+    def event_header_cb(self, msg):
+        m= Marker()
+        m.type= Marker.SPHERE
+        m.action= Marker.ADD
+        m.ns= "event"
+        m.color.a= 1.0
+        m.color.r= 0.8
+        m.color.g= 0.0
+        m.color.b= 0.8
+        m.scale.x= 0.01
+        m.scale.y= 0.01
+        m.scale.z= 0.01
 
-		m.header= msg
-		#m.header.frame_id= self.config.frame
-		m.pose.orientation.w= 1.0
-		m.pose.position.y= 0.01
-		m.pose.position.z= 0.025
+        m.header= msg
+        #m.header.frame_id= self.config.frame
+        m.pose.orientation.w= 1.0
+        m.pose.position.y= 0.01
+        m.pose.position.z= 0.025
 
-		self.event_marker_cb(m)
+        self.event_marker_cb(m)
 
-	def event_marker_array_cb(self, msg):
-		for m in msg.markers:
-			self.event_marker_cb(m)
+    def event_marker_array_cb(self, msg):
+        for m in msg.markers:
+            self.event_marker_cb(m)
 
-	def event_marker_cb(self, marker):
-		if self.loop:
-			rospy.loginfo("detected loop")
-			self.reset()
+    def event_marker_cb(self, marker):
+        if self.loop:
+            rospy.loginfo("detected loop")
+            self.reset()
 
-		if not self.tf_buffer.can_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(OffsetsConfig.max['delta_t']), timeout= rospy.Duration(OffsetsConfig.max['delta_t']+0.2)):
-			rospy.logwarn("throw away event because transform is not available")
-			return
-		# inf is not supported... :(
-		buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)
-		for dt in np.arange(OffsetsConfig.min['delta_t'], OffsetsConfig.max['delta_t'], 0.01):
-			try:
-				buffer.set_transform(self.tf_buffer.lookup_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(dt)), '')
-			except Exception as e:
-				rospy.logwarn('throw away event because transform in temporal vicinity is not available (delta "{}")'.format(dt))
-				rospy.logwarn(e)
-				return
+        if not self.tf_buffer.can_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(OffsetsConfig.max['delta_t']), timeout= rospy.Duration(OffsetsConfig.max['delta_t']+0.2)):
+            rospy.logwarn("throw away event because transform is not available")
+            return
+        # inf is not supported... :(
+        buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)
+        for dt in np.arange(OffsetsConfig.min['delta_t'], OffsetsConfig.max['delta_t'], 0.01):
+            try:
+                buffer.set_transform(self.tf_buffer.lookup_transform('base_footprint', self.config.frame, marker.header.stamp+rospy.Duration(dt)), '')
+            except Exception as e:
+                rospy.logwarn('throw away event because transform in temporal vicinity is not available (delta "{}")'.format(dt))
+                rospy.logwarn(e)
+                return
 
-		# ensure on the projector side that ids cannot collide
-		# the namespace can be defined by the sender though
-		marker.id= self.id
-		self.id= self.id+1
-		marker.scale.x *= self.marker_scale
-		marker.scale.y *= self.marker_scale
-		marker.scale.z *= self.marker_scale
+        # ensure on the projector side that ids cannot collide
+        # the namespace can be defined by the sender though
+        marker.id= self.id
+        self.id= self.id+1
+        marker.scale.x *= self.marker_scale
+        marker.scale.y *= self.marker_scale
+        marker.scale.z *= self.marker_scale
 
-		self.events.append((marker, buffer))
-		self.publish()
+        self.events.append((marker, buffer))
+        self.publish()
 
-	def publish(self):
-		now= time.time()
-		if True or now - self.last_publish > 1.0:
-			self.last_publish= now
+    def publish(self):
+        now= time.time()
+        if True or now - self.last_publish > 1.0:
+            self.last_publish= now
 
-			markers= MarkerArray()
-			for [marker, buffer] in self.events:
-				p= PoseStamped(header= deepcopy(marker.header), pose= deepcopy(marker.pose))
-				p.header.frame_id= self.config.frame
-				p.header.stamp+= rospy.Duration(self.config.delta_t)
-				p.pose.position.x+= self.config.offset_x
-				p.pose.position.y+= self.config.offset_y
-				p.pose.position.z+= self.config.offset_z
-				p.pose.orientation.w= 1.0
-				try:
-					p= buffer.transform(p, "base_footprint")
-				except Exception as e:
-					rospy.logerr(e)
-					continue
-				m= deepcopy(marker)
-				m.header= p.header
-				m.pose= p.pose
-				markers.markers.append( m )
-			self.pub.publish(markers)
+            markers= MarkerArray()
+            for [marker, buffer] in self.events:
+                p= PoseStamped(header= deepcopy(marker.header), pose= deepcopy(marker.pose))
+                p.header.frame_id= self.config.frame
+                p.header.stamp+= rospy.Duration(self.config.delta_t)
+                p.pose.position.x+= self.config.offset_x
+                p.pose.position.y+= self.config.offset_y
+                p.pose.position.z+= self.config.offset_z
+                p.pose.orientation.w= 1.0
+                try:
+                    p= buffer.transform(p, "base_footprint")
+                except Exception as e:
+                    rospy.logerr(e)
+                    continue
+                m= deepcopy(marker)
+                m.header= p.header
+                m.pose= p.pose
+                markers.markers.append( m )
+            self.pub.publish(markers)
 
-			p= PoseStamped()
-			p.header.frame_id= self.config.frame
-			p.header.stamp= rospy.Time.now()
-			p.pose.orientation.w= 1.0
-			p.pose.position= Point(self.config.offset_x, self.config.offset_y, self.config.offset_z)
-			self.pub_frame.publish(p)
+            p= PoseStamped()
+            p.header.frame_id= self.config.frame
+            p.header.stamp= rospy.Time.now()
+            p.pose.orientation.w= 1.0
+            p.pose.position= Point(self.config.offset_x, self.config.offset_y, self.config.offset_z)
+            self.pub_frame.publish(p)
 
 def main():
-	rospy.init_node('project_events_to_frame')
-	p= Projector()
-	rospy.spin()
+    rospy.init_node('project_events_to_frame')
+    p= Projector()
+    rospy.spin()
 
 if __name__ == '__main__':
-	main()
+    main()

@@ -12,14 +12,14 @@ last_call = rospy.Time.now()
 buffer = []
 
 def cb(msg):
-	global buffer
+    global buffer
 
-	buffer.append(msg)
-	if buffer[0].header.stamp + rospy.Duration(5.0) < rospy.Time.now():
-		pub.publish(buffer[0])
-		buffer = buffer[1:]
-	else:
-		rospy.loginfo('{} is still too young compared to {}'.format(buffer[0].header.stamp, rospy.Time.now()))
+    buffer.append(msg)
+    if buffer[0].header.stamp + rospy.Duration(5.0) < rospy.Time.now():
+        pub.publish(buffer[0])
+        buffer = buffer[1:]
+    else:
+        rospy.loginfo('{} is still too young compared to {}'.format(buffer[0].header.stamp, rospy.Time.now()))
 
 
 pub = rospy.Publisher('joint_states_buffered', JointState, queue_size= 100, tcp_nodelay= True)
