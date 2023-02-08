@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="tams_pr2" >
+  <xacro:include filename="$(find tams_pr2_description)/robots/tams_pr2.urdf.xacro" />
+
+  <xacro:macro name="plectrum" params="finger">
+    <link name="rh_${finger}_plectrum"/>
+    <joint name="${finger}_plectrum_mount" type="floating">
+      <parent link="rh_${finger}_biotac_link"/>
+      <child link="rh_${finger}_plectrum"/>
+    </joint>
+  </xacro:macro>
+
+  <xacro:plectrum finger="th"/>
+  <xacro:plectrum finger="ff"/>
+  <xacro:plectrum finger="mf"/>
+  <xacro:plectrum finger="rf"/>
+</robot>
