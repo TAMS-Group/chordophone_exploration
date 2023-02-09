@@ -41,8 +41,9 @@ public:
 	using bio_ik::BioIKKinematicsQueryOptions::BioIKKinematicsQueryOptions;
 
 	template<typename Goal, typename... Args>
-	void add(Args... args){
+  IkOptions& add(Args... args){
 		goals.push_back(std::make_unique<Goal>(args...));
+    return *this;
 	}
 };
 
@@ -99,18 +100,19 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		Eigen::Vector3d expected_tip_position{ pose.pose.position.x, pose.pose.position.y, pose.pose.position.z };
 
 		constraints.goals.clear();
-		constraints.add<bio_ik::PositionGoal>(
+    constraints
+        .add<bio_ik::PositionGoal>(
 		         args.tip,
 		         tf2::Vector3{expected_tip_position.x(),expected_tip_position.y(),expected_tip_position.z()},
 		         1.0
-		         );
-		constraints.add<bio_ik::DirectionGoal>(
+             )
+        .add<bio_ik::DirectionGoal>(
 		         args.tip,
 		         tf2::Vector3{ 1, 0, 0 },
 		         tf2::Vector3{ 0, 0, -1 },
 		         1.0
-		         );
-		constraints.add<bio_ik::DirectionGoal>(
+             )
+        .add<bio_ik::DirectionGoal>(
 		         args.tip,
 		         tf2::Vector3{ 0, 1, 0 },
 		         tf2::Vector3{ 0, 1, 0 },
@@ -229,13 +231,16 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 
 
 class Server {
-  ros::NodeHandle nh_{"~"};
-  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> execute_path_{ nh_, "pluck/execute_path", [this](auto& goal){ execute_path(goal); }, false };
-  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> goto_start_{ nh_, "pluck/goto_start", [this](auto& goal){ goto_start(goal); }, false};
+  ros::NodeHandle nh_{};
+  ros::NodeHandle pnh_{ "~" };
+  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> pluck_{ nh_, "pluck/pluck", [this](auto& goal){ pluck(goal); }, false };
+  actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> execute_path_{ nh_, "pluck/execute_path", [this](auto& goal){ execute_path(goal); }, false};
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_{ std::make_shared<tf2_ros::Buffer>(ros::Duration(30.0)) };
   tf2_ros::TransformListener tf_listener_{ *tf_buffer_ };
   planning_scene_monitor::PlanningSceneMonitor psm_{ "robot_description", tf_buffer_ };
+  planning_scene::PlanningScene& scene_{ *psm_.getPlanningScene() };
+  const moveit::core::RobotModel& model_{ *scene_.getRobotModel() };
   std::shared_ptr<planning_scene_monitor::CurrentStateMonitor> csm_ {
     [this]{
       auto m= std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene_.getRobotModel(), tf_buffer_, nh_);
@@ -246,12 +251,10 @@ class Server {
   };
   planning_scene_monitor::TrajectoryMonitor tm{ csm_, 100.0 };
 
-  planning_scene::PlanningScene& scene_{ *psm_.getPlanningScene() };
-  const moveit::core::RobotModel& model_{ *scene_.getRobotModel() };
-
   ros::Publisher pub_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
   ros::Publisher pub_executed_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
   ros::Publisher pub_img_{ nh_.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
+
   ros::Publisher pub_path_commanded_{ nh_.advertise<nav_msgs::Path>("pluck/commanded_path", 1, true) };
   ros::Publisher pub_path_planned_{ nh_.advertise<nav_msgs::Path>("pluck/planned_path", 1, true) };
   ros::Publisher pub_path_executed_{ nh_.advertise<nav_msgs::Path>("pluck/executed_path", 1, true) };
@@ -261,7 +264,7 @@ class Server {
   std::string finger_{
     [this]{
       std::string f;
-      nh_.param<std::string>("finger", f, "ff");
+      pnh_.param<std::string>("finger", f, "ff");
       const std::vector<std::string> fingers{ "th", "ff", "mf", "rf", "lf" };
       if(std::find(fingers.begin(), fingers.end(), f) == fingers.end()){
         ROS_FATAL_STREAM("finger must be one of th/ff/mf/rf/lf, but is '" << finger_ << "'");
@@ -274,7 +277,7 @@ class Server {
   std::string group_name_{
     [this]{
       std::string g;
-      nh_.param<std::string>("group", g, "right_arm");
+      pnh_.param<std::string>("group", g, "right_arm");
       if(!model_.hasJointModelGroup(g)){
         ROS_FATAL_STREAM("JointModelGroup '" << group_name_ << "' does not exist");
         throw std::runtime_error{"invalid group specified"};;
@@ -300,17 +303,18 @@ public:
   Server()
   {
     execute_path_.start();
-    goto_start_.start();
+    pluck_.start();
+    ROS_INFO_STREAM("initialized pluck_from_path");
   }
 
-  void execute_path(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+  void pluck(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
     std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
-      execute_path_.setAborted();
+      pluck_.setAborted();
       return;
     }
 
@@ -319,7 +323,7 @@ public:
     // update scene + start trajectory at current state
     if(!psm_.requestPlanningSceneState()){
       ROS_ERROR_STREAM("failed to get current scene from move_group");
-      execute_path_.setAborted();
+      pluck_.setAborted();
       return;
     }
 
@@ -346,7 +350,7 @@ public:
     }
     catch(const std::runtime_error& e){
       ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
-      execute_path_.setAborted();
+      pluck_.setAborted();
       return;
     }
 
@@ -425,17 +429,17 @@ public:
     result.executed_path = executed_path;
     result.executed_trajectory = executed_trajectory_msg.joint_trajectory;
 
-    execute_path_.setSucceeded(result);
+    pluck_.setSucceeded(result);
   }
 
-  void goto_start(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
+  void execute_path(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
     std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
-      goto_start_.setAborted();
+      execute_path_.setAborted();
       return;
     }
 
@@ -444,7 +448,7 @@ public:
     // update scene + start trajectory at current state
     if(!psm_.requestPlanningSceneState()){
       ROS_ERROR_STREAM("failed to get current scene from move_group");
-      goto_start_.setAborted();
+      execute_path_.setAborted();
       return;
     }
 
@@ -469,7 +473,7 @@ public:
     }
     catch(const std::runtime_error& e){
       ROS_ERROR_STREAM("Failed to generate trajectory: " << e.what());
-      goto_start_.setAborted();
+      execute_path_.setAborted();
       return;
     }
 
@@ -486,12 +490,17 @@ public:
       ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
     }
 
+    remote.waitForNextStep("execute trajectory?");
+    if(!remote.getAutonomous()){
+      ros::Duration(1.0).sleep();
+    }
+
     auto status{ mgi_.execute(trajectory_msg) };
     ROS_INFO_STREAM("status after execution: " << status);
 
     ExecutePathResult result;
 
-    goto_start_.setSucceeded(result);
+    execute_path_.setSucceeded(result);
   }
 };
 

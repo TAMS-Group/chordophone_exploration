@@ -68,7 +68,7 @@ class OnsetToMarker:
 
         m.type = Marker.SPHERE
         m.action = Marker.ADD
-        m.header.stamp = msg.header.stamp
+        m.header = msg.header
 
         m.scale.x = 0.005
         m.scale.y = 0.005

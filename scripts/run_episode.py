@@ -23,14 +23,14 @@ from math import tau
 class RunEpisode():
     def __init__(self, just_play=False):
         self.goto_start_client = SimpleActionClient(
-            'pluck/goto_start',
+            'pluck/execute_path',
             ExecutePathAction)
         self.goto_start_client.wait_for_server()
 
-        self.execute_path_client = SimpleActionClient(
-            'pluck/execute_path',
+        self.pluck_client = SimpleActionClient(
+            'pluck/pluck',
             ExecutePathAction)
-        self.execute_path_client.wait_for_server()
+        self.pluck_client.wait_for_server()
 
         self.just_play = just_play
 
@@ -185,13 +185,13 @@ class RunEpisode():
 
             now = rospy.Time.now()
             self.publishState("start", now)
-            self.execute_path_client.send_goal(ExecutePathGoal(
+            self.pluck_client.send_goal(ExecutePathGoal(
                 path=path,
                 finger=finger
                 ))
             params.header.stamp = now
             self.parameter_pub.publish(params)
-            self.execute_path_client.wait_for_result()
+            self.pluck_client.wait_for_result()
             # wait to collect data
             self.sleep(2.0)
             self.publishState("end")
@@ -213,7 +213,7 @@ def main():
     listen = rospy.get_param("~listen", False)
 
     if listen:
-        rospy.loginfo(f"subscribing to topic to wait for action parameter requests")
+        rospy.loginfo("subscribing to topic to wait for action parameter requests")
 
         def param_cb(msg):
             rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.parameters}")

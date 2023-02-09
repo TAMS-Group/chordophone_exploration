@@ -13,8 +13,6 @@ from geometry_msgs.msg import TransformStamped
 
 import numpy as np
 
-import copy
-
 def tf_for_finger(finger):
     tf = TransformStamped()
     tf.header.frame_id = f'rh_{finger}_biotac_link'

@@ -65,8 +65,8 @@ class Aggregator():
             # episode parameters
             ('/episode/state', EpisodeState, self.state_cb),
             ('/episode/action_parameters', ActionParameters, self.action_parameter_cb),
-            ('/pluck/execute_path/goal', ExecutePathActionGoal, self.execute_path_cb),
-            ('/pluck/execute_path/result', ExecutePathActionResult, self.pluck_execute_path_result_cb),
+            ('/pluck/pluck/goal', ExecutePathActionGoal, self.pluck_cb),
+            ('/pluck/pluck/result', ExecutePathActionResult, self.pluck_result_cb),
             ('/pluck/planned_path', Path, self.pluck_planned_path_cb),
             ('/pluck/trajectory', DisplayTrajectory, self.pluck_planned_trajectory_cb),
 
@@ -214,7 +214,7 @@ class Aggregator():
         #if not self.tracksEpisode():
         #    rospy.logwarn("received planned trajectory, but not tracking an episode")
         self.episode.planned_trajectory= msg.trajectory[0].joint_trajectory
-    def pluck_execute_path_result_cb(self, msg):
+    def pluck_result_cb(self, msg):
         if not self.tracksEpisode():
             rospy.logwarn(f'got ExecutePath result at {msg.header.stamp.to_sec()}, but no episode is tracked')
         self.episode.planned_path = msg.result.generated_path
@@ -251,7 +251,7 @@ class Aggregator():
             rospy.logerr("found empty plucks marker message")
         else:
             self.episode.detected_tactile_plucks.append(msg.markers[0].header.stamp)
-    def execute_path_cb(self, msg):
+    def pluck_cb(self, msg):
         rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
         #if not self.tracksEpisode():
         #    rospy.logwarn(f"got execute path goal at {msg.header.stamp}, but not tracking an episode")
