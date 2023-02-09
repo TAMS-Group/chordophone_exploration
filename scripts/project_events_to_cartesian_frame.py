@@ -102,6 +102,8 @@ class Projector:
             return
         # inf is not supported... :(
         buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)
+        for f in ["th", "ff", "mf", "rf"]:
+            buffer.set_transform_static(self.tf_buffer.lookup_transform(f'rh_{f}_biotac_link', f'rh_{f}_plectrum', rospy.Time()), '')
         for dt in np.arange(TimeOffsetConfig.min['delta_t'], TimeOffsetConfig.max['delta_t']+0.01, 0.01):
             try:
                 for f in ["th", "ff", "mf", "rf"]:
@@ -140,7 +142,7 @@ class Projector:
                 try:
                     p= buffer.transform(p, 'base_footprint')
                 except Exception as e:
-                    rospy.logerr(e)
+                    rospy.logerr('transform in publish failed:\n'+str(e)+"\nonly know these: "+buffer.all_frames_as_yaml())
                     continue
                 m= deepcopy(marker)
                 m.header= p.header
