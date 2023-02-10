@@ -21,6 +21,8 @@ import copy
 import numpy as np
 from math import tau
 
+from ruckig import InputParameter, OutputParameter, Result, Ruckig, Trajectory
+
 class RunEpisode():
     def __init__(self, just_play=False):
         self.goto_start_client = SimpleActionClient(
@@ -165,11 +167,106 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def run_episode(self, note, finger= 'ff', repeat=1, params= None):
-        # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
-        path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
+    @staticmethod
+    def get_path_ruckig(note, params= None):
+        if params and params.actionspace_type != "ruckig keypoint position/velocity":
+            rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
-        # hardcoded because pluck detector is only setup for first finger
+        # Create instances: the Ruckig OTG as well as input and output parameters
+        cycle_time = 0.01
+        ruckig_generator = Ruckig(2, cycle_time)  # DoFs, control cycle
+        inp = InputParameter(2)
+        def traj_from_input(inp):
+            ruckig_generator.reset()
+            t= Trajectory(2)
+            ruckig_generator.calculate(inp, t)
+            return t
+
+        # build randomized parameters if not provided
+        if params is None:
+            params = RunEpisode.makeParameters(
+                        "ruckig keypoint position/velocity",
+                        # TODO: tune defaults
+                        [
+                        # max velocities
+                        0.1, 0.3,
+                        # max accelerations
+                        1.0, 1.0,
+                        # max jerk
+                        8.0, 8.0,
+                        # pre position
+                        0.015, 0.015,
+                        # post position
+                        -0.01, 0.01,
+                        # keypoint position
+                        random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.005),
+                        # keypoint velocity
+                        random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
+                        # string position
+                        0.05
+                        ])
+
+        # parse parameters from input message
+        _params = params.action_parameters[:]
+        def next_parameter(n):
+            nonlocal _params
+            p = _params[:n]
+            _params = _params[n:]
+            return p
+        inp.max_velocity = next_parameter(2)
+        inp.max_acceleration = next_parameter(2)
+        inp.max_jerk = next_parameter(2)
+        pre = next_parameter(2)
+        post = next_parameter(2)
+        keypoint_position = next_parameter(2)
+        keypoint_velocity = next_parameter(2)
+        head_offset = next_parameter(1)[0]
+
+        # build pluck trajectories
+        inp.current_position = pre
+        inp.current_velocity = [0.0, 0.0]
+        inp.current_acceleration = [0.0, 0.0]
+        inp.target_position = keypoint_position
+        inp.target_velocity = keypoint_velocity
+        inp.target_acceleration = [0.0,0.0]
+        t= traj_from_input(inp)
+        kp= np.array(t.at_time(t.duration)).T
+        inp.current_position = kp[:,0]
+        inp.current_velocity = kp[:,1]
+        inp.current_acceleration = kp[:,2]
+        inp.target_position = post
+        inp.target_velocity = [0.0,0.0]
+        inp.target_acceleration = [0.0,0.0]
+        t2= traj_from_input(inp)
+        # sample & combine trajectories
+        n_wp= int((t.duration+t2.duration)/cycle_time)
+        kp_idx= int((t.duration)/cycle_time)
+        T= np.linspace(0.0, t.duration+t2.duration, n_wp)
+        Y= np.zeros((n_wp, 2, 3))
+        for i in range(0, kp_idx):
+            Y[i,:,:] = np.array(t.at_time(T[i])).T
+        for i in range(kp_idx, n_wp):
+            Y[i,:,:] = np.array(t2.at_time(T[i]-t.duration)).T
+
+        path = Path()
+        path.header.frame_id = 'guzheng/{}/head'.format(note)
+        for i in range(Y.shape[0]):
+            p = PoseStamped()
+            p.header.stamp = rospy.Time(T[i])
+            p.pose.position.x = head_offset
+            p.pose.position.y = float(Y[i, 0, 0])
+            p.pose.position.z = float(Y[i, 1, 0])
+            p.pose.orientation.w = 1.0
+            path.poses.append(p)
+
+        return path, params
+
+
+    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None):
+        # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
+        # path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
+        path, params = RunEpisode.get_path_ruckig(note, params=params)
+
         self.finger_pub.publish(finger)
 
         for i in range(repeat):
