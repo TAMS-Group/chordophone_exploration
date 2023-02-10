@@ -311,7 +311,7 @@ public:
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
-    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
+    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_plectrum" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
       pluck_.setAborted();
@@ -436,7 +436,7 @@ public:
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
-    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_biotac_link" };
+    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_plectrum" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
       execute_path_.setAborted();
