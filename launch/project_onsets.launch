@@ -9,6 +9,7 @@
     <param name="offset_z" value="-0.01" />
     <remap from="events_markers" to="onsets_markers" />
     <remap from="events_projected" to="onsets_projected" />
+    <remap from="active_finger" to="/pluck/active_finger" />
   </node>
   </group>
 </launch>

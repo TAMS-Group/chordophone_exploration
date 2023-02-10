@@ -3,6 +3,7 @@
 import rospy
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped
+from std_msgs.msg import String
 
 from actionlib import SimpleActionClient
 
@@ -42,6 +43,11 @@ class RunEpisode():
         self.parameter_pub = rospy.Publisher(
             'episode/action_parameters',
             ActionParameters,
+            queue_size=10,
+            tcp_nodelay=True)
+        self.finger_pub = rospy.Publisher(
+            'pluck/active_finger',
+            String,
             queue_size=10,
             tcp_nodelay=True)
 
@@ -159,12 +165,12 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def run_episode(self, note, repeat=1, params= None):
+    def run_episode(self, note, finger= 'ff', repeat=1, params= None):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
         path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
 
-        # hardcoded because projectors / pluck detector are only setup for first finger
-        finger = 'ff'
+        # hardcoded because pluck detector is only setup for first finger
+        self.finger_pub.publish(finger)
 
         for i in range(repeat):
             self.new_episode()
@@ -205,6 +211,7 @@ def main():
     re = RunEpisode(just_play=just_play)
 
     note = rospy.get_param("~note", "d6")
+    finger = rospy.get_param("~finger", "ff")
 
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 0)
@@ -217,29 +224,29 @@ def main():
 
         def param_cb(msg):
             rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.parameters}")
-            re.run_episode(note= msg.string, params= msg.parameters)
+            re.run_episode(finger= msg.finger, note= msg.string, params= msg.parameters)
         rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
         rospy.spin()
     elif just_play:
         rospy.loginfo("just going to play")
         notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
         for n in notes:
-            re.run_episode(note=n, repeat=1)
+            re.run_episode(finger= finger, note= n, repeat= 1)
         for n in reversed(notes):
-            re.run_episode(note=n, repeat=1)
+            re.run_episode(finger= finger, note= n, repeat= 1)
     elif runs > 0:
         rospy.loginfo(f"running for {runs} episodes (with {repeat} repetitions each)")
         for i in range(runs):
-            re.run_episode(note=note, repeat=repeat)
+            re.run_episode(finger= finger, note= note, repeat= repeat)
             rospy.sleep(rospy.Duration(1.0))
     elif not continuous:
         rospy.loginfo(f"running one episode (with {repeat} repetitions)")
-        re.run_episode(note=note, repeat=repeat)
+        re.run_episode(finger= finger, note= note, repeat= repeat)
         rospy.sleep(rospy.Duration(1.0))
     else:
         rospy.loginfo("running continuously")
         while not rospy.is_shutdown():
-            re.run_episode(note=note, repeat=repeat)
+            re.run_episode(finger= finger, note=note, repeat=repeat)
 
 
 if __name__ == "__main__":
