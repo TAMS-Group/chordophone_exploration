@@ -43,7 +43,6 @@ class TransformListenerCb(tf2_ros.TransformListener):
 class Projector:
     def __init__(self):
         self.tf_buffer= tf2_ros.Buffer(rospy.Duration(30.0), debug= False)
-        self.tf_listener= TransformListenerCb(self.tf_buffer, lambda tfs: self.publish())
 
         self.loop= LoopDetector()
 
@@ -59,9 +58,12 @@ class Projector:
         self.config= None
         self.dr_server= DynamicReconfigureServer(TimeOffsetConfig, self.offset_cb)
 
+        self.tf_listener= TransformListenerCb(self.tf_buffer, lambda tfs: self.publish())
+
         self.sub_finger= rospy.Subscriber('active_finger', String, self.finger_cb, queue_size= 100, tcp_nodelay= True)
         self.sub_events= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
         self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
+
 
     def reset(self):
         self.id= 0
