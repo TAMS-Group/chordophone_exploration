@@ -307,6 +307,16 @@ public:
     ROS_INFO_STREAM("initialized pluck_from_path");
   }
 
+  bool update_scene(){
+    // update scene + start trajectory at current state
+    if(!psm_.requestPlanningSceneState()){
+      ROS_ERROR_STREAM("failed to get current scene from move_group");
+      return false;
+    }
+    csm_->setToCurrentState(scene_.getCurrentStateNonConst());
+    return true;
+  }
+
   void pluck(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
@@ -320,9 +330,7 @@ public:
 
     ROS_INFO("planning trajectory");
 
-    // update scene + start trajectory at current state
-    if(!psm_.requestPlanningSceneState()){
-      ROS_ERROR_STREAM("failed to get current scene from move_group");
+    if(!update_scene()){
       pluck_.setAborted();
       return;
     }
@@ -445,9 +453,7 @@ public:
 
     ROS_INFO("planning trajectory");
 
-    // update scene + start trajectory at current state
-    if(!psm_.requestPlanningSceneState()){
-      ROS_ERROR_STREAM("failed to get current scene from move_group");
+    if(!update_scene()){
       execute_path_.setAborted();
       return;
     }
