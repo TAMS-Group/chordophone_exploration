@@ -202,8 +202,8 @@ class RunEpisode():
                         random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.005),
                         # keypoint velocity
                         random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
-                        # string position
-                        0.05
+                        # string position # TODO: randomize along full strings
+                        random.uniform(0.03, 0.1)
                         ])
 
         # parse parameters from input message
