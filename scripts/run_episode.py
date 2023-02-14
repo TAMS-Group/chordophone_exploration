@@ -328,12 +328,18 @@ def main():
         rospy.loginfo("just going to play")
         notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
         for n in notes:
+            if rospy.is_shutdown():
+                break
             re.run_episode(finger= finger, note= n, repeat= 1)
         for n in reversed(notes):
+            if rospy.is_shutdown():
+                break
             re.run_episode(finger= finger, note= n, repeat= 1)
     elif runs > 0:
         rospy.loginfo(f"running for {runs} episodes (with {repeat} repetitions each)")
         for i in range(runs):
+            if rospy.is_shutdown():
+                break
             re.run_episode(finger= finger, note= note, repeat= repeat)
             rospy.sleep(rospy.Duration(1.0))
     elif not continuous:
