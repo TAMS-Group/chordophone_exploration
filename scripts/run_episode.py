@@ -21,15 +21,17 @@ import copy
 import numpy as np
 from math import tau
 
-from ruckig import InputParameter, OutputParameter, Result, Ruckig, Trajectory
+from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
     def __init__(self, just_play=False):
+        rospy.loginfo("connect to execute_path action")
         self.goto_start_client = SimpleActionClient(
             'pluck/execute_path',
             ExecutePathAction)
         self.goto_start_client.wait_for_server()
 
+        rospy.loginfo("connect to pluck action")
         self.pluck_client = SimpleActionClient(
             'pluck/pluck',
             ExecutePathAction)
@@ -58,6 +60,8 @@ class RunEpisode():
 
         self.episode_id = 0
         self.episode_cnt = 0
+
+        rospy.loginfo("startup complete")
 
     def new_episode(self):
         self.episode_id = random.randint(0, 1 << 30)
