@@ -1,4 +1,7 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="onset_detector" ns="guzheng" pkg="tams_pr2_guzheng" type="detect_onset.py" output="screen" />
+  <group ns="guzheng">
+    <node name="onset_detector" pkg="tams_pr2_guzheng" type="detect_onset.py" output="screen" />
+    <node name="onset_to_marker" pkg="tams_pr2_guzheng" type="onset_to_marker.py" />
+  </group>
 </launch>

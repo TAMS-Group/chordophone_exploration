@@ -1,7 +1,6 @@
 <?xml version="1.0"?>
 <launch>
   <group ns="guzheng">
-  <node name="onset_to_marker" pkg="tams_pr2_guzheng" type="onset_to_marker.py" />
   <node name="onset_projector" pkg="tams_pr2_guzheng" type="project_events_to_cartesian_frame.py" output="screen">
     <param name="delta_t" value="-0.35" />
     <param name="offset_x" value="0.024" />
