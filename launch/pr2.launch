@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<!-- start pr2 part of system -->
+<launch>
+  <include file="$(dirname)/plectrum.launch" />
+  <include file="$(dirname)/projectors.launch" />
+  <include file="$(dirname)/detect_pluck.launch" />
+</launch>

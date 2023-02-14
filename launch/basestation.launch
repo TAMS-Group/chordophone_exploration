@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<!-- basestation part of the system -->
+<launch>
+  <include file="$(dirname)/microphone.launch">
+    <arg name="play" value="false" />
+  </include>
+
+  <include file="$(dirname)/play_audio_topic.launch" />
+
+  <include file="$(dirname)/detect_onset.launch" />
+</launch>
