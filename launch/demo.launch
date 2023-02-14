@@ -1,15 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="robot_description" command="xacro '$(dirname)/../urdf/tams_pr2.urdf.xacro'"/>
-  <node name="plectrum_poses" pkg="tams_pr2_guzheng" type="plectrum_poses.py" />
-
-  <include file="$(dirname)/spawn_example_d6.launch" />
-
   <include file="$(find tams_pr2_moveit_config)/launch/demo.launch">
     <arg name="use_gui" value="true" />
     <arg name="use_rviz" value="false" />
     <arg name="load_robot_description" value="false" />
   </include>
+
+  <include file="$(dirname)/plectrum.launch">
+    <arg name="robot_state_publisher" value="false" />
+  </include>
+
+  <include file="$(dirname)/spawn_example_d6.launch" />
 
   <node name="rviz" pkg="rviz" type="rviz" args="-d '$(dirname)/../config/guzheng.rviz'" />
 

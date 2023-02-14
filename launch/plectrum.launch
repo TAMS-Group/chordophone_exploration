@@ -1,8 +1,10 @@
 <?xml version="1.0"?>
 <!-- start on running PR2 to add the plectrum links -->
 <launch>
+  <arg name="robot_state_publisher" default="true" />
+
   <param name="robot_description" command="xacro '$(dirname)/../urdf/tams_pr2.urdf.xacro'"/>
   <node name="plectrum_poses" pkg="tams_pr2_guzheng" type="plectrum_poses.py" />
 
-  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  <node if="$(arg robot_state_publisher)" name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
 </launch>
