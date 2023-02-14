@@ -315,7 +315,7 @@ def main():
     finger = rospy.get_param("~finger", "ff")
 
     continuous = rospy.get_param("~continuous", False)
-    runs = rospy.get_param("~runs", 0)
+    runs = rospy.get_param("~runs", 1)
     repeat = rospy.get_param("~repeat", 1)
 
     listen = rospy.get_param("~listen", False)
@@ -340,21 +340,18 @@ def main():
                 break
             re.run_episode(finger= finger, note= n, repeat= 1)
     elif runs > 0:
-        rospy.loginfo(f"running for {runs} episodes (with {repeat} repetitions each)")
+        rospy.loginfo(f"running for {runs} episode(s) with {repeat} repetitions each")
         for i in range(runs):
             if rospy.is_shutdown():
                 break
             re.run_episode(finger= finger, note= note, repeat= repeat)
             rospy.sleep(rospy.Duration(1.0))
-    elif not continuous:
-        rospy.loginfo(f"running one episode (with {repeat} repetitions)")
-        re.run_episode(finger= finger, note= note, repeat= repeat)
-        rospy.sleep(rospy.Duration(1.0))
-    else:
+    elif continuous:
         rospy.loginfo("running continuously")
         while not rospy.is_shutdown():
             re.run_episode(finger= finger, note=note, repeat=repeat)
-
+    else:
+        rospy.logerr("found invalid configuration. Can't go on.")
 
 if __name__ == "__main__":
     main()
