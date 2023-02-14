@@ -339,6 +339,10 @@ def main():
             if rospy.is_shutdown():
                 break
             re.run_episode(finger= finger, note= n, repeat= 1)
+    elif continuous:
+        rospy.loginfo("running continuously")
+        while not rospy.is_shutdown():
+            re.run_episode(finger= finger, note=note, repeat=repeat)
     elif runs > 0:
         rospy.loginfo(f"running for {runs} episode(s) with {repeat} repetitions each")
         for i in range(runs):
@@ -346,10 +350,6 @@ def main():
                 break
             re.run_episode(finger= finger, note= note, repeat= repeat)
             rospy.sleep(rospy.Duration(1.0))
-    elif continuous:
-        rospy.loginfo("running continuously")
-        while not rospy.is_shutdown():
-            re.run_episode(finger= finger, note=note, repeat=repeat)
     else:
         rospy.logerr("found invalid configuration. Can't go on.")
 
