@@ -106,18 +106,26 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		         tf2::Vector3{expected_tip_position.x(),expected_tip_position.y(),expected_tip_position.z()},
 		         1.0
              )
+        // plectrum should point down
         .add<bio_ik::DirectionGoal>(
 		         args.tip,
 		         tf2::Vector3{ 1, 0, 0 },
 		         tf2::Vector3{ 0, 0, -1 },
 		         1.0
              )
+        // plectrum should hit string with the flat side
         .add<bio_ik::DirectionGoal>(
 		         args.tip,
 		         tf2::Vector3{ 0, 1, 0 },
 		         tf2::Vector3{ 0, 1, 0 },
 		         0.005
-		         );
+             )
+        // regularize to keep shoulder at central height
+        .add<bio_ik::JointVariableGoal>(
+             "r_shoulder_lift_joint",
+             0.0,
+             0.005
+          );
 
 		ik(wp, constraints);
 
