@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+  <node name="pluck_from_path" pkg="tams_pr2_guzheng" type="pluck_from_path" />
+</launch>
