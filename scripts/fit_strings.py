@@ -9,6 +9,7 @@ from tf2_msgs.msg import TFMessage
 from geometry_msgs.msg import TransformStamped
 from visualization_msgs.msg import MarkerArray, Marker
 from std_msgs.msg import ColorRGBA
+from std_srvs.srv import SetBool
 
 import numpy as np
 
@@ -17,7 +18,6 @@ from skimage.measure import LineModelND, ransac
 from threading import Lock
 
 
-# TODO read pluck events and improve ransac fit with them
 class StringFitter:
     def __init__(self):
         self.lock = Lock()
@@ -31,6 +31,9 @@ class StringFitter:
             tcp_nodelay=True,
             latch=True)
 
+        self.active= True
+        self.enable_srv = rospy.Service('~set_active', SetBool, self.set_active)
+
     def start(self):
         self.sub_notes = rospy.Subscriber(
             'guzheng/onsets_projected',
@@ -40,7 +43,17 @@ class StringFitter:
             queue_size= 1,
             )
 
+    def set_active(self, req):
+        self.active = req.data
+        if self.active:
+            rospy.loginfo("activated fitter")
+        else:
+            rospy.loginfo("set fitter inactive")
+        return {'success': True, 'message' : '' }
+
     def onsets_cb(self, msg):
+        if not self.active:
+            return
         with self.lock:
             self.onsets = {}
             for m in msg.markers:
@@ -48,7 +61,7 @@ class StringFitter:
                     self.onsets[m.ns] = \
                         self.onsets.get(m.ns, []) + [m.pose.position]
             self.fit()
-        self.sub_notes.unregister()
+        #self.sub_notes.unregister()
 
     @staticmethod
     def string_to_tf(string):
