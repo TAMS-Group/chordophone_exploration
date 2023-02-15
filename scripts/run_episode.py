@@ -13,6 +13,7 @@ from tams_pr2_guzheng.msg import (
     ActionParameters,
     ExecutePathGoal,
     RunEpisodeRequest,
+    NoteOnset
     )
 
 import random
@@ -55,18 +56,33 @@ class RunEpisode():
             queue_size=10,
             tcp_nodelay=True)
 
+        self.onset_sub = rospy.Subscriber(
+            'guzheng/onsets',
+            NoteOnset,
+            self.onset_cb,
+            queue_size=500,
+            tcp_nodelay=True
+            )
+
         # leave time for clients to connect
         rospy.sleep(rospy.Duration(1.0))
 
         self.episode_id = 0
         self.episode_cnt = 0
 
+        self.next_systematic_bias()
+        self.episode_onsets = [[]]
+
         rospy.loginfo("startup complete")
 
     def new_episode(self):
         self.episode_id = random.randint(0, 1 << 30)
         self.episode_cnt+= 1
+        self.episode_onsets.append([])
         rospy.loginfo(f'run episode number {self.episode_cnt}')
+
+    def onset_cb(self, onset):
+        self.episode_onsets[-1].append(onset)
 
     def publishState(self, state, now=None):
         es = EpisodeState()
@@ -171,8 +187,7 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    @staticmethod
-    def get_path_ruckig(note, params= None):
+    def get_path_ruckig(self, note, params= None):
         if params and params.actionspace_type != "ruckig keypoint position/velocity":
             rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
@@ -199,11 +214,11 @@ class RunEpisode():
                         # max jerk
                         8.0, 8.0,
                         # pre position
-                        0.015, 0.015,
+                        self.systematic_bias['y']+0.015, self.systematic_bias['z'] + 0.015,
                         # post position
-                        -0.01, 0.01,
+                        self.systematic_bias['y']-0.01, self.systematic_bias['z'] + 0.01,
                         # keypoint position
-                        random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.005),
+                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.005),
                         # keypoint velocity
                         random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
                         # string position # TODO: randomize along full strings
@@ -265,11 +280,16 @@ class RunEpisode():
 
         return path, params
 
+    def next_systematic_bias(self):
+        if len(self.biases) == 0:
+            yr = np.append([0.0], np.random.uniform(-0.01, 0.005, 3))
+            self.biases = [{"y": y, "z": 0.0} for y in yr]
+        self.systematic_bias = self.biases.pop()
 
     def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
         # path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
-        path, params = RunEpisode.get_path_ruckig(note, params=params)
+        path, params = self.get_path_ruckig(note, params=params)
 
         self.finger_pub.publish(finger)
 
@@ -303,6 +323,19 @@ class RunEpisode():
             self.sleep(2.0)
             self.publishState("end")
             self.sleep(1.0)
+
+            # adapt systematic_bias if required
+            if len(self.episode_onsets) >= 5:
+                if len([e for e in self.episode_onsets if len(e) == 0]) >= 4 and self.systematic_bias['z'] > -0.01:
+                    self.systematic_bias['z']= max((-0.01, self.systematic_bias['z']-0.002))
+                    rospy.loginfo(f'did not record enough onsets. adapting systematic z bias to {self.systematic_bias["z"]}')
+                elif len([e for e in self.episode_onsets if len([o for o in e if o.note == note]) > 0]) < 2:
+                    self.next_systematic_bias()
+                    detected_notes = set()
+                    for e in self.episode_onsets:
+                        detected_notes.update([o.note for o in e])
+                    rospy.loginfo(f'did not recognize target note {note} often enough, but found {detected_notes} instead. adapt systematic bias to {self.systematic_bias}')
+                self.episode_onsets.clear()
 
 
 def main():
