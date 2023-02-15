@@ -184,7 +184,7 @@ class StringFitter:
     def fit(self):
         strings = []
         for k in sorted(self.onsets.keys()):
-            if len(self.onsets[k]) > 5:
+            if len(self.onsets[k]) >= 3:
                 pts = np.array(
                     [(p.x, p.y, p.z) for p in self.onsets[k]],
                     dtype=float)
