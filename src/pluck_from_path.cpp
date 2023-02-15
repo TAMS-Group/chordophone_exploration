@@ -350,7 +350,13 @@ public:
     for(auto& pose : path_transformed.poses){
       if(pose.header.frame_id.empty())
         pose.header.frame_id = path.header.frame_id;
-      pose = tf_buffer_->transform(pose, planning_frame);
+      try {
+        pose = tf_buffer_->transform(pose, planning_frame);
+      } catch(const tf2::LookupException& e){
+        ROS_ERROR_STREAM(e.what());
+        pluck_.setAborted();
+        return;
+      }
     }
     pub_path_commanded_.publish( path_transformed );
 
@@ -472,7 +478,13 @@ public:
     for(auto& pose : path_transformed.poses){
       if(pose.header.frame_id.empty())
         pose.header.frame_id = path_transformed.header.frame_id;
-      pose = tf_buffer_->transform(pose, planning_frame);
+      try {
+        pose = tf_buffer_->transform(pose, planning_frame);
+      } catch(const tf2::LookupException& e){
+        ROS_ERROR_STREAM(e.what());
+        execute_path_.setAborted();
+        return;
+      }
     }
 
     // compute trajectory
