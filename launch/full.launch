@@ -12,4 +12,6 @@
   <include file="$(dirname)/detect_pluck.launch" />
 
   <include file="$(dirname)/projectors.launch" />
+
+  <include file="$(dirname)/pluck_from_path.launch" />
 </launch>
