@@ -48,7 +48,8 @@ class StringFitter:
         if self.active:
             rospy.loginfo("activated fitter")
         else:
-            rospy.loginfo("set fitter inactive")
+            self.fit()
+            rospy.loginfo("set fitter inactive after final fit")
         return {'success': True, 'message' : '' }
 
     def onsets_cb(self, msg):
@@ -130,8 +131,7 @@ class StringFitter:
 
         return m
 
-    @staticmethod
-    def align_bridges(strings):
+    def align_bridges(self, strings):
         if len(strings) < 3:
             return
 
@@ -230,7 +230,9 @@ class StringFitter:
                     "end": end_pt
                     })
 
-        StringFitter.align_bridges(strings)
+        # only adjust bridge on finalize
+        if not self.active:
+            self.align_bridges(strings)
 
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
