@@ -70,6 +70,7 @@ class RunEpisode():
         self.episode_id = 0
         self.episode_cnt = 0
 
+        self.biases = []
         self.next_systematic_bias()
         self.episode_onsets = [[]]
 
