@@ -245,7 +245,9 @@ class StringFitter:
                     np.max((inlier_pts - model.params[0]) @ direction)
                 end_pt = model.params[0] + max_pos_on_string * direction
 
-                if max_pos_on_string < 0.05:
+                length = max_pos_on_string-min_pos_on_string
+
+                if length < 0.05:
                     rospy.logwarn(f"skipping very short string for note {k}")
                     continue
 
@@ -254,7 +256,7 @@ class StringFitter:
                     "bridge": bridge_pt,
                     "direction": direction,
                     "end": end_pt,
-                    "length": (max_pos_on_string-min_pos_on_string)
+                    "length": length
                     })
 
         # only adjust bridge on finalize
