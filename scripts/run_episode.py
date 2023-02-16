@@ -206,7 +206,7 @@ class RunEpisode():
             rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
         # Create instances: the Ruckig OTG as well as input and output parameters
-        cycle_time = 0.01
+        cycle_time = 0.04
         ruckig_generator = Ruckig(2, cycle_time)  # DoFs, control cycle
         inp = InputParameter(2)
         def traj_from_input(inp):
