@@ -16,6 +16,7 @@ import numpy as np
 from skimage.measure import LineModelND, ransac
 
 from threading import Lock
+import re
 
 
 class StringFitter:
@@ -110,7 +111,11 @@ class StringFitter:
         m.header.frame_id = 'base_footprint'
         m.scale.x = m.scale.y = 0.003
         m.scale.z = np.sqrt(np.sum((string["end"]-string["bridge"])**2))
-        m.color = ColorRGBA(1.0, 1.0, 1.0, 1.0)
+        # color A strings green by convention
+        if re.match("A[0-9]+", string["key"]):
+            m.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)
+        else:
+            m.color = ColorRGBA(1.0, 1.0, 1.0, 1.0)
 
         center = (string["end"]-string["bridge"])/2 + string["bridge"]
         m.pose.position.x = center[0]
