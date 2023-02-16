@@ -215,9 +215,9 @@ class StringFitter:
                 rospy.loginfo(
                     f'fit {k} with {len(pts)} points '
                     f'({np.sum(inliers)} inliers)')
-                if np.sum(inliers) < 5:
-                    rospy.loginfo('skipped because of few inliers')
-                    continue
+                #if np.sum(inliers) < 2:
+                #    rospy.loginfo('skipped because of few inliers')
+                #    continue
 
                 origin = model.params[0]
                 direction = model.params[1]
