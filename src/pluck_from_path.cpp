@@ -129,12 +129,13 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 
 		ik(wp, constraints);
 
-		for(int j= 1; j < 20; ++j){
-			moveit::core::RobotState interpolated{ wp };
-			previous_wp.interpolate(wp, 0.05*j, interpolated, jmg);
+		// TODO: interpolate if and only if joint space distance is high
+		//for(int j= 1; j < 20; ++j){
+		//	moveit::core::RobotState interpolated{ wp };
+		//	previous_wp.interpolate(wp, 0.05*j, interpolated, jmg);
 
-			traj.addSuffixWayPoint(interpolated, 1.0);
-		}
+		//	traj.addSuffixWayPoint(interpolated, 1.0);
+		//}
 
 		wp.updateLinkTransforms();
 		traj.addSuffixWayPoint(wp, 1.0);
