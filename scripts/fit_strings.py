@@ -157,6 +157,24 @@ class StringFitter:
         # else:
         #     return np.array(o)[[0,2]]
 
+    def drop_unaligned(self, strings):
+        s_threshold = 3.5
+        directions = self.project(np.array([s["direction"] for s in strings]))
+        angles = np.arctan2(directions[:,0], directions[:,1])
+        # Modified Z-score
+        # https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+        def score(data):
+            m= np.median(data)
+            d= m-data
+            mad= np.median(np.abs(d))
+            return 0.6745*d/mad
+        s= np.abs(score(angles))
+        strings_filtered = list(np.array(strings, dtype=object)[s < s_threshold])
+
+        rospy.loginfo(f"drop {len(strings)-len(strings_filtered)} out of {len(strings)}. {len(strings_filtered)} remaining")
+        rospy.loginfo(f"kept {[x['key'] for x in strings_filtered]} with scores {s[s<s_threshold]}")
+        return strings_filtered
+
     def align_bridges(self, strings):
         if len(strings) < 5:
             return
@@ -263,6 +281,8 @@ class StringFitter:
         # only adjust bridge on finalize
         if not self.active:
             self.align_bridges(strings)
+
+        strings = self.drop_unaligned(strings)
 
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
