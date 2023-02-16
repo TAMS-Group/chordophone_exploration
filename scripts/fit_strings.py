@@ -132,8 +132,9 @@ class StringFitter:
         return m
 
     def align_bridges(self, strings):
-        if len(strings) < 3:
+        if len(strings) < 5:
             return
+        rospy.loginfo(f'fitting bridge from {len(strings)} strings')
 
         origins = np.array([s["bridge"] for s in strings], dtype=float)
 
