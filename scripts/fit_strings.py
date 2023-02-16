@@ -65,7 +65,7 @@ class StringFitter:
         #self.sub_notes.unregister()
 
     @staticmethod
-    def string_to_tf(string):
+    def string_to_tfs(string):
         tf = TransformStamped()
         tf.header.frame_id = 'base_footprint'
         tf.child_frame_id = "guzheng/"+string["key"].lower()+"/head"
@@ -92,7 +92,13 @@ class StringFitter:
         tf.transform.rotation.z = rot_q[2]
         tf.transform.rotation.w = rot_q[3]
 
-        return tf
+        tf_bridge = TransformStamped()
+        tf_bridge.header.frame_id = tf.child_frame_id
+        tf_bridge.transform.translation.x = string["length"]
+        tf_bridge.transform.rotation.w = 1.0
+        tf_bridge.child_frame_id = "guzheng/"+string["key"].lower()+"/bridge"
+
+        return (tf, tf_bridge)
 
     @staticmethod
     def string_to_marker(string):
@@ -242,7 +248,8 @@ class StringFitter:
                     "key": k.replace("♯", "is"),
                     "bridge": bridge_pt,
                     "direction": direction,
-                    "end": end_pt
+                    "end": end_pt,
+                    "length": max_pos_on_string
                     })
 
         # only adjust bridge on finalize
@@ -252,7 +259,7 @@ class StringFitter:
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
         tf_msg = TFMessage(
-            transforms=[StringFitter.string_to_tf(s) for s in strings])
+            transforms=[t for s in strings for t in StringFitter.strings_to_tfs(s)])
         self.tf_broadcast.pub_tf.publish(tf_msg)
 
         markers = MarkerArray(
