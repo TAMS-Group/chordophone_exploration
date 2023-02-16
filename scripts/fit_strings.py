@@ -185,17 +185,27 @@ class StringFitter:
     def fit(self):
         strings = []
         for k in sorted(self.onsets.keys()):
-            if len(self.onsets[k]) >= 3:
+            if len(self.onsets[k]) >= 2:
                 pts = np.array(
                     [(p.x, p.y, p.z) for p in self.onsets[k]],
                     dtype=float)
-                model, inliers = ransac(
-                    pts,
-                    LineModelND,
-                    min_samples=2,
-                    residual_threshold=0.01,
-                    max_trials=1000
-                    )
+
+                inlier_threshold= 0.01
+
+                # special case because the library is broken
+                # https://github.com/scikit-image/scikit-image/pull/6755
+                if pts.shape[0] == 2:
+                    model = LineModelND()
+                    model.estimate(pts)
+                    inliers = model.residuals(pts) < inlier_threshold
+                else:
+                    model, inliers = ransac(
+                        pts,
+                        LineModelND,
+                        min_samples=2,
+                        residual_threshold=inlier_threshold,
+                        max_trials=1000
+                        )
                 rospy.loginfo(
                     f'fit {k} with {len(pts)} points '
                     f'({np.sum(inliers)} inliers)')
