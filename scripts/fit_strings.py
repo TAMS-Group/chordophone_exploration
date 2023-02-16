@@ -14,6 +14,7 @@ from std_srvs.srv import SetBool
 import numpy as np
 
 from skimage.measure import LineModelND, ransac
+from scipy.stats import zscore
 
 from threading import Lock
 import re

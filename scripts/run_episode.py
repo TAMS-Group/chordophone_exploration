@@ -78,10 +78,16 @@ class RunEpisode():
         self.episode_cnt = 0
 
         self.biases = []
-        self.next_systematic_bias()
+        self.systematic_bias = {}
         self.episode_onsets = [[]]
+        self.reset()
 
         rospy.loginfo("startup complete")
+
+    def reset(self):
+        self.biases = []
+        self.next_systematic_bias()
+        self.episode_onsets = [[]]
 
     def new_episode(self):
         self.episode_id = random.randint(0, 1 << 30)
@@ -370,6 +376,7 @@ def main():
     repeat = rospy.get_param("~repeat", 1)
 
     listen = rospy.get_param("~listen", False)
+    explore = rospy.get_param("~explore", False)
 
     if listen:
         rospy.loginfo("subscribing to topic to wait for action parameter requests")
@@ -379,6 +386,19 @@ def main():
             re.run_episode(finger= msg.finger, note= msg.string, params= msg.parameters)
         rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
         rospy.spin()
+    elif explore:
+        rospy.loginfo("exploring expected strings")
+
+        jump_size= 3
+        strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
+
+        i= random.randint(0, len(strings)-1)
+        while not rospy.is_shutdown():
+            rospy.loginfo(f"attempting to pluck string {strings[i]}")
+            for _ in range(runs):
+                re.run_episode(finger= finger, note=strings[i], repeat=repeat)
+            re.reset()
+            i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
     elif just_play:
         rospy.loginfo("just going to play")
         notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]

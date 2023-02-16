@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="just_play" default="false" />
+  <arg name="explore" default="false" />
   <arg name="note" default="d6" />
   <arg name="finger" default="ff" />
   <arg name="runs" default="1" />
@@ -10,6 +11,7 @@
 
   <node name="run_episode" pkg="tams_pr2_guzheng" type="run_episode.py" output="screen">
     <param name="just_play" value="$(arg just_play)" />
+    <param name="explore" value="$(arg explore)" />
     <param name="note" value="$(arg note)" />
     <param name="finger" value="$(arg finger)" />
     <param name="runs" value="$(arg runs)" />
