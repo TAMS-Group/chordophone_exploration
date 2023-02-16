@@ -142,6 +142,20 @@ class StringFitter:
 
         return m
 
+    def project(self, o):
+        # TODO: do not assume projection plane is with normal (0,0,1)
+        # this is only true for guzheng and other lying chordophones
+        # guzheng
+        if len(o.shape) > 1:
+            return o[:,(0,1)]
+        else:
+            return np.array(o)[[0,1]]
+        # # harp
+        # if len(o.shape) > 1:
+        #     return o[:,(0,2)]
+        # else:
+        #     return np.array(o)[[0,2]]
+
     def align_bridges(self, strings):
         if len(strings) < 5:
             return
@@ -149,21 +163,7 @@ class StringFitter:
 
         origins = np.array([s["bridge"] for s in strings], dtype=float)
 
-        def project(o):
-            # TODO: do not assume projection plane is with normal (0,0,1)
-            # this is only true for guzheng and other lying chordophones
-            # guzheng
-            if len(o.shape) > 1:
-                return o[:,(0,1)]
-            else:
-                return np.array(o)[[0,1]]
-            # # harp
-            # if len(o.shape) > 1:
-            #     return o[:,(0,2)]
-            # else:
-            #     return np.array(o)[[0,2]]
-
-        origins2d = project(origins)
+        origins2d = self.project(origins)
         model, inliers = ransac(
             origins2d,
             LineModelND,
@@ -181,14 +181,14 @@ class StringFitter:
             # in 2d projection space
             _, t = np.linalg.solve(
                 np.array([
-                    project(s["direction"]),
+                    self.project(s["direction"]),
                     -model_direction], dtype=float).T,
-                model_origin - project(s["bridge"]))
+                model_origin - self.project(s["bridge"]))
             intersect = model_origin + t * model_direction
 
             # adapt bridge along string in 3d
             s["bridge"] += s["direction"] * (
-                (intersect - project(s["bridge"])) @ project(s["direction"])
+                (intersect - self.project(s["bridge"])) @ self.project(s["direction"])
                 )
 
         return strings
