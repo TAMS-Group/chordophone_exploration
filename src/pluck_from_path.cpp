@@ -123,7 +123,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
         // regularize to keep shoulder at central height
         .add<bio_ik::JointVariableGoal>(
              "r_shoulder_lift_joint",
-             0.0,
+             0.52,
              0.005
           );
 
