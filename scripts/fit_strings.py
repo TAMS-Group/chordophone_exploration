@@ -234,6 +234,10 @@ class StringFitter:
                     np.max((inlier_pts - model.params[0]) @ direction)
                 end_pt = model.params[0] + max_pos_on_string * direction
 
+                if max_pos_on_string < 0.05:
+                    rospy.logwarn(f"skipping very short string for note {k}")
+                    continue
+
                 strings.append({
                     "key": k.replace("♯", "is"),
                     "bridge": bridge_pt,
