@@ -145,6 +145,7 @@ class StringFitter:
     def project(self, o):
         # TODO: do not assume projection plane is with normal (0,0,1)
         # this is only true for guzheng and other lying chordophones
+        # instead project to plane of two principle components of onsets
         # guzheng
         if len(o.shape) > 1:
             return o[:,(0,1)]
