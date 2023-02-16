@@ -197,7 +197,8 @@ nav_msgs::Path getLinkPath(LinkPathArgs args){
 struct PaintArgs {
 	const nav_msgs::Path& requested;
 	const nav_msgs::Path& generated;
-	const nav_msgs::Path executed;
+	const nav_msgs::Path& executed;
+   const std::string& label;
 };
 sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	const int width= 200;
@@ -208,6 +209,8 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 
 	// indicate string position
 	cv::circle(img, cv::Point{width/2, height*3/4}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+
+   cv::putText(img, args.label, cv::Point(0, height), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(0,0,0), 1, cv::LINE_AA);
 
 	auto drawPoses{
 		[&](const nav_msgs::Path& path, const cv::Scalar& color){
@@ -440,7 +443,8 @@ public:
           paintLocalPaths({
                             .requested = path,
                             .generated = generated_path,
-                            .executed = executed_path
+                            .executed = executed_path,
+                            .label = path.header.frame_id
                           })
           );
 
