@@ -249,7 +249,7 @@ class StringFitter:
                     "bridge": bridge_pt,
                     "direction": direction,
                     "end": end_pt,
-                    "length": max_pos_on_string
+                    "length": (max_pos_on_string-min_pos_on_string)
                     })
 
         # only adjust bridge on finalize
@@ -259,7 +259,7 @@ class StringFitter:
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
         tf_msg = TFMessage(
-            transforms=[t for s in strings for t in StringFitter.strings_to_tfs(s)])
+            transforms=[t for s in strings for t in StringFitter.string_to_tfs(s)])
         self.tf_broadcast.pub_tf.publish(tf_msg)
 
         markers = MarkerArray(

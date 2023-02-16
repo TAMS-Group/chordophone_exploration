@@ -3,10 +3,12 @@
 import rospy
 
 import tf2_ros
+import tf2_geometry_msgs
+
 from actionlib import SimpleActionClient
 
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PositionStamped
+from geometry_msgs.msg import PoseStamped, PointStamped
 from std_msgs.msg import String, Header
 
 from tams_pr2_guzheng.msg import (
@@ -211,7 +213,9 @@ class RunEpisode():
         if params is None:
 
             try:
-                length = self.tf.transform(PositionStamped(Header(frame_id= f"guzheng/{note}/bridge")), f"guzheng/{note}/head").position.x
+                p= PointStamped()
+                p.header.frame_id = f"guzheng/{note}/bridge"
+                length = self.tf.transform(p, f"guzheng/{note}/head").point.x
             except tf2_ros.TransformException as e:
                 length = 0.1
                 rospy.logwarn(f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
