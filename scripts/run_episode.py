@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 import rospy
-from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import String
 
+import tf2_ros
 from actionlib import SimpleActionClient
+
+from nav_msgs.msg import Path
+from geometry_msgs.msg import PoseStamped, PositionStamped
+from std_msgs.msg import String, Header
 
 from tams_pr2_guzheng.msg import (
     ExecutePathAction,
@@ -26,6 +28,9 @@ from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
     def __init__(self, just_play=False):
+        self.tf = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf)
+
         rospy.loginfo("connect to execute_path action")
         self.goto_start_client = SimpleActionClient(
             'pluck/execute_path',
@@ -204,6 +209,13 @@ class RunEpisode():
 
         # build randomized parameters if not provided
         if params is None:
+
+            try:
+                length = self.tf.transform(PositionStamped(Header(frame_id= f"guzheng/{note}/bridge")), f"guzheng/{note}/head").position.x
+            except tf2_ros.TransformException as e:
+                length = 0.1
+                rospy.logwarn(f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
+
             params = RunEpisode.makeParameters(
                         "ruckig keypoint position/velocity",
                         # TODO: tune defaults
@@ -223,7 +235,7 @@ class RunEpisode():
                         # keypoint velocity
                         random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
                         # string position # TODO: randomize along full strings
-                        random.uniform(0.03, 0.1)
+                        random.uniform(0.03, length)
                         ])
 
         # parse parameters from input message
