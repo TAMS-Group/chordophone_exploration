@@ -283,7 +283,8 @@ class StringFitter:
         if not self.active:
             self.align_bridges(strings)
 
-        strings = self.drop_unaligned(strings)
+        if len(strings) > 5:
+            strings = self.drop_unaligned(strings)
 
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
