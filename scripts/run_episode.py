@@ -356,7 +356,7 @@ class RunEpisode():
             # adapt systematic_bias if required
             if len(self.episode_onsets) >= 3:
                 note_notation = note.upper().replace("IS", "♯")
-                if len([e for e in self.episode_onsets if len(e) == 0]) >= 2 and self.systematic_bias['z'] > -0.01:
+                if len([e for e in self.episode_onsets if len(e) == 0]) > 3 and self.systematic_bias['z'] > -0.01:
                     self.systematic_bias['z']= max((-0.01, self.systematic_bias['z']-0.002))
                     rospy.loginfo(f'did not record enough onsets. adapting systematic z bias to {self.systematic_bias["z"]}')
                 elif len([e for e in self.episode_onsets if len([o for o in e if o.note == note_notation]) > 0]) < 1:
