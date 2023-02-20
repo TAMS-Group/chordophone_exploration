@@ -38,3 +38,7 @@ rosbag record \
   /move_group/monitored_planning_scene \
   /execute_trajectory/goal \
   /execute_trajectory/result \
+  \
+  /guzheng/onsets_projected \
+  /guzheng/fitted_strings \
+
