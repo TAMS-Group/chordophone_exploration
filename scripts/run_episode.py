@@ -226,6 +226,12 @@ class RunEpisode():
                 length = 0.1
                 rospy.logwarn(f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
 
+            # forward(direction = 1.0) or backward(direction = -1.0) pluck
+            direction = random.choice((-1.0, 1.0))
+
+            pre = (direction*0.015, 0.015)
+            post = (direction*(-0.01), 0.02)
+
             params = RunEpisode.makeParameters(
                         "ruckig keypoint position/velocity",
                         # TODO: tune defaults
@@ -237,14 +243,14 @@ class RunEpisode():
                         # max jerk
                         8.0, 8.0,
                         # pre position
-                        self.systematic_bias['y']+0.015, self.systematic_bias['z'] + 0.015,
+                        self.systematic_bias['y']+pre[0], self.systematic_bias['z']+pre[1],
                         # post position
-                        self.systematic_bias['y']-0.01, self.systematic_bias['z'] + 0.01,
+                        self.systematic_bias['y']+post[0], self.systematic_bias['z']+post[1],
                         # keypoint position
                         self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.005),
                         # keypoint velocity
-                        random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
-                        # string position # TODO: randomize along full strings
+                        direction*random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
+                        # string position
                         random.uniform(0.03, length)
                         ])
 
