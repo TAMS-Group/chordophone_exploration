@@ -34,6 +34,8 @@ using tams_pr2_guzheng::ExecutePathResult;
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
+#define TAU (2.0*M_PI)
+
 using std::size_t;
 
 class IkOptions : public bio_ik::BioIKKinematicsQueryOptions {
@@ -110,7 +112,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
         .add<bio_ik::DirectionGoal>(
 		         args.tip,
 		         tf2::Vector3{ 1, 0, 0 },
-		         tf2::Vector3{ 0, 0, -1 },
+		         tf2::Vector3{ sin(TAU/2), 0, cos(TAU/2) },
 		         1.0
              )
         // plectrum should hit string with the flat side
