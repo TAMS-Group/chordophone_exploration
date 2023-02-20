@@ -201,8 +201,8 @@ struct PaintArgs {
    const std::string& label;
 };
 sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
-	const int width= 200;
-	const int height= 100;
+	const int width= 400;
+	const int height= 200;
 	const double pixel_size= 0.0003;
 
 	cv::Mat img{ height, width, CV_8UC3, cv::Scalar(128,128,128) };
@@ -210,7 +210,7 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	// indicate string position
 	cv::circle(img, cv::Point{width/2, height*3/4}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
 
-   cv::putText(img, args.label, cv::Point(0, height), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+   cv::putText(img, args.label, cv::Point(0, height-10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(0,0,0), 1, cv::LINE_AA);
 
 	auto drawPoses{
 		[&](const nav_msgs::Path& path, const cv::Scalar& color){
@@ -439,12 +439,15 @@ public:
                                                 .trajectory = executed_trajectory,
                                                 .tf = *tf_buffer_
                                               }) };
+    std::string note{ path.header.frame_id };
+    note = note.substr(note.find("/")+1);
+    note = note.substr(0, note.find("/"));
     pub_img_.publish(
           paintLocalPaths({
                             .requested = path,
                             .generated = generated_path,
                             .executed = executed_path,
-                            .label = path.header.frame_id
+                            .label = note
                           })
           );
 
