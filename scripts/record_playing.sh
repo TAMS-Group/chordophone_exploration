@@ -13,6 +13,8 @@ rosbag record \
   /tf \
   /tf_static \
   \
+  /pluck/pluck/goal \
+  /pluck/pluck/result \
   /pluck/execute_path/goal \
   /pluck/execute_path/result \
   /pluck/trajectory \
