@@ -36,7 +36,8 @@ def string_link(note):
     return 'guzheng/'+note+'/head'
 
 def finger_link(finger):
-    return 'rh_'+finger+'_biotac_link'
+    #return 'rh_'+finger+'_biotac_link'
+    return f'rh_{finger}_plectrum'
 
 class Aggregator():
     def __init__(self):
@@ -67,6 +68,9 @@ class Aggregator():
             ('/episode/action_parameters', ActionParameters, self.action_parameter_cb),
             ('/pluck/pluck/goal', ExecutePathActionGoal, self.pluck_cb),
             ('/pluck/pluck/result', ExecutePathActionResult, self.pluck_result_cb),
+            ('/pluck/execute_path/goal', ExecutePathActionGoal, self.execute_path_cb),
+            ('/pluck/execute_path/result', ExecutePathActionResult, self.execute_path_result_cb),
+
             ('/pluck/planned_path', Path, self.pluck_planned_path_cb),
             ('/pluck/trajectory', DisplayTrajectory, self.pluck_planned_trajectory_cb),
 
@@ -91,6 +95,10 @@ class Aggregator():
             ('/joint_states', JointState, self.joint_states_cb),
             ('/tf', TFMessage, self.tf_cb),
             ('/tf_static', TFMessage, self.tf_static_cb),
+
+            # processed data
+            ('/guzheng/fitted_strings', MarkerArray, self.fitted_strings_cb),
+            ('/guzheng/onsets_projected', MarkerArray, self.onsets_projected_cb),
             ]
 
         self.episode_pub= rospy.Publisher('pluck_episodes', PluckEpisodeV1, queue_size= 100, tcp_nodelay= True)
@@ -192,11 +200,17 @@ class Aggregator():
     def pluck_parameter_cb(self, msg):
         pass
 
+    def fitted_strings_cb(self, msg):
+        pass
+    def onsets_projected_cb(self, msg):
+        pass
+
+
     def onset_parameter_cb(self, msg):
         self.audio_delay = rospy.Duration(next(p.value for p in msg.doubles if p.name == 'delta_t'))
-        self.finger_tip_offset.x = next(p.value for p in msg.doubles if p.name == 'offset_x')
-        self.finger_tip_offset.y = next(p.value for p in msg.doubles if p.name == 'offset_y')
-        self.finger_tip_offset.z = next(p.value for p in msg.doubles if p.name == 'offset_z')
+#        self.finger_tip_offset.x = next(p.value for p in msg.doubles if p.name == 'offset_x')
+#        self.finger_tip_offset.y = next(p.value for p in msg.doubles if p.name == 'offset_y')
+#        self.finger_tip_offset.z = next(p.value for p in msg.doubles if p.name == 'offset_z')
 
     def pluck_executed_path_cb(self, msg):
         if not self.tracksEpisode():
@@ -217,11 +231,10 @@ class Aggregator():
     def pluck_result_cb(self, msg):
         if not self.tracksEpisode():
             rospy.logwarn(f'got ExecutePath result at {msg.header.stamp.to_sec()}, but no episode is tracked')
-        self.episode.planned_path = msg.result.generated_path
-        self.episode.executed_path = msg.result.executed_path
-        self.episode.planned_trajectory = msg.result.generated_trajectory
-        self.episode.executed_trajectory = msg.result.executed_trajectory
-        pass
+        #self.episode.planned_path = msg.result.generated_path
+        #self.episode.executed_path = msg.result.executed_path
+        #self.episode.planned_trajectory = msg.result.generated_trajectory
+        #self.episode.executed_trajectory = msg.result.executed_trajectory
     def audio_info_cb(self, msg):
         # persists across whole aggregation
         self.audio_info= msg
@@ -251,6 +264,15 @@ class Aggregator():
             rospy.logerr("found empty plucks marker message")
         else:
             self.episode.detected_tactile_plucks.append(msg.markers[0].header.stamp)
+    def execute_path_result_cb(self, msg):
+        pass
+    def execute_path_cb(self, msg):
+        # TODO: only use this because the a-strings recording missed the plug topics
+        rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
+        self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
+        #self.episode.commanded_path= msg.goal.path
+        self.episode.finger= msg.goal.finger
+        self.episode.calibrated_tip= self.finger_tip_offset
     def pluck_cb(self, msg):
         rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
         #if not self.tracksEpisode():
