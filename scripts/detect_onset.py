@@ -275,20 +275,9 @@ class OnsetDetector:
         if now < self.last_time:
             rospy.loginfo("detected bag loop")
             self.reset()
-        if seq > self.last_seq + 1 and not self.first_input:
-            jump = seq-self.last_seq
-            rospy.logwarn(
-                f"sample drop detected: seq jumped "
-                f"from {self.last_seq} to {seq} "
-                f"(difference of {jump})"
-            )
-            end_of_buffer_time = \
-                self.buffer_time + rospy.Duration(self.buffer.shape[0]/self.sr)
+        elif (time_difference := self.buffer_time + rospy.Duration(self.buffer.shape[0]/self.sr) - now) > rospy.Duration(0.005):
+            rospy.logwarn(f"lost audio samples worth {time_difference.to_sec()}s. will drop remaining buffer and start over.")
             self.reset()
-            self.buffer_time = \
-                end_of_buffer_time + rospy.Duration((jump-1) * (len(msg_data)/self.sr))
-        elif seq != self.last_seq + 1 and not self.first_input:
-            rospy.logwarn(f"something weird happend, seq jumped from {self.last_seq} to {seq}")
 
         self.first_input = False
         self.last_time = now
