@@ -143,7 +143,6 @@ class Aggregator():
         self.episode.id= None
         self.episode.audio_data.header= None
         self.episode.audio_info= self.audio_info
-        self.episode.audio_delay= self.audio_delay
         self.episode.start_state.name= []
         self.episode.start_state.position= []
         self.episode.start_state.velocity= []
@@ -165,6 +164,7 @@ class Aggregator():
 
         if self.episode.audio_data.header is None:
             self.episode.audio_data.header = Header()
+        self.episode.audio_delay= self.audio_delay
         if self.episode.audio_delay is None:
             rospy.logwarn("audio delay not yet available.")
             self.episode.audio_delay = rospy.Time()
@@ -267,12 +267,13 @@ class Aggregator():
     def execute_path_result_cb(self, msg):
         pass
     def execute_path_cb(self, msg):
+        pass
         # TODO: only use this because the a-strings recording missed the plug topics
-        rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
-        self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
+        #rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
+        #self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
         #self.episode.commanded_path= msg.goal.path
-        self.episode.finger= msg.goal.finger
-        self.episode.calibrated_tip= self.finger_tip_offset
+        #self.episode.finger= msg.goal.finger
+        #self.episode.calibrated_tip= self.finger_tip_offset
     def pluck_cb(self, msg):
         rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
         #if not self.tracksEpisode():
