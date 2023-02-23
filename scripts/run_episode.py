@@ -226,7 +226,7 @@ class RunEpisode():
                 length = self.tf.transform(p, f"guzheng/{note}/head").point.x
             except tf2_ros.TransformException as e:
                 length = 0.1
-                rospy.logwarn(f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
+                rospy.logwarn_throttle_identical(60*30, f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
 
             # forward(direction = 1.0) or backward(direction = -1.0) pluck
             if direction is None:
