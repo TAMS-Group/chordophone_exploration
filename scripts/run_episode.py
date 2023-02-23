@@ -371,6 +371,9 @@ class RunEpisode():
                     for e in self.episode_onsets:
                         detected_notes.update([o.note for o in e])
                     rospy.loginfo(f'did not recognize target note {note_notation} often enough, but found {detected_notes} instead. adapt systematic bias to {self.systematic_bias}')
+                # if all plucks hit, revert z to 0.0 assuming the ransac model stablized
+                elif len([e for e in self.episode_onsets if len(e) > 0]) == 4:
+                    self.systematic_bias['z'] *= 0.3
                 self.episode_onsets.clear()
 
 
