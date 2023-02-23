@@ -410,15 +410,17 @@ def main():
 
         jump_size= 3
         #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-        strings= ["a3", "a4"]
+        strings= [note]
 
         i= random.randint(0, len(strings)-1)
         while not rospy.is_shutdown():
             rospy.loginfo(f"attempting to pluck string {strings[i]}")
             for _ in range(runs):
                 re.run_episode(finger= finger, note=strings[i], repeat=repeat)
-            re.reset()
-            i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
+            new_i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
+            if new_i != i:
+                i = new_i
+                re.reset()
     elif continuous or runs > 0:
         if continuous:
             rospy.loginfo("running continuously")
