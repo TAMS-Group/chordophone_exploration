@@ -29,7 +29,7 @@ from math import tau
 from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
-    def __init__(self, just_play=False, explore=False):
+    def __init__(self, explore= False, nosleep= False):
         self.tf = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf)
 
@@ -45,8 +45,8 @@ class RunEpisode():
             ExecutePathAction)
         self.pluck_client.wait_for_server()
 
-        self.just_play = just_play
         self.explore = explore
+        self.nosleep = explore or nosleep
 
         self.state_pub = rospy.Publisher(
             'episode/state',
@@ -109,7 +109,7 @@ class RunEpisode():
         self.state_pub.publish(es)
 
     def sleep(self, t):
-        if not self.just_play and not self.explore:
+        if not self.nosleep:
             rospy.sleep(rospy.Duration(t))
 
     @staticmethod
@@ -204,7 +204,7 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def get_path_ruckig(self, note, params= None, direction= 0.0):
+    def get_path_ruckig(self, note, params= None, direction= 0.0, string_position= -1):
         if params and params.actionspace_type != "ruckig keypoint position/velocity":
             rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
@@ -235,6 +235,9 @@ class RunEpisode():
             pre = (direction*0.015, 0.015)
             post = (direction*(-0.01), 0.02)
 
+            if string_position < 0.0:
+                string_position = random.uniform(0.0, length)
+
             params = RunEpisode.makeParameters(
                         "ruckig keypoint position/velocity",
                         # TODO: tune defaults
@@ -250,11 +253,11 @@ class RunEpisode():
                         # post position
                         self.systematic_bias['y']+post[0], self.systematic_bias['z']+post[1],
                         # keypoint position
-                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.002),
+                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.003),
                         # keypoint velocity
                         direction*random.uniform(-0.06,-0.005), random.uniform(0.005, 0.03),
                         # string position
-                        random.uniform(0.0, length)
+                        string_position
                         ])
 
         # parse parameters from input message
@@ -318,10 +321,10 @@ class RunEpisode():
             self.biases = [{"y": 0.0, "z": -.003}]+ [{"y": y, "z": 0.0} for y in yr]
         self.systematic_bias = self.biases.pop(0)
 
-    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None, direction= 0.0):
+    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None, direction= 0.0, string_position= -1):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
         # path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
-        path, params = self.get_path_ruckig(note, params=params, direction= direction)
+        path, params = self.get_path_ruckig(note, params=params, direction=direction, string_position=string_position)
 
         self.finger_pub.publish(finger)
 
@@ -380,19 +383,19 @@ class RunEpisode():
 def main():
     rospy.init_node('run_episode')
 
-    just_play = rospy.get_param("~just_play", False)
+    listen = rospy.get_param("~listen", False)
     explore = rospy.get_param("~explore", False)
-    re = RunEpisode(just_play=just_play, explore= explore)
+    re = RunEpisode(explore= explore, nosleep= listen)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
     direction = rospy.get_param("~direction", 0.0)
+    string_position = rospy.get_param("~string_position", -1.0)
 
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 1)
     repeat = rospy.get_param("~repeat", 1)
 
-    listen = rospy.get_param("~listen", False)
 
     if listen:
         rospy.loginfo("subscribing to topic to wait for action parameter requests")
@@ -416,28 +419,18 @@ def main():
                 re.run_episode(finger= finger, note=strings[i], repeat=repeat)
             re.reset()
             i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
-    elif just_play:
-        rospy.loginfo("just going to play")
-        notes = ["d6", "b5", "a5", "fis5", "e5", "d5", "b4", "a4", "fis4"]
-        for n in notes:
+    elif continuous or runs > 0:
+        if continuous:
+            rospy.loginfo("running continuously")
+        else:
+            rospy.loginfo(f"running for {runs} episode(s) with {repeat} repetitions each")
+        i = 0
+        while continuous or i < runs:
             if rospy.is_shutdown():
                 break
-            re.run_episode(finger= finger, note= n, repeat= 1)
-        for n in reversed(notes):
-            if rospy.is_shutdown():
-                break
-            re.run_episode(finger= finger, note= n, repeat= 1)
-    elif continuous:
-        rospy.loginfo("running continuously")
-        while not rospy.is_shutdown():
-            re.run_episode(finger= finger, note=note, repeat=repeat, direction= direction)
-    elif runs > 0:
-        rospy.loginfo(f"running for {runs} episode(s) with {repeat} repetitions each")
-        for i in range(runs):
-            if rospy.is_shutdown():
-                break
-            re.run_episode(finger= finger, note= note, repeat= repeat, direction = direction)
-            rospy.sleep(rospy.Duration(1.0))
+            re.run_episode(finger= finger, note= note, repeat= repeat, direction= direction, string_position= string_position)
+            i+=1
+            #rospy.sleep(rospy.Duration(1.0))
     else:
         rospy.logerr("found invalid configuration. Can't go on.")
 
