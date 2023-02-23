@@ -250,11 +250,11 @@ class RunEpisode():
                         # post position
                         self.systematic_bias['y']+post[0], self.systematic_bias['z']+post[1],
                         # keypoint position
-                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.005),
+                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.007, 0.002),
                         # keypoint velocity
                         direction*random.uniform(-0.05,-0.005), random.uniform(0.005, 0.03),
                         # string position
-                        random.uniform(0.03, length)
+                        random.uniform(0.0, length)
                         ])
 
         # parse parameters from input message
