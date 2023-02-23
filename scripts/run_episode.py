@@ -253,7 +253,7 @@ class RunEpisode():
                         # post position
                         self.systematic_bias['y']+post[0], self.systematic_bias['z']+post[1],
                         # keypoint position
-                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.003),
+                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.001),
                         # keypoint velocity
                         direction*random.uniform(-0.06,-0.005), random.uniform(0.005, 0.03),
                         # string position
@@ -318,7 +318,7 @@ class RunEpisode():
     def next_systematic_bias(self):
         if len(self.biases) == 0:
             yr = np.append([0.0], np.random.uniform(-0.01, 0.005, 3))
-            self.biases = [{"y": 0.0, "z": -.003}]+ [{"y": y, "z": 0.0} for y in yr]
+            self.biases = [{"y": y, "z": 0.0} for y in yr]
         self.systematic_bias = self.biases.pop(0)
 
     def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None, direction= 0.0, string_position= -1):
