@@ -109,7 +109,7 @@ class RunEpisode():
         self.state_pub.publish(es)
 
     def sleep(self, t):
-        if not self.just_play:
+        if not self.just_play and not self.explore:
             rospy.sleep(rospy.Duration(t))
 
     @staticmethod
