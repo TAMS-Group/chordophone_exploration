@@ -29,7 +29,7 @@ from math import tau
 from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
-    def __init__(self, just_play=False):
+    def __init__(self, just_play=False, explore=False):
         self.tf = tf2_ros.Buffer()
         self.tf_listener = tf2_ros.TransformListener(self.tf)
 
@@ -46,6 +46,7 @@ class RunEpisode():
         self.pluck_client.wait_for_server()
 
         self.just_play = just_play
+        self.explore = explore
 
         self.state_pub = rospy.Publisher(
             'episode/state',
@@ -92,11 +93,13 @@ class RunEpisode():
     def new_episode(self):
         self.episode_id = random.randint(0, 1 << 30)
         self.episode_cnt+= 1
-        self.episode_onsets.append([])
+        if self.explore:
+            self.episode_onsets.append([])
         rospy.loginfo(f'run episode number {self.episode_cnt}')
 
     def onset_cb(self, onset):
-        self.episode_onsets[-1].append(onset)
+        if self.explore:
+            self.episode_onsets[-1].append(onset)
 
     def publishState(self, state, now=None):
         es = EpisodeState()
@@ -312,8 +315,8 @@ class RunEpisode():
     def next_systematic_bias(self):
         if len(self.biases) == 0:
             yr = np.append([0.0], np.random.uniform(-0.01, 0.005, 3))
-            self.biases = [{"y": y, "z": 0.0} for y in yr]
-        self.systematic_bias = self.biases.pop()
+            self.biases = [{"y": 0.0, "z": -.003}]+ [{"y": y, "z": 0.0} for y in yr]
+        self.systematic_bias = self.biases.pop(0)
 
     def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
@@ -354,11 +357,14 @@ class RunEpisode():
             self.sleep(1.0)
 
             # adapt systematic_bias if required
-            if len(self.episode_onsets) >= 3:
+            if len(self.episode_onsets) >= 4:
                 note_notation = note.upper().replace("IS", "♯")
-                if len([e for e in self.episode_onsets if len(e) == 0]) > 3 and self.systematic_bias['z'] > -0.01:
+                rospy.loginfo(str([[o.note for o in e] for e in self.episode_onsets]))
+                # did not pluck any strings - go lower
+                if len([e for e in self.episode_onsets if len(e) > 0]) < 2 and self.systematic_bias['z'] > -0.01:
                     self.systematic_bias['z']= max((-0.01, self.systematic_bias['z']-0.002))
                     rospy.loginfo(f'did not record enough onsets. adapting systematic z bias to {self.systematic_bias["z"]}')
+                # did not pluck correct string - try sampled vicinity
                 elif len([e for e in self.episode_onsets if len([o for o in e if o.note == note_notation]) > 0]) < 1:
                     self.next_systematic_bias()
                     detected_notes = set()
@@ -372,7 +378,8 @@ def main():
     rospy.init_node('run_episode')
 
     just_play = rospy.get_param("~just_play", False)
-    re = RunEpisode(just_play=just_play)
+    explore = rospy.get_param("~explore", False)
+    re = RunEpisode(just_play=just_play, explore= explore)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
@@ -382,7 +389,6 @@ def main():
     repeat = rospy.get_param("~repeat", 1)
 
     listen = rospy.get_param("~listen", False)
-    explore = rospy.get_param("~explore", False)
 
     if listen:
         rospy.loginfo("subscribing to topic to wait for action parameter requests")
@@ -396,7 +402,8 @@ def main():
         rospy.loginfo("exploring expected strings")
 
         jump_size= 3
-        strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
+        #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
+        strings= ["a3", "a4"]
 
         i= random.randint(0, len(strings)-1)
         while not rospy.is_shutdown():
