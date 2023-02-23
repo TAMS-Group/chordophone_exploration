@@ -201,7 +201,7 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def get_path_ruckig(self, note, params= None):
+    def get_path_ruckig(self, note, params= None, direction= None):
         if params and params.actionspace_type != "ruckig keypoint position/velocity":
             rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
@@ -217,7 +217,6 @@ class RunEpisode():
 
         # build randomized parameters if not provided
         if params is None:
-
             try:
                 p= PointStamped()
                 p.header.frame_id = f"guzheng/{note}/bridge"
@@ -227,7 +226,8 @@ class RunEpisode():
                 rospy.logwarn(f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
 
             # forward(direction = 1.0) or backward(direction = -1.0) pluck
-            direction = random.choice((-1.0, 1.0))
+            if direction is None:
+                direction = random.choice((-1.0, 1.0))
 
             pre = (direction*0.015, 0.015)
             post = (direction*(-0.01), 0.02)
