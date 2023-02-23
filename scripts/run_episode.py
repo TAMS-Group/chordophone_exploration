@@ -229,7 +229,7 @@ class RunEpisode():
                 rospy.logwarn_throttle_identical(60*30, f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
 
             # forward(direction = 1.0) or backward(direction = -1.0) pluck
-            if direction is 0.0:
+            if direction == 0.0:
                 direction = random.choice((-1.0, 1.0))
 
             pre = (direction*0.015, 0.015)
