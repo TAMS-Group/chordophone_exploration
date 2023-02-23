@@ -8,6 +8,7 @@
   <arg name="repeat" default="1" />
   <arg name="continuous" default="false" />
   <arg name="listen" default="false" />
+  <arg name="direction" default="0.0" />
 
   <node name="run_episode" pkg="tams_pr2_guzheng" type="run_episode.py" output="screen">
     <param name="just_play" value="$(arg just_play)" />
@@ -18,5 +19,6 @@
     <param name="repeat" value="$(arg repeat)" />
     <param name="continuous" value="$(arg continuous)" />
     <param name="listen" value="$(arg listen)" />
+    <param name="direction" value="$(arg direction)" />
   </node>
 </launch>

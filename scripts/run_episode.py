@@ -204,7 +204,7 @@ class RunEpisode():
             "yz start / y offset / lift angle",
             [y_start, z_start, y_rand, lift_rand])
 
-    def get_path_ruckig(self, note, params= None, direction= None):
+    def get_path_ruckig(self, note, params= None, direction= 0.0):
         if params and params.actionspace_type != "ruckig keypoint position/velocity":
             rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
 
@@ -229,7 +229,7 @@ class RunEpisode():
                 rospy.logwarn_throttle_identical(60*30, f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
 
             # forward(direction = 1.0) or backward(direction = -1.0) pluck
-            if direction is None:
+            if direction is 0.0:
                 direction = random.choice((-1.0, 1.0))
 
             pre = (direction*0.015, 0.015)
@@ -318,10 +318,10 @@ class RunEpisode():
             self.biases = [{"y": 0.0, "z": -.003}]+ [{"y": y, "z": 0.0} for y in yr]
         self.systematic_bias = self.biases.pop(0)
 
-    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None):
+    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None, direction= 0.0):
         # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
         # path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
-        path, params = self.get_path_ruckig(note, params=params)
+        path, params = self.get_path_ruckig(note, params=params, direction= direction)
 
         self.finger_pub.publish(finger)
 
@@ -383,6 +383,7 @@ def main():
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
+    direction = rospy.get_param("~direction", 0.0)
 
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 1)
@@ -426,13 +427,13 @@ def main():
     elif continuous:
         rospy.loginfo("running continuously")
         while not rospy.is_shutdown():
-            re.run_episode(finger= finger, note=note, repeat=repeat)
+            re.run_episode(finger= finger, note=note, repeat=repeat, direction= direction)
     elif runs > 0:
         rospy.loginfo(f"running for {runs} episode(s) with {repeat} repetitions each")
         for i in range(runs):
             if rospy.is_shutdown():
                 break
-            re.run_episode(finger= finger, note= note, repeat= repeat)
+            re.run_episode(finger= finger, note= note, repeat= repeat, direction = direction)
             rospy.sleep(rospy.Duration(1.0))
     else:
         rospy.logerr("found invalid configuration. Can't go on.")
