@@ -172,7 +172,7 @@ class StringFitter:
         s= np.abs(score(angles))
         strings_filtered = list(np.array(strings, dtype=object)[s < s_threshold])
 
-        rospy.loginfo(f"drop {len(strings)-len(strings_filtered)} out of {len(strings)}. {len(strings_filtered)} remaining")
+        rospy.loginfo(f"drop {len(strings)-len(strings_filtered)} outliers out of {len(strings)}. {len(strings_filtered)} remaining")
         rospy.loginfo(f"kept {[x['key'] for x in strings_filtered]} with scores {s[s<s_threshold]}")
         return strings_filtered
 
@@ -268,7 +268,7 @@ class StringFitter:
                 length = max_pos_on_string-min_pos_on_string
 
                 if length < 0.05:
-                    rospy.logwarn(f"skipping very short string for note {k}")
+                    rospy.loginfo(f"skipping very short string for note {k}")
                     continue
 
                 strings.append({
