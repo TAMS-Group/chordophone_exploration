@@ -91,7 +91,7 @@ class RunEpisode():
         self.episode_onsets = [[]]
 
     def new_episode(self):
-        self.episode_id = random.randint(0, 1 << 30)
+        self.episode_id = int(rospy.Time.now().to_sec())
         self.episode_cnt+= 1
         if self.explore:
             self.episode_onsets.append([])
