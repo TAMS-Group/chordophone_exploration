@@ -21,4 +21,9 @@
   <depend>audio_common_msgs</depend>
 
   <exec_depend>message_generation</exec_depend>
+
+  <depend>load_venv</depend>
+  <export>
+    <load_venv requirements="${prefix}/requirements.txt" />
+  </export>
 </package>
