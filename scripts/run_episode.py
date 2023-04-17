@@ -46,7 +46,7 @@ class RunEpisode():
         self.pluck_client.wait_for_server()
 
         self.explore = explore
-        self.nosleep = explore or nosleep
+        self.nosleep = nosleep
 
         self.state_pub = rospy.Publisher(
             'episode/state',
@@ -360,7 +360,7 @@ class RunEpisode():
             self.sleep(1.0)
 
             # adapt systematic_bias if required
-            if len(self.episode_onsets) >= 4:
+            if self.explore and len(self.episode_onsets) >= 4:
                 note_notation = note.upper().replace("IS", "♯")
                 eos = [[o.note for o in e] for e in self.episode_onsets]
                 # did not pluck any strings - go lower
@@ -385,7 +385,7 @@ def main():
 
     listen = rospy.get_param("~listen", False)
     explore = rospy.get_param("~explore", False)
-    re = RunEpisode(explore= explore, nosleep= listen)
+    re = RunEpisode(explore= explore, nosleep= listen or explore)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
