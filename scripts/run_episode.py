@@ -78,28 +78,19 @@ class RunEpisode():
         self.episode_id = 0
         self.episode_cnt = 0
 
-        self.biases = []
-        self.systematic_bias = {}
-        self.episode_onsets = [[]]
-        self.reset()
+        self.episode_onsets = []
 
         rospy.loginfo("startup complete")
-
-    def reset(self):
-        self.biases = []
-        self.next_systematic_bias()
-        self.episode_onsets = [[]]
 
     def new_episode(self):
         self.episode_id = int(rospy.Time.now().to_sec())
         self.episode_cnt+= 1
-        if self.explore:
-            self.episode_onsets.append([])
+        self.episode_onsets = []
+
         rospy.loginfo(f'run episode number {self.episode_cnt}')
 
     def onset_cb(self, onset):
-        if self.explore:
-            self.episode_onsets[-1].append(onset)
+        self.episode_onsets.append(onset)
 
     def publishState(self, state, now=None):
         es = EpisodeState()
@@ -249,11 +240,11 @@ class RunEpisode():
                         # max jerk
                         8.0, 8.0,
                         # pre position
-                        self.systematic_bias['y']+pre[0], self.systematic_bias['z']+pre[1],
+                        pre[0], pre[1],
                         # post position
-                        self.systematic_bias['y']+post[0], self.systematic_bias['z']+post[1],
+                        post[0], post[1],
                         # keypoint position
-                        self.systematic_bias['y'] + random.uniform(-0.005, 0.005), self.systematic_bias['z'] + random.uniform(-0.005, 0.001),
+                        random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001),
                         # keypoint velocity
                         direction*random.uniform(-0.06,-0.005), random.uniform(0.005, 0.03),
                         # string position
@@ -315,77 +306,50 @@ class RunEpisode():
 
         return path, params
 
-    def next_systematic_bias(self):
-        if len(self.biases) == 0:
-            yr = np.append([0.0], np.random.uniform(-0.01, 0.005, 3))
-            self.biases = [{"y": y, "z": 0.0} for y in yr]
-        self.systematic_bias = self.biases.pop(0)
-
-    def run_episode(self, note= 'd6', finger= 'ff', repeat=1, params= None, direction= 0.0, string_position= -1):
-        # path, params = RunEpisode.get_path_yz_offsets_yz_start(note)
-        # path, params = RunEpisode.get_path_yz_start_y_offset_lift_angle(note, params=params)
+    def run_episode(self, params= None, note= 'd6', finger= 'ff', direction= 0.0, string_position= -1):
         path, params = self.get_path_ruckig(note, params=params, direction=direction, string_position=string_position)
 
         self.finger_pub.publish(finger)
 
-        for i in range(repeat):
-            self.new_episode()
+        self.new_episode()
 
-            approach_path = copy.deepcopy(path)
-            approach_path.poses = approach_path.poses[0:1]
-            approach_pose = copy.deepcopy(approach_path.poses[0])
-            approach_pose.pose.position.z += 0.020
-            approach_path.poses.insert(0, approach_pose)
-            self.goto_start_client.send_goal(ExecutePathGoal(
-                path=approach_path,
-                finger=finger
-                ))
-            self.goto_start_client.wait_for_result()
+        approach_path = copy.deepcopy(path)
+        approach_path.poses = approach_path.poses[0:1]
+        approach_pose = copy.deepcopy(approach_path.poses[0])
+        approach_pose.pose.position.z += 0.020
+        approach_path.poses.insert(0, approach_pose)
+        self.goto_start_client.send_goal(ExecutePathGoal(
+            path=approach_path,
+            finger=finger
+            ))
+        self.goto_start_client.wait_for_result()
 
-            if rospy.is_shutdown():
-                return
+        if rospy.is_shutdown():
+            return
 
-            now = rospy.Time.now()
-            self.publishState("start", now)
-            self.pluck_client.send_goal(ExecutePathGoal(
-                path=path,
-                finger=finger
-                ))
-            params.header.stamp = now
-            self.parameter_pub.publish(params)
-            self.pluck_client.wait_for_result()
-            # wait to collect data
-            self.sleep(2.0)
-            self.publishState("end")
+        now = rospy.Time.now()
+        self.publishState("start", now)
+        self.pluck_client.send_goal(ExecutePathGoal(
+            path=path,
+            finger=finger
+            ))
+        params.header.stamp = now
+        self.parameter_pub.publish(params)
+        self.pluck_client.wait_for_result()
+        # wait to collect data
+        self.sleep(2.0)
+        self.publishState("end")
+        if not self.explore:
             self.sleep(1.0)
 
-            # adapt systematic_bias if required
-            if self.explore and len(self.episode_onsets) >= 4:
-                note_notation = note.upper().replace("IS", "♯")
-                eos = [[o.note for o in e] for e in self.episode_onsets]
-                # did not pluck any strings - go lower
-                if len([e for e in self.episode_onsets if len(e) > 0]) < 2 and self.systematic_bias['z'] > -0.01:
-                    self.systematic_bias['z']= max((-0.01, self.systematic_bias['z']-0.002))
-                    rospy.loginfo(f'did not record enough onsets in {eos}. adapting systematic z bias to {self.systematic_bias["z"]}')
-                # did not pluck correct string - try sampled vicinity
-                elif len([e for e in self.episode_onsets if len([o for o in e if o.note == note_notation]) > 0]) < 1:
-                    self.next_systematic_bias()
-                    detected_notes = set()
-                    for e in self.episode_onsets:
-                        detected_notes.update([o.note for o in e])
-                    rospy.loginfo(f'did not recognize target note {note_notation} often enough in {eos}. adapt systematic bias to {self.systematic_bias} to try plucking neighboring strings')
-                # if all plucks hit, revert z to 0.0 assuming the ransac model stablized
-                elif len([e for e in self.episode_onsets if len(e) > 0]) == 4:
-                    self.systematic_bias['z'] *= 0.3
-                self.episode_onsets.clear()
-
+        return {"params" : params, "onsets" : self.episode_onsets}                
 
 def main():
     rospy.init_node('run_episode')
 
     listen = rospy.get_param("~listen", False)
     explore = rospy.get_param("~explore", False)
-    re = RunEpisode(explore= explore, nosleep= listen or explore)
+    re = RunEpisode(explore= explore, nosleep= listen)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
@@ -395,7 +359,6 @@ def main():
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 1)
     repeat = rospy.get_param("~repeat", 1)
-
 
     if listen:
         rospy.loginfo("subscribing to topic to wait for action parameter requests")
@@ -415,12 +378,38 @@ def main():
         i= random.randint(0, len(strings)-1)
         while not rospy.is_shutdown():
             rospy.loginfo(f"attempting to pluck string {strings[i]}")
+            # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
             for _ in range(runs):
-                re.run_episode(finger= finger, note=strings[i], repeat=repeat)
+                params = None
+                result = {"params" : None, "onsets" : []}
+                attempts = 0
+                while len(result["onsets"]) != 1 and attempts < 4:
+                    attempts+= 1
+                    result = re.run_episode(params= params, finger= finger, note= strings[i], direction= direction)
+                    params = result["params"]
+
+                    if len(result["onsets"]) != 1:
+                        rospy.logwarn("retry with adapted parameters")
+                        if len(result["onsets"]) == 0:
+                            # lower and further in the pluck direction
+                            params.action_parameters[10] += 0.003 * (params.action_parameters[8]/abs(params.action_parameters[8]))
+                            params.action_parameters[11] -= 0.003
+                        else: # len(result["onsets"]) > 1
+                            # higher
+                            params.action_parameters[11] += 0.003
+                            # move vector (12/13) up by a bit and clip to avoid changing direction
+                            theta = tau/4/4
+                            rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+                            vec = np.array([params.action_parameters[12], params.action_parameters[13]])
+                            vec_rotated = np.dot(rot, vec)
+                            if vec_rotated[0] * vec[0] < 0.0:
+                                vec_rotated[0] = 0.0
+                            params.action_parameters[12]= vec_rotated[0]
+                            params.action_parameters[13]= vec_rotated[1]
+                    
             new_i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
             if new_i != i:
                 i = new_i
-                re.reset()
     elif continuous or runs > 0:
         if continuous:
             rospy.loginfo("running continuously")
@@ -430,7 +419,12 @@ def main():
         while continuous or i < runs:
             if rospy.is_shutdown():
                 break
-            re.run_episode(finger= finger, note= note, repeat= repeat, direction= direction, string_position= string_position)
+            params = None
+            for i in range(repeat):
+                if rospy.is_shutdown():
+                    break
+                result = re.run_episode(finger= finger, note= note, params= params, direction= direction, string_position= string_position)
+                params = result["params"]
             i+=1
             #rospy.sleep(rospy.Duration(1.0))
     else:
