@@ -19,6 +19,7 @@
   <depend>dynamic_reconfigure</depend>
   <depend>cv_bridge</depend>
   <depend>audio_common_msgs</depend>
+  <depend>music_perception</depend>
 
   <exec_depend>message_generation</exec_depend>
 

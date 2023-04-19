@@ -1,3 +1,5 @@
+# UNUSED - use music_perception instead
+
 std_msgs/Header header
 
 # number of considered half-tones

@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   moveit_msgs
   moveit_ros_planning_interface
+  music_perception
   nav_msgs
   rviz_visual_tools
   sensor_msgs
@@ -48,6 +49,7 @@ FILES
   EpisodeState.msg
   NoteOnset.msg
   PluckEpisodeV1.msg
+  PluckEpisodeV2.msg
   RunEpisodeRequest.msg
 )
 
@@ -57,6 +59,7 @@ DEPENDENCIES
   audio_common_msgs
   geometry_msgs
   moveit_msgs
+  music_perception
   nav_msgs
   sr_robot_msgs
   trajectory_msgs
