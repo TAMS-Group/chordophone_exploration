@@ -149,7 +149,8 @@ class Projector:
             for marker, finger, buffer in self.events:
                 buffer.set_transform_static(self.tf_buffer.lookup_transform(f'rh_{finger}_biotac_link', marker.header.frame_id, rospy.Time()), '')
                 p= PoseStamped(header= deepcopy(marker.header))
-                p.pose.position= deepcopy(marker.pose.position)
+                # this can be a feature or a bug depending on POV (leaving out for now)
+                #p.pose.position= deepcopy(marker.pose.position)
                 p.pose.orientation.w= 1.0
 
                 p.header.stamp+= rospy.Duration(self.config.delta_t)
