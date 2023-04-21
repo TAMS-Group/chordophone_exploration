@@ -4,6 +4,7 @@ from rosbag import Bag
 import rospy
 import tf2_ros
 
+# TODO: aggregate into PluckEpisodeV2 instead
 from tams_pr2_guzheng.msg import (
     PluckEpisodeV1,
     BiotacStamped,

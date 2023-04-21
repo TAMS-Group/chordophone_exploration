@@ -144,7 +144,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 
 		Eigen::Isometry3d tip_pose_solved { wp.getFrameTransform(args.tip) };
 		double translation_max_dimension_distance{ (tip_pose_solved.translation()-expected_tip_position).array().abs().maxCoeff() };
-		ROS_INFO_STREAM("distance: " << translation_max_dimension_distance);
+		// ROS_INFO_STREAM("distance: " << translation_max_dimension_distance);
 
 		previous_wp = wp;
 	}
