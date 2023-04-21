@@ -19,8 +19,9 @@ from tams_pr2_guzheng.msg import (
     ActionParameters,
     ExecutePathGoal,
     RunEpisodeRequest,
-    NoteOnset
-    )
+)
+
+from music_perception.msg import NoteOnset
 
 import random
 import copy
