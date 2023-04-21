@@ -348,8 +348,9 @@ def main():
     rospy.init_node('run_episode')
 
     listen = rospy.get_param("~listen", False)
+    nosleep = rospy.get_param("~nosleep", False)
     explore = rospy.get_param("~explore", False)
-    re = RunEpisode(explore= explore, nosleep= listen)
+    re = RunEpisode(explore= explore, nosleep= nosleep)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")

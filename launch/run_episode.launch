@@ -10,6 +10,7 @@
   <arg name="listen" default="false" />
   <arg name="direction" default="0.0" />
   <arg name="string_position" default="-1.0" />
+  <arg name="nosleep" default="false" />
 
   <node name="run_episode" pkg="tams_pr2_guzheng" type="run_episode.py" output="screen">
     <param name="just_play" value="$(arg just_play)" />
@@ -22,5 +23,6 @@
     <param name="listen" value="$(arg listen)" />
     <param name="direction" value="$(arg direction)" />
     <param name="string_position" value="$(arg string_position)" />
+    <param name="nosleep" value="$(arg nosleep)" />
   </node>
 </launch>
