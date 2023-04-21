@@ -8,8 +8,10 @@ import tf2_geometry_msgs
 from actionlib import SimpleActionClient
 
 from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PointStamped
-from std_msgs.msg import String, Header
+from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
+from std_msgs.msg import String, Header, ColorRGBA
+from visualization_msgs.msg import Marker
+
 
 from tams_pr2_guzheng.msg import (
     ExecutePathAction,
@@ -71,6 +73,12 @@ class RunEpisode():
             queue_size=500,
             tcp_nodelay=True
             )
+
+        self.kp_pub = rospy.Publisher(
+            'pluck/kp',
+            Marker,
+            queue_size=1,
+            tcp_nodelay=True)
 
         # leave time for clients to connect
         rospy.sleep(rospy.Duration(1.0))
@@ -304,6 +312,26 @@ class RunEpisode():
             p.pose.orientation.w = 1.0
             path.poses.append(p)
 
+        pk_pos = (params.action_parameters[10], params.action_parameters[11])
+        pk_vel = (params.action_parameters[12], params.action_parameters[13])
+        pk_vel_scale = 0.25
+        # publish arrow marker for pk_*
+        self.kp_pub.publish(Marker(
+            header=Header(
+                frame_id=path.header.frame_id,
+                stamp=rospy.Time.now()
+            ),
+            pose=Pose(position=Point(), orientation=Quaternion(0,0,0,1)),
+            type=Marker.ARROW,
+            action=Marker.ADD,
+            scale=Vector3(0.001, 0.003, 0.0),
+            color=ColorRGBA(1.0, 0.0, 0.0, 1.0),
+            points=[
+                Point(head_offset, pk_pos[0], pk_pos[1]),
+                Point(head_offset, pk_pos[0]+pk_vel[0]*pk_vel_scale, pk_pos[1]+pk_vel[1]*pk_vel_scale)
+            ]
+        ))
+
         return path, params
 
     def run_episode(self, params= None, note= 'd6', finger= 'ff', direction= 0.0, string_position= -1):
@@ -407,11 +435,13 @@ def main():
                                 vec_rotated[0] = 0.0
                             params.action_parameters[12]= vec_rotated[0]
                             params.action_parameters[13]= vec_rotated[1]
-                    
+
             new_i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
             if new_i != i:
                 i = new_i
     elif continuous or runs > 0:
+        from std_msgs.msg import String as StringMsg
+        pub = rospy.Publisher("/say", StringMsg, queue_size= 1)
         if continuous:
             rospy.loginfo("running continuously")
         else:
@@ -427,6 +457,7 @@ def main():
                 result = re.run_episode(finger= finger, note= note, params= params, direction= direction, string_position= string_position)
                 params = result["params"]
             i+=1
+            pub.publish("next")
             #rospy.sleep(rospy.Duration(1.0))
     else:
         rospy.logerr("found invalid configuration. Can't go on.")
