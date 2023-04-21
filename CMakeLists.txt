@@ -24,6 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
   trajectory_msgs
 )
 
+catkin_python_setup()
+
 find_package(backward_ros QUIET)
 
 generate_dynamic_reconfigure_options(
