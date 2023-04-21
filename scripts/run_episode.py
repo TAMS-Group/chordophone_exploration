@@ -12,6 +12,7 @@ from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Q
 from std_msgs.msg import String, Header, ColorRGBA
 from visualization_msgs.msg import Marker
 
+import tams_pr2_guzheng.paths as paths
 
 from tams_pr2_guzheng.msg import (
     ExecutePathAction,
@@ -33,9 +34,6 @@ from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
     def __init__(self, explore= False, nosleep= False):
-        self.tf = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf)
-
         rospy.loginfo("connect to execute_path action")
         self.goto_start_client = SimpleActionClient(
             'pluck/execute_path',
@@ -75,8 +73,8 @@ class RunEpisode():
             tcp_nodelay=True
             )
 
-        self.kp_pub = rospy.Publisher(
-            'pluck/kp',
+        self.keypoint_pub = rospy.Publisher(
+            'pluck/keypoint',
             Marker,
             queue_size=1,
             tcp_nodelay=True)
@@ -112,237 +110,16 @@ class RunEpisode():
         if not self.nosleep:
             rospy.sleep(rospy.Duration(t))
 
-    @staticmethod
-    def makeParameters(parameter_type, parameters, now=None):
-        ap = ActionParameters()
-        ap.header.stamp = rospy.Time.now() if now is None else now
-        ap.actionspace_type = parameter_type
-        ap.action_parameters = parameters
-        return ap
-
-    @staticmethod
-    def get_path_yz_offsets_yz_start(note):
-        y_start = random.uniform(-0.010, 0.000)
-        z_start = random.uniform(0.0, 0.010)
-#        y_start = -0.015
-#        z_start = 0.0
-        y_rand = random.uniform(-.010, 0.000)
-        z_rand = random.uniform(.0, 0.015)
-
-        # waypoints relative to sampled start
-        waypoints = [
-            [.05,  0.000 + 0.000,          0.01 + 0.015],
-            [.05, -0.006 + 0.000,          0.00 + 0.015],
-            [.05, -0.006 + 0.000 + y_rand, 0.00 + 0.015],
-            [.05, -0.020 + 0.000 + y_rand, 0.01 + 0.015+z_rand],
-            # back to start
-            # [.05, 0.00 +0.000,        0.01+0.015]
-            ]
-
-        for w in waypoints:
-            w[1] += y_start
-            w[2] += z_start
-
-        path = Path()
-        path.header.frame_id = 'guzheng/{}/head'.format(note)
-
-        for x, y, z in waypoints:
-            p = PoseStamped()
-            p.pose.position.x = x
-            p.pose.position.y = y
-            p.pose.position.z = z
-            p.pose.orientation.w = 1.0
-            path.poses.append(p)
-
-        return path, RunEpisode.makeParameters(
-            "y z waypoint offsets / yz start",
-            [y_rand, z_rand, y_start, z_start])
-
-    @staticmethod
-    def get_path_yz_start_y_offset_lift_angle(note, params= None):
-        if params is None:
-            y_start = random.uniform(-0.010, 0.005)
-            z_start = random.uniform(-0.000, 0.005)
-            # y_start = -0.015
-            # z_start = 0.0
-            y_rand = random.uniform(-.010, 0.000)
-
-            lift_rand = random.uniform(tau/10, tau/4)
-        else:
-            y_start, z_start, y_rand, lift_rand = params.action_parameters
-
-        lift_dist = 0.02
-        lift_wp_y = y_rand - lift_dist * np.cos(lift_rand)
-        lift_wp_z = lift_dist * np.sin(lift_rand)
-
-        # waypoints relative to sampled start
-        waypoints = [
-            [.05,  0.000 + 0.000,          0.01 + 0.015],
-            [.05, -0.006 + 0.000,          0.00 + 0.015],
-            [.05, -0.006 + 0.000 + y_rand, 0.00 + 0.015],
-            [.05, -0.006 + 0.000 + lift_wp_y, 0.00 + 0.015 + lift_wp_z],
-            # back to start
-            # [.05, 0.00 +0.000,        0.01+0.015]
-            ]
-
-        for w in waypoints:
-            w[1] += y_start
-            w[2] += z_start
-
-        path = Path()
-        path.header.frame_id = 'guzheng/{}/head'.format(note)
-
-        for x, y, z in waypoints:
-            p = PoseStamped()
-            p.pose.position.x = x
-            p.pose.position.y = y
-            p.pose.position.z = z
-            p.pose.orientation.w = 1.0
-            path.poses.append(p)
-
-        return path, RunEpisode.makeParameters(
-            "yz start / y offset / lift angle",
-            [y_start, z_start, y_rand, lift_rand])
-
-    def get_path_ruckig(self, note, params= None, direction= 0.0, string_position= -1):
-        if params and params.actionspace_type != "ruckig keypoint position/velocity":
-            rospy.logfatal(f"found unexpected actionspace type '{params.actionspace_type}'")
-
-        # Create instances: the Ruckig OTG as well as input and output parameters
-        cycle_time = 0.04
-        ruckig_generator = Ruckig(2, cycle_time)  # DoFs, control cycle
-        inp = InputParameter(2)
-        def traj_from_input(inp):
-            ruckig_generator.reset()
-            t= Trajectory(2)
-            ruckig_generator.calculate(inp, t)
-            return t
-
-        # build randomized parameters if not provided
-        if params is None:
-            try:
-                p= PointStamped()
-                p.header.frame_id = f"guzheng/{note}/bridge"
-                length = self.tf.transform(p, f"guzheng/{note}/head").point.x
-            except tf2_ros.TransformException as e:
-                length = 0.1
-                rospy.logwarn_throttle_identical(60*30, f"could not find length of target string for note {note}: {str(e)}. Defaulting to {length}m")
-
-            # forward(direction = 1.0) or backward(direction = -1.0) pluck
-            if direction == 0.0:
-                direction = random.choice((-1.0, 1.0))
-
-            pre = (direction*0.015, 0.015)
-            post = (direction*(-0.01), 0.02)
-
-            if string_position < 0.0:
-                string_position = random.uniform(0.0, length)
-
-            params = RunEpisode.makeParameters(
-                        "ruckig keypoint position/velocity",
-                        # TODO: tune defaults
-                        [
-                        # max velocities
-                        0.1, 0.3,
-                        # max accelerations
-                        1.0, 1.0,
-                        # max jerk
-                        8.0, 8.0,
-                        # pre position
-                        pre[0], pre[1],
-                        # post position
-                        post[0], post[1],
-                        # keypoint position
-                        random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001),
-                        # keypoint velocity
-                        direction*random.uniform(-0.06,-0.005), random.uniform(0.005, 0.03),
-                        # string position
-                        string_position
-                        ])
-
-        # parse parameters from input message
-        _params = params.action_parameters[:]
-        def next_parameter(n):
-            nonlocal _params
-            p = _params[:n]
-            _params = _params[n:]
-            return p
-        inp.max_velocity = next_parameter(2)
-        inp.max_acceleration = next_parameter(2)
-        inp.max_jerk = next_parameter(2)
-        pre = next_parameter(2)
-        post = next_parameter(2)
-        keypoint_position = next_parameter(2)
-        keypoint_velocity = next_parameter(2)
-        head_offset = next_parameter(1)[0]
-
-        # build pluck trajectories
-        inp.current_position = pre
-        inp.current_velocity = [0.0, 0.0]
-        inp.current_acceleration = [0.0, 0.0]
-        inp.target_position = keypoint_position
-        inp.target_velocity = keypoint_velocity
-        inp.target_acceleration = [0.0,0.0]
-        t= traj_from_input(inp)
-        kp= np.array(t.at_time(t.duration)).T
-        inp.current_position = kp[:,0]
-        inp.current_velocity = kp[:,1]
-        inp.current_acceleration = kp[:,2]
-        inp.target_position = post
-        inp.target_velocity = [0.0,0.0]
-        inp.target_acceleration = [0.0,0.0]
-        t2= traj_from_input(inp)
-        # sample & combine trajectories
-        n_wp= int((t.duration+t2.duration)/cycle_time)
-        kp_idx= int((t.duration)/cycle_time)
-        T= np.linspace(0.0, t.duration+t2.duration, n_wp)
-        Y= np.zeros((n_wp, 2, 3))
-        for i in range(0, kp_idx):
-            Y[i,:,:] = np.array(t.at_time(T[i])).T
-        for i in range(kp_idx, n_wp):
-            Y[i,:,:] = np.array(t2.at_time(T[i]-t.duration)).T
-
-        path = Path()
-        path.header.frame_id = 'guzheng/{}/head'.format(note)
-        for i in range(Y.shape[0]):
-            p = PoseStamped()
-            p.header.stamp = rospy.Time(T[i])
-            p.pose.position.x = head_offset
-            p.pose.position.y = float(Y[i, 0, 0])
-            p.pose.position.z = float(Y[i, 1, 0])
-            p.pose.orientation.w = 1.0
-            path.poses.append(p)
-
-        pk_pos = (params.action_parameters[10], params.action_parameters[11])
-        pk_vel = (params.action_parameters[12], params.action_parameters[13])
-        pk_vel_scale = 0.25
-        # publish arrow marker for pk_*
-        self.kp_pub.publish(Marker(
-            header=Header(
-                frame_id=path.header.frame_id,
-                stamp=rospy.Time.now()
-            ),
-            pose=Pose(position=Point(), orientation=Quaternion(0,0,0,1)),
-            type=Marker.ARROW,
-            action=Marker.ADD,
-            scale=Vector3(0.001, 0.003, 0.0),
-            color=ColorRGBA(1.0, 0.0, 0.0, 1.0),
-            points=[
-                Point(head_offset, pk_pos[0], pk_pos[1]),
-                Point(head_offset, pk_pos[0]+pk_vel[0]*pk_vel_scale, pk_pos[1]+pk_vel[1]*pk_vel_scale)
-            ]
-        ))
-
-        return path, params
-
-    def run_episode(self, params= None, note= 'd6', finger= 'ff', direction= 0.0, string_position= -1):
-        path, params = self.get_path_ruckig(note, params=params, direction=direction, string_position=string_position)
-
+    def run_episode(self, path, finger= 'ff'):
         self.finger_pub.publish(finger)
+        self.keypoint_pub.publish(path.keypoint_marker)
 
         self.new_episode()
 
-        approach_path = copy.deepcopy(path)
+        p = path()
+
+        # build two-waypoint path to approach start position with some clearance from above
+        approach_path = copy.deepcopy(p)
         approach_path.poses = approach_path.poses[0:1]
         approach_pose = copy.deepcopy(approach_path.poses[0])
         approach_pose.pose.position.z += 0.020
@@ -354,27 +131,37 @@ class RunEpisode():
         self.goto_start_client.wait_for_result()
 
         if rospy.is_shutdown():
-            return
+            return 
 
         now = rospy.Time.now()
         self.publishState("start", now)
         self.pluck_client.send_goal(ExecutePathGoal(
-            path=path,
+            path=p,
             finger=finger
             ))
+        params = path.action_parameters
         params.header.stamp = now
         self.parameter_pub.publish(params)
         self.pluck_client.wait_for_result()
         # wait to collect data
         self.sleep(2.0)
         self.publishState("end")
+        # some more buffer to associate messages later if needed
         if not self.explore:
             self.sleep(1.0)
 
-        return {"params" : params, "onsets" : self.episode_onsets}                
+        return self.episode_onsets
 
 def main():
     rospy.init_node('run_episode')
+
+    tf = tf2_ros.Buffer()
+    tf_listener = tf2_ros.TransformListener(tf)
+
+    from std_msgs.msg import String as StringMsg
+    say_pub = rospy.Publisher("/say", StringMsg, queue_size= 1, tcp_nodelay= True)
+    def say(txt):
+        say_pub.publish(txt)
 
     listen = rospy.get_param("~listen", False)
     nosleep = rospy.get_param("~nosleep", False)
@@ -383,8 +170,12 @@ def main():
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
-    direction = rospy.get_param("~direction", 0.0)
-    string_position = rospy.get_param("~string_position", -1.0)
+    direction = rospy.get_param("~direction", None)
+    if direction == 0.0:
+        direction = None
+    string_position = rospy.get_param("~string_position", None)
+    if string_position < 0.0:
+        string_position = None
 
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 1)
@@ -395,54 +186,70 @@ def main():
 
         def param_cb(msg):
             rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.parameters}")
-            re.run_episode(finger= msg.finger, note= msg.string, params= msg.parameters)
+            path = None
+            try:
+                path = paths.RuckigPath.from_action_parameters(msg.parameters)
+            except Exception as e:
+                rospy.logerr(f"failed to create path from parameters: {e}")
+                return
+
+            re.run_episode(finger= msg.finger, path= path)
+
         rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
         rospy.spin()
     elif explore:
         rospy.loginfo("exploring expected strings")
 
-        jump_size= 3
+        # strings to explore
         #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
         strings= [note]
+
+        jump_size= 3 # max size of the jump between two consecutively explored strings
+        attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset
 
         i= random.randint(0, len(strings)-1)
         while not rospy.is_shutdown():
             rospy.loginfo(f"attempting to pluck string {strings[i]}")
             # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
             for _ in range(runs):
-                params = None
-                result = {"params" : None, "onsets" : []}
-                attempts = 0
-                while len(result["onsets"]) != 1 and attempts < 4:
-                    attempts+= 1
-                    result = re.run_episode(params= params, finger= finger, note= strings[i], direction= direction)
-                    params = result["params"]
+                path = paths.RuckigPath.random(
+                    note = strings[i],
+                    direction= direction,
+                    string_position= string_position,
+                    tf = tf
+                    )
+                onsets = []
+                for _ in range(attempts_for_good_pluck):
+                    onsets = re.run_episode(finger= finger, path= path)
 
-                    if len(result["onsets"]) != 1:
-                        rospy.logwarn("retry with adapted parameters")
-                        if len(result["onsets"]) == 0:
-                            # lower and further in the pluck direction
-                            params.action_parameters[10] += 0.003 * (params.action_parameters[8]/abs(params.action_parameters[8]))
-                            params.action_parameters[11] -= 0.003
-                        else: # len(result["onsets"]) > 1
-                            # higher
-                            params.action_parameters[11] += 0.003
-                            # move vector (12/13) up by a bit and clip to avoid changing direction
-                            theta = tau/4/4
-                            rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-                            vec = np.array([params.action_parameters[12], params.action_parameters[13]])
-                            vec_rotated = np.dot(rot, vec)
-                            if vec_rotated[0] * vec[0] < 0.0:
-                                vec_rotated[0] = 0.0
-                            params.action_parameters[12]= vec_rotated[0]
-                            params.action_parameters[13]= vec_rotated[1]
+                    if rospy.is_shutdown():
+                        return
+
+                    if len(onsets) == 1:
+                        break
+
+                    rospy.logwarn("retry with adapted parameters")
+                    if len(onsets) == 0:
+                        # lower and further in the pluck direction
+                        path.keypoint_pos[0] += 0.003 * path.direction
+                        path.keypoint_pos[1] -= 0.003
+                    else: # len(result["onsets"]) > 1
+                        # higher
+                        path.keypoint_pos[1] += 0.003
+                        # move velocity vector (12/13) up by a bit and clip to avoid changing direction
+                        theta = tau/4/4 * path.direction
+                        rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+                        vec = np.array(path.keypoint_vel)
+                        vec_rotated = np.dot(rot, vec)
+                        if vec_rotated[0] * vec[0] < 0.0:
+                            vec_rotated[0] = 0.0
+                        path.keypoint_vel= vec_rotated.tolist()
 
             new_i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
             if new_i != i:
                 i = new_i
+
     elif continuous or runs > 0:
-        from std_msgs.msg import String as StringMsg
-        pub = rospy.Publisher("/say", StringMsg, queue_size= 1)
         if continuous:
             rospy.loginfo("running continuously")
         else:
@@ -451,17 +258,21 @@ def main():
         while continuous or i < runs:
             if rospy.is_shutdown():
                 break
-            params = None
+            path = paths.RuckigPath.random(
+                note = strings[i],
+                direction= direction,
+                string_position= string_position,
+                tf = tf
+            )
+
             for i in range(repeat):
                 if rospy.is_shutdown():
                     break
-                result = re.run_episode(finger= finger, note= note, params= params, direction= direction, string_position= string_position)
-                params = result["params"]
+                onsets = re.run_episode(finger= finger, path= path)
             i+=1
-            pub.publish("next")
-            #rospy.sleep(rospy.Duration(1.0))
+            say("next")
     else:
-        rospy.logerr("found invalid configuration. Can't go on.")
+        rospy.logfatal("found invalid configuration. Can't go on.")
 
 if __name__ == "__main__":
     main()

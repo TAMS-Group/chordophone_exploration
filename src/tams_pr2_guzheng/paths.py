@@ -32,14 +32,14 @@ class RuckigPath:
     actionspace_type = "ruckig keypoint position/velocity v2"
 
     def __init__(self):
-        self.max_vel = (0.1, 0.1)
-        self.max_acc = (1.0, 1.5)
-        self.max_jerk = (8.0, 8.0)
-        self.pre = (0.0, 0.0)
-        self.post = (0.0, 0.0)
+        self.max_vel = [0.1, 0.1]
+        self.max_acc = [1.0, 1.5]
+        self.max_jerk = [8.0, 8.0]
+        self.pre = [0.0, 0.0]
+        self.post = [0.0, 0.0]
 
-        self.keypoint_pos = (0.0, 0.0)
-        self.keypoint_vel = (0.0, 0.0)
+        self.keypoint_pos = [0.0, 0.0]
+        self.keypoint_vel = [0.0, 0.0]
 
         self.note = "None"
         self.string_position = 0.0
@@ -54,8 +54,9 @@ class RuckigPath:
             f")"
         )
 
+    @property
     def params(self):
-        return (
+        return list(
             self.max_vel +
             self.max_acc +
             self.max_jerk +
@@ -63,13 +64,14 @@ class RuckigPath:
             self.post +
             self.keypoint_pos +
             self.keypoint_vel +
-            (self.string_position,)
+            [self.string_position]
         )
 
-    def to_action_parameters(self):
+    @property
+    def action_parameters(self):
         return ActionParameters(
             actionspace_type= self.actionspace_type,
-            action_parameters= list(self)
+            action_parameters= self.params,
         )
 
     @classmethod
@@ -94,7 +96,7 @@ class RuckigPath:
         return params
 
     @classmethod
-    def random(cls, *, note, direction= None, string_position= None, tf= None):
+    def random(cls, *, note : str, direction : float = None, string_position : float = None, tf = None):
         '''
         @param note: note to play
         @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
@@ -109,9 +111,10 @@ class RuckigPath:
         p.note = note
         if string_position is None:
             try:
-                p= PointStamped()
-                p.header.frame_id = f"guzheng/{note}/bridge"
-                length = tf.transform(p, f"guzheng/{note}/head").point.x
+                pt= PointStamped()
+                pt.header.frame_id = f"guzheng/{note}/bridge"
+                string_length = tf.transform(pt, f"guzheng/{note}/head").point.x
+                string_position = random.uniform(0.0, string_length)
             except tf2_ros.TransformException as e:
                 raise Exception(f"No string position defined and could not find length of target string for note {note}: {str(e)}")
         p.string_position = string_position
@@ -119,18 +122,14 @@ class RuckigPath:
         if direction is None:
             direction = random.choice((-1.0, 1.0))
 
-        p.pre = (direction*(-0.015), 0.015)
-        p.post = (direction*0.01, 0.02)
-        p.keypoint_pos = (random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001))
-        p.keypoint_vel = (direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03))
+        p.pre = [direction*(-0.015), 0.015]
+        p.post = [direction*0.01, 0.02]
+        p.keypoint_pos = [random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001)]
+        p.keypoint_vel = [direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03)]
 
         return p
 
-    @property
-    def frame_id(self) -> str:
-        return f"guzheng/{self.note}/head"
-
-    def build(self):
+    def __call__(self):
         '''
         @return: path message
         '''
@@ -188,13 +187,25 @@ class RuckigPath:
             path.poses.append(p)
 
         return path
-    
-    def dataframe(self):
-        return pandas.DataFrame([(p.header.stamp.to_sec(), p.pose.position.y, p.pose.position.z) for p in self.build().poses], columns= ["time", "y", "z"])
 
+
+    @property
+    def frame_id(self) -> str:
+        return f"guzheng/{self.note}/head"
+
+    @property
+    def direction(self) -> float:
+        return self.post[0]/abs(self.post[0])
+
+
+    @property
+    def dataframe(self):
+        return pandas.DataFrame([(p.header.stamp.to_sec(), p.pose.position.y, p.pose.position.z) for p in self().poses], columns= ["time", "y", "z"])
+
+    @property
     def keypoint_marker(self):
-        pk_pos = self.keypoint_pos
-        pk_vel = self.keypoint_vel
+        pk_pos = np.array(self.keypoint_pos)
+        pk_vel = np.array(self.keypoint_vel)
         pk_vel_scale = 0.25
         # publish arrow marker for pk_*
         return Marker(
@@ -208,8 +219,8 @@ class RuckigPath:
             scale=Vector3(0.001, 0.003, 0.0),
             color=ColorRGBA(1.0, 0.0, 0.0, 1.0),
             points=[
-                Point(self.string_position, pk_pos[0], pk_pos[1]),
-                Point(self.string_position, pk_pos[0]+pk_vel[0]*pk_vel_scale, pk_pos[1]+pk_vel[1]*pk_vel_scale)
+                Point(self.string_position, *pk_pos),
+                Point(self.string_position, *(pk_pos + pk_vel_scale*pk_vel))
             ]
         )
 
