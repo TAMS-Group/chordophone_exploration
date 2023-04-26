@@ -24,10 +24,13 @@ from tams_pr2_guzheng.msg import (
 
 from music_perception.msg import NoteOnset
 
+from tams_pr2_guzheng.utils import string_length
+
 import random
 import copy
 
 import numpy as np
+from scipy.stats import qmc
 from math import tau
 
 class RunEpisode():
@@ -219,16 +222,20 @@ def main():
         jump_size= 3 # max size of the jump between two consecutively explored strings
         attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset
 
+        # uniform sampling of targeted string position
+        string_position_sampler = qmc.Halton(d= 1, seed= 37)
+
         i= random.randint(0, len(strings)-1)
         while not rospy.is_shutdown():
             rospy.loginfo(f"attempting to pluck string {strings[i]}")
             # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
             for _ in range(runs):
+                string_position = qmc.scale(string_position_sampler.random(), 0.0, string_length(strings[i], tf))
                 path = paths.RuckigPath.random(
                     note = strings[i],
                     direction= direction,
                     string_position= string_position,
-                    tf = tf
+                    #tf = tf
                     )
                 onsets = []
                 for _ in range(attempts_for_good_pluck):
