@@ -247,16 +247,17 @@ def main():
                     if len(onsets) == 1:
                         break
 
-                    rospy.logwarn("retry with adapted parameters")
                     if len(onsets) == 0:
+                        rospy.logwarn("no onset detected, retry with adapted parameters")
                         # lower and further in the pluck direction
                         path.keypoint_pos[0] += 0.003 * path.direction
                         path.keypoint_pos[1] -= 0.003
-                    else: # len(result["onsets"]) > 1
+                    else: # len(onsets) > 1
+                        rospy.logwarn(f"multiple onsets detected, but one expected (got {len(onsets)}), retry with adapted parameters")
                         # higher
-                        path.keypoint_pos[1] += 0.003
+                        path.keypoint_pos[1] += 0.005
                         # move velocity vector (12/13) up by a bit and clip to avoid changing direction
-                        theta = tau/4/4 * path.direction
+                        theta = tau/4/2 * path.direction
                         rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
                         vec = np.array(path.keypoint_vel)
                         vec_rotated = np.dot(rot, vec)
