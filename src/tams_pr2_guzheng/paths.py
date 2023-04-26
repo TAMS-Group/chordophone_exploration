@@ -138,7 +138,7 @@ class RuckigPath:
 
         p.note = note
         if string_position is None:
-            string_position = random.uniform(0.0, string_length(tf, note))
+            string_position = random.uniform(0.0, string_length(note, tf))
         p.string_position = string_position
 
         if direction is None:
