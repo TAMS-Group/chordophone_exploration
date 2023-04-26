@@ -23,6 +23,8 @@ import pandas
 import ruckig
 from ruckig import InputParameter, Ruckig, Trajectory
 
+from .utils import string_length
+
 __all__ = [
     "get_path_yz_offsets_yz_start",
     "get_path_yz_start_y_offset_lift_angle",
@@ -136,13 +138,7 @@ class RuckigPath:
 
         p.note = note
         if string_position is None:
-            try:
-                pt= PointStamped()
-                pt.header.frame_id = f"guzheng/{note}/bridge"
-                string_length = tf.transform(pt, f"guzheng/{note}/head").point.x
-                string_position = random.uniform(0.0, string_length)
-            except tf2_ros.TransformException as e:
-                raise Exception(f"No string position defined and could not find length of target string for note {note}: {str(e)}")
+            string_position = random.uniform(0.0, string_length(tf, note))
         p.string_position = string_position
 
         if direction is None:
@@ -154,6 +150,17 @@ class RuckigPath:
         p.keypoint_vel = [direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03)]
 
         return p
+
+    @property
+    def feasible(self):
+        df= self.dataframe
+        if not np.all(np.abs(df['y'].to_numpy()) < 0.016):
+            rospy.logwarn_throttle(1.0, f"Trajectory is not feasible: might hit neighboring string")
+            return False
+        if not np.all(df['z'].to_numpy() > -0.015):
+            rospy.logwarn_throttle(1.0, f"Trajectory is not feasible: finger would touch string")
+            return False
+        return True
 
     def __call__(self):
         '''

@@ -12,7 +12,6 @@ from tams_pr2_guzheng.msg import (
     RunEpisodeRequest,
     RunEpisodeGoal
 )
-from .paths import RuckigPath
 
 def run_params(run_episode, params, finger='ff'):
     req= RunEpisodeRequest(parameters= params.action_parameters, string= params.note, finger= 'ff')
@@ -21,6 +20,7 @@ def run_params(run_episode, params, finger='ff'):
     return run_episode.get_result()
 
 def row_from_result(result):
+    from .paths import RuckigPath
     row = RuckigPath.from_action_parameters(result.parameters).params_map
     row['onset_cnt'] = len(result.onsets)
     if len(result.onsets) > 0:
@@ -30,3 +30,11 @@ def row_from_result(result):
         row['loudness'] = None
         row['detected_note'] = None
     return row
+
+def string_length(string, tf):
+    try:
+        pt= PointStamped()
+        pt.header.frame_id = f"guzheng/{string}/bridge"
+        return tf.transform(pt, f"guzheng/{string}/head").point.x
+    except tf2_ros.TransformException as e:
+        raise Exception(f"No string position defined and could not find length of target string {string}: {str(e)}")
