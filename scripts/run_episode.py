@@ -279,7 +279,7 @@ def main():
             if rospy.is_shutdown():
                 break
             path = paths.RuckigPath.random(
-                note = strings[i],
+                note = note,
                 direction= direction,
                 string_position= string_position,
                 tf = tf
