@@ -19,6 +19,8 @@ import numpy as np
 from math import tau
 
 import pandas
+
+import ruckig
 from ruckig import InputParameter, Ruckig, Trajectory
 
 __all__ = [
@@ -56,20 +58,42 @@ class RuckigPath:
 
     @property
     def params(self):
-        return list(
-            self.max_vel +
-            self.max_acc +
-            self.max_jerk +
-            self.pre +
-            self.post +
-            self.keypoint_pos +
-            self.keypoint_vel +
-            [self.string_position]
-        )
+        p = []
+        p += self.max_vel
+        p += self.max_acc
+        p += self.max_jerk
+        p += self.pre
+        p += self.post
+        p += self.keypoint_pos
+        p += self.keypoint_vel
+        p += [self.string_position]
+        return p
+
+    @property
+    def params_map(self):
+        return {
+            "note": self.note,
+            "max_vel_y": self.max_vel[0],
+            "max_vel_z": self.max_vel[1],
+            "max_acc_y": self.max_acc[0],
+            "max_acc_z": self.max_acc[1],
+            "max_jerk_y": self.max_jerk[0],
+            "max_jerk_z": self.max_jerk[1],
+            "pre_y": self.pre[0],
+            "pre_z": self.pre[1],
+            "post_y": self.post[0],
+            "post_z": self.post[1],
+            "keypoint_pos_y": self.keypoint_pos[0],
+            "keypoint_pos_z": self.keypoint_pos[1],
+            "keypoint_vel_y": self.keypoint_vel[0],
+            "keypoint_vel_z": self.keypoint_vel[1],
+            "string_position": self.string_position,
+            }
 
     @property
     def action_parameters(self):
         return ActionParameters(
+            header= Header(frame_id=self.frame_id),
             actionspace_type= self.actionspace_type,
             action_parameters= self.params,
         )
@@ -81,18 +105,20 @@ class RuckigPath:
 
         m=re.match(r"guzheng/(\w+)/head", msg.header.frame_id)
         if not m:
-            raise ValueError("Invalid frame_id")
+            raise ValueError(f"Invalid frame_id '{msg.header.frame_id}'")
 
         params = cls()
         params.note = m.group(1)
-        params.max_vel = msg.action_parameters[0:2]
-        params.max_acc = msg.action_parameters[2:4]
-        params.max_jerk = msg.action_parameters[4:6]
-        params.pre = msg.action_parameters[6:8]
-        params.post = msg.action_parameters[8:10]
-        params.keypoint_pos = msg.action_parameters[10:12]
-        params.keypoint_vel = msg.action_parameters[12:14]
-        params.string_position = msg.action_parameters[14]
+
+        msg_parameters = list(msg.action_parameters)
+        params.max_vel = msg_parameters[0:2]
+        params.max_acc = msg_parameters[2:4]
+        params.max_jerk = msg_parameters[4:6]
+        params.pre = msg_parameters[6:8]
+        params.post = msg_parameters[8:10]
+        params.keypoint_pos = msg_parameters[10:12]
+        params.keypoint_vel = msg_parameters[12:14]
+        params.string_position = msg_parameters[14]
         return params
 
     @classmethod
@@ -144,7 +170,9 @@ class RuckigPath:
         def traj_from_input(inp):
             ruckig_generator.reset()
             t= Trajectory(2)
-            ruckig_generator.calculate(inp, t)
+            result = ruckig_generator.calculate(inp, t)
+            if result not in [ruckig.Result.Working, ruckig.Result.Finished]:
+                raise Exception('Failed to generate trajectory. Invalid input')
             return t
 
         # build pluck trajectories
@@ -188,7 +216,6 @@ class RuckigPath:
 
         return path
 
-
     @property
     def frame_id(self) -> str:
         return f"guzheng/{self.note}/head"
@@ -196,7 +223,6 @@ class RuckigPath:
     @property
     def direction(self) -> float:
         return self.post[0]/abs(self.post[0])
-
 
     @property
     def dataframe(self):
