@@ -12,6 +12,7 @@ from tams_pr2_guzheng.cfg import TimeOffsetConfig
 from std_msgs.msg import Header, String
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
+from std_srvs.srv import Empty as EmptySrv, EmptyResponse
 
 import numpy as np
 
@@ -50,20 +51,25 @@ class Projector:
         self.base_frame= rospy.get_param("~base_frame", "base_footprint")
         self.default_finger= rospy.get_param("~default_finger", "ff")
 
+        self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
+        self.pub_latest= rospy.Publisher('latest_events', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
+
+        self.tf_listener= TransformListenerCb(self.tf_buffer, lambda tfs: self.publish())
+
         self.reset()
 
-        self.pub= rospy.Publisher('events_projected', MarkerArray, queue_size= 1, latch= True, tcp_nodelay= True)
+        def reset_cb(req):
+            self.reset()
+            return EmptyResponse()
+        self.reset_srv = rospy.Service('~reset', EmptySrv, reset_cb)
 
         # server directly sets config correctly
         self.config= None
         self.dr_server= DynamicReconfigureServer(TimeOffsetConfig, self.offset_cb)
 
-        self.tf_listener= TransformListenerCb(self.tf_buffer, lambda tfs: self.publish())
-
         self.sub_finger= rospy.Subscriber('active_finger', String, self.finger_cb, queue_size= 100, tcp_nodelay= True)
         self.sub_events= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
         self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
-
 
     def reset(self):
         self.id= 0
@@ -71,6 +77,7 @@ class Projector:
         self.last_publish= time.time()
         self.tf_buffer.clear()
         self.finger= self.default_finger
+        self.publish()
 
     def finger_cb(self, finger):
         if finger.data not in FINGERS:
@@ -146,6 +153,10 @@ class Projector:
             self.last_publish= now
 
             markers= MarkerArray()
+            clear_marker = Marker()
+            clear_marker.action = Marker.DELETEALL
+            markers.markers.append(clear_marker)
+
             for marker, finger, buffer in self.events:
                 buffer.set_transform_static(self.tf_buffer.lookup_transform(f'rh_{finger}_biotac_link', marker.header.frame_id, rospy.Time()), '')
                 p= PoseStamped(header= deepcopy(marker.header))
@@ -164,6 +175,11 @@ class Projector:
                 m.header= p.header
                 m.pose= p.pose
                 markers.markers.append( m )
+            latest = rospy.Time.now()
+            if len(markers.markers) > 0:
+                latest = markers.markers[-1].header.stamp
+
+            self.pub_latest.publish([clear_marker] + [m for m in markers.markers if latest - m.header.stamp < rospy.Duration(2.0)])
             self.pub.publish(markers)
 
 
