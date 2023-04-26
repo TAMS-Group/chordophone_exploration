@@ -5,11 +5,9 @@ import rospy
 import tf2_ros
 import tf2_geometry_msgs
 
-from actionlib import SimpleActionClient
+from actionlib import SimpleActionClient, SimpleActionServer
 
-from nav_msgs.msg import Path
-from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
-from std_msgs.msg import String, Header, ColorRGBA
+from std_msgs.msg import String
 from visualization_msgs.msg import Marker
 
 import tams_pr2_guzheng.paths as paths
@@ -19,7 +17,9 @@ from tams_pr2_guzheng.msg import (
     EpisodeState,
     ActionParameters,
     ExecutePathGoal,
-    RunEpisodeRequest,
+    RunEpisodeAction,
+    RunEpisodeGoal,
+    RunEpisodeResult,
 )
 
 from music_perception.msg import NoteOnset
@@ -29,8 +29,6 @@ import copy
 
 import numpy as np
 from math import tau
-
-from ruckig import InputParameter, Ruckig, Trajectory
 
 class RunEpisode():
     def __init__(self, explore= False, nosleep= False):
@@ -182,20 +180,34 @@ def main():
     repeat = rospy.get_param("~repeat", 1)
 
     if listen:
-        rospy.loginfo("subscribing to topic to wait for action parameter requests")
+        rospy.loginfo("set up action server")
 
-        def param_cb(msg):
-            rospy.loginfo(f"received request for {msg.finger} / {msg.string} / parameters {msg.parameters}")
+        action_server = None
+        def goal_cb(goal : RunEpisodeGoal):
+            rospy.loginfo(f"received request for {goal.req.finger} / {goal.req.string} / parameters {goal.req.parameters}")
             path = None
-            try:
-                path = paths.RuckigPath.from_action_parameters(msg.parameters)
-            except Exception as e:
-                rospy.logerr(f"failed to create path from parameters: {e}")
-                return
+            if goal.req.parameters.actionspace_type != '':
+                try:
+                    path = paths.RuckigPath.from_action_parameters(goal.req.parameters)
+                except Exception as e:
+                    rospy.logerr(f"failed to create path from parameters: {e}")
+                    action_server.set_aborted()
+                    return True
+            else:
+                path = paths.RuckigPath.random(goal.req.string)
 
-            re.run_episode(finger= msg.finger, path= path)
+            re.run_episode(path, finger= goal.req.finger)
+            action_server.set_succeeded(result=
+                                        RunEpisodeResult(
+                                            onsets= re.episode_onsets,
+                                            parameters= path.action_parameters
+                                        )
+            )
+            return True
 
-        rospy.Subscriber("~", RunEpisodeRequest, param_cb, queue_size= 1)
+        action_server = SimpleActionServer("run_episode", RunEpisodeAction, execute_cb= goal_cb, auto_start= False)
+        action_server.start()
+        rospy.loginfo("action server ready")
         rospy.spin()
     elif explore:
         rospy.loginfo("exploring expected strings")

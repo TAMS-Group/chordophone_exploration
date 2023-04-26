@@ -39,6 +39,7 @@ DIRECTORY
   action
 FILES
   ExecutePath.action
+  RunEpisode.action
 )
 
 add_message_files(
