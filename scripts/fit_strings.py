@@ -70,7 +70,7 @@ class StringFitter:
     def string_to_tfs(string):
         tf = TransformStamped()
         tf.header.frame_id = 'base_footprint'
-        tf.child_frame_id = "guzheng/"+string["key"].lower()+"/head"
+        tf.child_frame_id = "guzheng/"+string["key"]+"/head"
 
         tf.transform.translation.x = string["bridge"][0]
         tf.transform.translation.y = string["bridge"][1]
@@ -98,7 +98,7 @@ class StringFitter:
         tf_bridge.header.frame_id = tf.child_frame_id
         tf_bridge.transform.translation.x = string["length"]
         tf_bridge.transform.rotation.w = 1.0
-        tf_bridge.child_frame_id = "guzheng/"+string["key"].lower()+"/bridge"
+        tf_bridge.child_frame_id = "guzheng/"+string["key"]+"/bridge"
 
         return (tf, tf_bridge)
 
@@ -272,19 +272,19 @@ class StringFitter:
                     continue
 
                 strings.append({
-                    "key": k.replace("♯", "is"),
+                    "key": k.replace("♯", "is").lower(),
                     "bridge": bridge_pt,
                     "direction": direction,
                     "end": end_pt,
                     "length": length
                     })
 
+        if len(strings) > 5:
+            strings = self.drop_unaligned(strings)
+
         # only adjust bridge on finalize
         if not self.active:
             self.align_bridges(strings)
-
-        if len(strings) > 5:
-            strings = self.drop_unaligned(strings)
 
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
