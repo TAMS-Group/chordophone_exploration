@@ -159,7 +159,8 @@ class StringFitter:
         #     return np.array(o)[[0,2]]
 
     def drop_unaligned(self, strings):
-        s_threshold = 3.5
+        s_threshold = 1.5
+        # s_threshold = 0.5
         directions = self.project(np.array([s["direction"] for s in strings]))
         angles = np.arctan2(directions[:,0], directions[:,1])
         # Modified Z-score
