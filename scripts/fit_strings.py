@@ -112,8 +112,8 @@ class StringFitter:
         m.header.frame_id = 'base_footprint'
         m.scale.x = m.scale.y = 0.003
         m.scale.z = np.sqrt(np.sum((string["end"]-string["bridge"])**2))
-        # color A strings green by convention
-        if re.match("A[0-9]+", string["key"]):
+        # color a strings green by convention
+        if re.match("a[0-9]+", string["key"]):
             m.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)
         else:
             m.color = ColorRGBA(1.0, 1.0, 1.0, 1.0)
