@@ -295,8 +295,11 @@ class StringFitter:
             transforms=[t for s in strings for t in StringFitter.string_to_tfs(s)])
         self.tf_broadcast.pub_tf.publish(tf_msg)
 
+        clear = Marker()
+        clear.action = Marker.DELETEALL
+
         markers = MarkerArray(
-            markers=[StringFitter.string_to_marker(s) for s in strings])
+            markers=[clear]+[StringFitter.string_to_marker(s) for s in strings])
         self.pub_strings.publish(markers)
 
 
