@@ -171,11 +171,12 @@ class StringFitter:
             mad= np.median(np.abs(d))
             return 0.6745*d/mad
         s= np.abs(score(angles))
-        strings_filtered = list(np.array(strings, dtype=object)[s < s_threshold])
+        keys= np.array([s['key'] for s in strings])
+        rospy.loginfo(f"scores: {', '.join([f'{k}({s:2f})' for (k, s) in sorted(zip(keys, s), key=lambda x: -x[1])])}")
 
-        rospy.loginfo(f"drop {len(strings)-len(strings_filtered)} outliers out of {len(strings)}. {len(strings_filtered)} remaining")
-        kept_strings = sorted(zip(map(lambda s: s['key'], strings_filtered), s[s<s_threshold].tolist()), key=lambda x: -x[1])
-        rospy.loginfo(f"kept {', '.join([f'{k}({s:2f})' for (k, s) in kept_strings])}")
+        strings_filtered = np.array([s for s in strings], dtype=object)[s < s_threshold].tolist()
+        rospy.loginfo(f"found outliers: {keys[s >= s_threshold].tolist()}")
+
         return strings_filtered
 
     def align_bridges(self, strings):
