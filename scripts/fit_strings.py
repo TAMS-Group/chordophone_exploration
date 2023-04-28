@@ -173,7 +173,8 @@ class StringFitter:
         strings_filtered = list(np.array(strings, dtype=object)[s < s_threshold])
 
         rospy.loginfo(f"drop {len(strings)-len(strings_filtered)} outliers out of {len(strings)}. {len(strings_filtered)} remaining")
-        rospy.loginfo(f"kept {[x['key'] for x in strings_filtered]} with scores {s[s<s_threshold]}")
+        kept_strings = sorted(zip(map(lambda s: s['key'], strings_filtered), s[s<s_threshold].tolist()), key=lambda x: -x[1])
+        rospy.loginfo(f"kept {', '.join([f'{k}({s:2f})' for (k, s) in kept_strings])}")
         return strings_filtered
 
     def align_bridges(self, strings):
