@@ -51,19 +51,21 @@ struct DetectContact {
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
     double value;
 
-    // TODO: switch to pac0/1 with envelope magnitude (max-min) over 0.01s buffers instead of high-pass filtering the PDC signal
+    // with 1khz update rate (our PR2), we get 10 times the same pdc value in a row, so we skip the redundant ones
+    if( tacs.header.stamp - latest_values.back().stamp < ros::Duration(0.01))
+      return;
 
     latest_values.push_back({tacs.header.stamp, tacs.tactiles.at(finger_idx).pdc});
 
     if(latest_values.front().stamp + FILTER_WIDTH > tacs.header.stamp)
       return;
 
-    // TODO: low-pass filter of latest_values instead of latest_values.back()
-    value= latest_values.back().data - latest_values.front().data;
+    value= std::abs(latest_values.back().data - latest_values.front().data);
     std_msgs::Float32 data;
     data.data= value;
     pub.publish(data);
-    latest_values.pop_front();
+    while(latest_values.front().stamp + FILTER_WIDTH < tacs.header.stamp)
+      latest_values.pop_front();
 
     if(value > config.threshold && (last_event+ros::Duration(config.wait)) < tacs.header.stamp){
       last_event = tacs.header.stamp;
