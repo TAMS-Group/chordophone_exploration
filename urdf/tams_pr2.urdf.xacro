@@ -3,7 +3,23 @@
   <xacro:include filename="$(find tams_pr2_description)/robots/tams_pr2.urdf.xacro" />
 
   <xacro:macro name="plectrum" params="finger">
-    <link name="rh_${finger}_plectrum"/>
+    <link name="rh_${finger}_plectrum">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://tams_pr2_guzheng/meshes/guzheng_biotac_plectrum_simplified.stl"/>
+        </geometry>
+        <material name="plectrum_brown">
+          <color rgba="0.7 0.4 0.2 1"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry>
+          <mesh filename="package://tams_pr2_guzheng/meshes/guzheng_biotac_plectrum_simplified.stl"/>
+        </geometry>
+      </collision>
+    </link>
     <joint name="${finger}_plectrum_mount" type="floating">
       <parent link="rh_${finger}_biotac_link"/>
       <child link="rh_${finger}_plectrum"/>
