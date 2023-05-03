@@ -13,8 +13,8 @@ class OnsetToPath:
         if os.path.exists(self.storage):
             self.pluck_table = pd.read_json(self.storage)
 
-    def store_params(self):
-        self.onset_param_table.to_json(self.storage)
+    def store_to_file(self):
+        self.pluck_table.to_json(self.storage)
 
     def add_sample(self, row):
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
@@ -34,5 +34,5 @@ class OnsetToPath:
             (self.pluck_table['post_y']*direction >= 0.0)]
         if len(note_plucks) == 0:
             raise Exception(f"No plucks found for note {note} in direction {direction}")
-        pluck = self.pluck_table.iloc[np.argmin(np.abs(note_plucks['loudness']- loudness))]
+        pluck = note_plucks.iloc[np.argmin(np.abs(note_plucks['loudness']- loudness))]
         return RuckigPath.from_map(pluck)()
