@@ -124,6 +124,27 @@ class RuckigPath:
         return params
 
     @classmethod
+    def from_map(cls, m):
+        params = cls()
+        params.note = m['note']
+        params.max_vel[0] = m['max_vel_y']
+        params.max_vel[1] = m['max_vel_z']
+        params.max_acc[0] = m['max_acc_y']
+        params.max_acc[1] = m['max_acc_z']
+        params.max_jerk[0] = m['max_jerk_y']
+        params.max_jerk[1] = m['max_jerk_z']
+        params.pre[0] = m['pre_y']
+        params.pre[1] = m['pre_z']
+        params.post[0] = m['post_y']
+        params.post[1] = m['post_z']
+        params.keypoint_pos[0] = m['keypoint_pos_y']
+        params.keypoint_pos[1] = m['keypoint_pos_z']
+        params.keypoint_vel[0] = m['keypoint_vel_y']
+        params.keypoint_vel[1] = m['keypoint_vel_z']
+        params.string_position = m['string_position']
+        return params
+
+    @classmethod
     def random(cls, *, note : str, direction : float = None, string_position : float = None, tf = None):
         '''
         @param note: note to play

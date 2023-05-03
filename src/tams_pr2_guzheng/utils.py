@@ -23,6 +23,7 @@ def row_from_result(result):
     from .paths import RuckigPath
     row = RuckigPath.from_action_parameters(result.parameters).params_map
     row['onset_cnt'] = len(result.onsets)
+    row['onsets'] = result.onsets
     if len(result.onsets) > 0:
         row['loudness'] = result.onsets[-1].loudness
         row['detected_note'] = result.onsets[-1].note
@@ -38,3 +39,18 @@ def string_length(string, tf):
         return tf.transform(pt, f"guzheng/{string}/head").point.x
     except tf2_ros.TransformException as e:
         raise Exception(f"No string position defined and could not find length of target string {string}: {str(e)}")
+
+def stitch_paths(paths, tf, frame= 'base_footprint'):
+    stitched = Path()
+    stitched.header.frame_id = frame
+
+    for path in paths:
+        for pose in path.poses:
+            p = PoseStamped()
+            p.header.frame_id = path.header.frame_id
+            p.pose = pose.pose
+            stitched.poses.append(
+                tf.transform(p, stitched.header.frame_id)
+                )
+
+    return stitched
