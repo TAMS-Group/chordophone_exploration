@@ -44,13 +44,17 @@ def stitch_paths(paths, tf, frame= 'base_footprint'):
     stitched = Path()
     stitched.header.frame_id = frame
 
-    for path in paths:
-        for pose in path.poses:
-            p = PoseStamped()
-            p.header.frame_id = path.header.frame_id
-            p.pose = pose.pose
-            stitched.poses.append(
-                tf.transform(p, stitched.header.frame_id)
-                )
+    try:
+        for path in paths:
+                for pose in path.poses:
+                    p = PoseStamped()
+                    p.header.frame_id = path.header.frame_id
+                    p.pose = pose.pose
+                    stitched.poses.append(
+                        tf.transform(p, stitched.header.frame_id)
+                        )
+    except tf2_ros.TransformException as e:
+        rospy.logerr(f"could not transform path in frame '{path.header.frame_id}' to '{frame}' while stitching")
+        raise e
 
     return stitched

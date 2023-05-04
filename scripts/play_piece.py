@@ -61,9 +61,15 @@ class PlayPiece:
             paths.append(approach_path)
             paths.append(p)
 
-        stitched_path = stitch_paths(paths, self.tf)
+        try:
+            stitched_path = stitch_paths(paths, self.tf)
+        except tf2_ros.TransformException as e:
+            rospy.logerr("will not attempt execution")
+            return
         self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= 'ff'))
         self.execute_path.wait_for_result()
+
+
 if __name__ == '__main__':
     rospy.init_node('play_piece')
 
