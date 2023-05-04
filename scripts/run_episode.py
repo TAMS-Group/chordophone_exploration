@@ -217,7 +217,7 @@ def main():
 
         # strings to explore
         #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-        strings= [note]
+        strings= note.split(" ")
 
         jump_size= 3 # max size of the jump between two consecutively explored strings
         attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset
