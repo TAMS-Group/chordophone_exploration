@@ -155,8 +155,16 @@ class StringFitter:
         # else:
         #     return np.array(o)[[0,2]]
 
-    def drop_unaligned(self, strings):
-        s_threshold = 1.5
+    def split_unexpected_strings(self, strings):
+        expected_keys = [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
+        expected_strings = [s for s in strings if s["key"] in expected_keys]
+        unexpected_strings = [s for s in strings if s["key"] not in expected_keys]
+        if len(unexpected_strings) > 0:
+            rospy.logwarn(f"drop unexpected strings {[s['key'] for s in unexpected_strings]}")
+        return (expected_strings, unexpected_strings)
+
+    def split_unaligned_strings(self, strings):
+        s_threshold = 2.0
         # s_threshold = 0.5
         directions = self.project(np.array([s["direction"] for s in strings]))
         angles = np.arctan2(directions[:,0], directions[:,1])
@@ -169,16 +177,23 @@ class StringFitter:
             return 0.6745*d/mad
         s= np.abs(score(angles))
         keys= np.array([s['key'] for s in strings])
-        rospy.loginfo(f"scores: {', '.join([f'{k}({s:2f})' for (k, s) in sorted(zip(keys, s), key=lambda x: -x[1])])}")
 
-        strings_filtered = np.array([s for s in strings], dtype=object)[s < s_threshold].tolist()
-        rospy.loginfo(f"found outliers: {keys[s >= s_threshold].tolist()}")
+        strings_aligned = np.array([s for s in strings], dtype=object)[s < s_threshold].tolist()
+        strings_unaligned = np.array([s for s in strings], dtype=object)[s >= s_threshold].tolist()
 
-        return strings_filtered
+        if len(strings_unaligned) > 0:
+            rospy.loginfo(
+                f"found outliers: {', '.join([s['key'] for s in strings_unaligned])}\n"
+                f"mod-Z-scores: {', '.join([f'{k}({s:2f})' for (k, s) in sorted(zip(keys, s), key=lambda x: -x[1])])}"
+            )
+
+        return (strings_aligned, strings_unaligned)
 
     def align_bridges(self, strings):
         if len(strings) < 5:
-            return
+            return []
+
+        aligned_strings = copy.deepcopy(strings)
         rospy.loginfo(f'fitting bridge from {len(strings)} strings')
 
         origins = np.array([s["bridge"] for s in strings], dtype=float)
@@ -230,6 +245,7 @@ class StringFitter:
                     model.estimate(pts)
                     inliers = model.residuals(pts) < inlier_threshold
                 else:
+                    # includes a final model fit on all inliers
                     model, inliers = ransac(
                         pts,
                         LineModelND,
@@ -257,12 +273,11 @@ class StringFitter:
                 if np.abs(direction[2]) > 1.5*np.abs(direction[1]) and direction[2] < 0:
                     direction = -direction
 
-                min_pos_on_string = \
-                    np.min((inlier_pts - model.params[0]) @ direction)
+                inlier_positions_on_string = (inlier_pts - model.params[0]) @ direction
+                min_pos_on_string = np.min(inlier_positions_on_string)
                 bridge_pt = origin + min_pos_on_string * direction
 
-                max_pos_on_string = \
-                    np.max((inlier_pts - model.params[0]) @ direction)
+                max_pos_on_string = np.max(inlier_positions_on_string)
                 end_pt = model.params[0] + max_pos_on_string * direction
 
                 length = max_pos_on_string-min_pos_on_string
@@ -279,26 +294,43 @@ class StringFitter:
                     "length": length
                     })
 
-        if len(strings) > 5:
-            strings = self.drop_unaligned(strings)
+        markers = MarkerArray(markers= [Marker(action = Marker.DELETEALL)])
 
-        # only adjust bridge on finalize
-        if not self.active:
-            self.align_bridges(strings)
+        strings, unexpected_strings = self.split_unexpected_strings(strings)
+        unexpected_strings_markers= [StringFitter.string_to_marker(s) for s in unexpected_strings]
+        for m in unexpected_strings_markers:
+            m.color = ColorRGBA(0.6,0.6,0.6, 0.5)
+            m.ns = "unexpected "+m.ns
+        markers.markers.extend(unexpected_strings_markers)
+
+        unaligned_strings= []
+        if len(strings) > 5:
+            strings, unaligned_strings = self.split_unaligned_strings(strings)
+            unaligned_strings_markers = [StringFitter.string_to_marker(s) for s in unaligned_strings]
+            for m in unaligned_strings_markers:
+                m.color = ColorRGBA(0.8,0.1,0.1, 0.7)
+                m.ns = "unaligned "+m.ns
+            markers.markers.extend(unaligned_strings_markers)
+
+            bridged_strings = self.align_bridges(strings)
+            bridged_strings_markers = [StringFitter.string_to_marker(s) for s in bridged_strings]
+            for m in bridged_strings_markers:
+                m.scale.x = m.scale.y = m.scale.x/2
+                m.ns = "aligned bridge " + m.ns
+            markers.markers.extend(bridged_strings_markers)
+
+            # use bridged strings when setting inactive
+            if not self.active:
+                strings = bridged_strings
 
         # crude hack. WTF
         # TODO: implement sendTransform*s* in StaticBroadcaster
         tf_msg = TFMessage(
-            transforms=[t for s in strings for t in StringFitter.string_to_tfs(s)])
+            transforms=[t for s in strings+unaligned_strings for t in StringFitter.string_to_tfs(s)])
         self.tf_broadcast.pub_tf.publish(tf_msg)
 
-        clear = Marker()
-        clear.action = Marker.DELETEALL
-
-        markers = MarkerArray(
-            markers=[clear]+[StringFitter.string_to_marker(s) for s in strings])
+        markers.markers.extend([StringFitter.string_to_marker(s) for s in strings])
         self.pub_strings.publish(markers)
-
 
 def main():
     rospy.init_node('string_fitter')
