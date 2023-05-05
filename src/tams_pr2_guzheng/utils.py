@@ -23,7 +23,7 @@ def row_from_result(result):
     from .paths import RuckigPath
     row = RuckigPath.from_action_parameters(result.parameters).params_map
     row['onset_cnt'] = len(result.onsets)
-    row['onsets'] = result.onsets
+    row['onsets'] = str(result.onsets)
     if len(result.onsets) > 0:
         row['loudness'] = result.onsets[-1].loudness
         row['detected_note'] = result.onsets[-1].note
