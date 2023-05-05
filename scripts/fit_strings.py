@@ -194,9 +194,8 @@ class StringFitter:
             return []
 
         aligned_strings = copy.deepcopy(strings)
-        rospy.loginfo(f'fitting bridge from {len(strings)} strings')
 
-        origins = np.array([s["bridge"] for s in strings], dtype=float)
+        origins = np.array([s["bridge"] for s in aligned_strings], dtype=float)
 
         origins2d = self.project(origins)
         model, inliers = ransac(
@@ -206,12 +205,12 @@ class StringFitter:
             residual_threshold=0.01,
             max_trials=1000
             )
-        rospy.loginfo(f'{np.sum(inliers)} inliers for bridge fitting')
+        rospy.loginfo(f'bridge fit with {np.sum(inliers)} inliers from {len(aligned_strings)} strings')
 
         model_origin = model.params[0]
         model_direction = model.params[1]
 
-        for s in strings:
+        for s in aligned_strings:
             # solve line intersection between ransaced bridge and string
             # in 2d projection space
             _, t = np.linalg.solve(
@@ -226,7 +225,7 @@ class StringFitter:
                 (intersect - self.project(s["bridge"])) @ self.project(s["direction"])
                 )
 
-        return strings
+        return aligned_strings
 
     def fit(self):
         strings = []
