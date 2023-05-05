@@ -5,4 +5,7 @@
   <include file="$(dirname)/projectors.launch" />
   <include file="$(dirname)/detect_pluck.launch" />
   <include file="$(dirname)/pluck_from_path.launch" />
+  <include file="$(dirname)/run_episode.launch">
+    <arg name="listen" value="true" />
+  </include>
 </launch>
