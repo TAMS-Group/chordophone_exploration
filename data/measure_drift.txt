@@ -1,0 +1,4 @@
+20230505
+
+fis4 / 10:57 / onsets -0.06 / plucks 0.13
+d4   / 11:57 / onsets -0.16 / plucks 0.03
