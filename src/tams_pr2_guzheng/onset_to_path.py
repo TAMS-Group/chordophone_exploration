@@ -33,6 +33,6 @@ class OnsetToPath:
             (self.pluck_table['onset_cnt'] == 1) &
             (self.pluck_table['post_y']*direction >= 0.0)]
         if len(note_plucks) == 0:
-            raise Exception(f"No plucks found for note {note} in direction {direction}")
+            raise ValueError(f"No plucks found for note {note} in direction {direction}")
         pluck = note_plucks.iloc[np.argmin(np.abs(note_plucks['loudness']- loudness))]
         return RuckigPath.from_map(pluck)()
