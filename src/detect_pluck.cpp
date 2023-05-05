@@ -39,6 +39,7 @@ struct DetectContact {
 
     config_server.setCallback([this](tams_pr2_guzheng::ThresholdConfig c, uint32_t lvl){ this->config_cb(c,lvl); });
 
+    latest_values.push_back({ros::Time(0.0), 0});
     sub = nh.subscribe("hand/rh/tactile", 1, &DetectContact::getReadings, this);
   }
 
