@@ -195,7 +195,7 @@ def main():
                     return True
             else:
                 path = paths.RuckigPath.random(goal.req.string)
-
+            # TODO: abort if execution fails / frame is not known
             re.run_episode(path, finger= goal.req.finger)
             action_server.set_succeeded(result=
                                         RunEpisodeResult(
