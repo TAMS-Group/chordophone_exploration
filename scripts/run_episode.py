@@ -34,7 +34,7 @@ from scipy.stats import qmc
 from math import tau
 
 class RunEpisode():
-    def __init__(self, explore= False, nosleep= False):
+    def __init__(self, nosleep= False):
         rospy.loginfo("connect to execute_path action")
         self.goto_start_client = SimpleActionClient(
             'pluck/execute_path',
@@ -47,7 +47,6 @@ class RunEpisode():
             ExecutePathAction)
         self.pluck_client.wait_for_server()
 
-        self.explore = explore
         self.nosleep = nosleep
 
         self.state_pub = rospy.Publisher(
@@ -148,8 +147,7 @@ class RunEpisode():
         self.sleep(2.0)
         self.publishState("end")
         # some more buffer to associate messages later if needed
-        if not self.explore:
-            self.sleep(1.0)
+        self.sleep(1.0)
 
         return self.episode_onsets
 
@@ -166,8 +164,7 @@ def main():
 
     listen = rospy.get_param("~listen", False)
     nosleep = rospy.get_param("~nosleep", False)
-    explore = rospy.get_param("~explore", False)
-    re = RunEpisode(explore= explore, nosleep= nosleep)
+    re = RunEpisode(nosleep= nosleep)
 
     note = rospy.get_param("~note", "d6")
     finger = rospy.get_param("~finger", "ff")
@@ -212,63 +209,6 @@ def main():
         action_server.start()
         rospy.loginfo("action server ready")
         rospy.spin()
-    elif explore:
-        rospy.loginfo("exploring expected strings")
-
-        # strings to explore
-        #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-        strings= note.split(" ")
-
-        jump_size= 3 # max size of the jump between two consecutively explored strings
-        attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset
-
-        # uniform sampling of targeted string position
-        string_position_sampler = qmc.Halton(d= 1, seed= 37)
-
-        i= random.randint(0, len(strings)-1)
-        while not rospy.is_shutdown():
-            rospy.loginfo(f"attempting to pluck string {strings[i]}")
-            # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
-            for _ in range(runs):
-                string_position = qmc.scale(string_position_sampler.random(), 0.0, string_length(strings[i], tf))
-                path = paths.RuckigPath.random(
-                    note = strings[i],
-                    direction= direction,
-                    string_position= string_position,
-                    #tf = tf
-                    )
-                onsets = []
-                for _ in range(attempts_for_good_pluck):
-                    onsets = re.run_episode(finger= finger, path= path)
-
-                    if rospy.is_shutdown():
-                        return
-
-                    if len(onsets) == 1:
-                        break
-
-                    if len(onsets) == 0:
-                        rospy.logwarn("no onset detected, retry with adapted parameters")
-                        # lower and further in the pluck direction
-                        path.keypoint_pos[0] += 0.003 * path.direction
-                        path.keypoint_pos[1] -= 0.003
-                    else: # len(onsets) > 1
-                        rospy.logwarn(f"multiple onsets detected, but one expected (got {len(onsets)}), retry with adapted parameters")
-                        # higher
-                        path.keypoint_pos[1] += 0.005
-                        # move velocity vector (12/13) up by a bit and clip to avoid changing direction
-                        theta = tau/4/2 * path.direction
-                        rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-                        vec = np.array(path.keypoint_vel)
-                        vec_rotated = np.dot(rot, vec)
-                        if vec_rotated[0] * vec[0] < 0.0:
-                            vec_rotated[0] = 0.0
-                        path.keypoint_vel= vec_rotated.tolist()
-
-            new_i= max(0, min(len(strings)-1, i+random.randint(-jump_size,jump_size)))
-            if new_i != i:
-                i = new_i
-
     elif continuous or runs > 0:
         if continuous:
             rospy.loginfo("running continuously")
