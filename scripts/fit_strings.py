@@ -229,6 +229,8 @@ class StringFitter:
 
     def fit(self):
         strings = []
+
+        log_info = ""
         for k in sorted(self.onsets.keys()):
             if len(self.onsets[k]) >= 2:
                 pts = np.array(
@@ -252,12 +254,9 @@ class StringFitter:
                         residual_threshold=inlier_threshold,
                         max_trials=1000
                         )
-                rospy.loginfo(
-                    f'fit {k} with {len(pts)} points '
-                    f'({np.sum(inliers)} inliers)')
-                #if np.sum(inliers) < 2:
-                #    rospy.loginfo('skipped because of few inliers')
-                #    continue
+                log_info += (
+                    f'fit {k} with {len(pts)} points ({np.sum(inliers)} inliers)\n'
+                )
 
                 origin = model.params[0]
                 direction = model.params[1]
@@ -282,7 +281,7 @@ class StringFitter:
                 length = max_pos_on_string-min_pos_on_string
 
                 if length < 0.05:
-                    rospy.loginfo(f"skipping very short string for note {k}")
+                    log_info += f"skipping very short string for note {k}\n"
                     continue
 
                 strings.append({
@@ -293,12 +292,14 @@ class StringFitter:
                     "length": length
                     })
 
+        rospy.loginfo(log_info)
+
         markers = MarkerArray(markers= [Marker(action = Marker.DELETEALL)])
 
         strings, unexpected_strings = self.split_unexpected_strings(strings)
         unexpected_strings_markers= [StringFitter.string_to_marker(s) for s in unexpected_strings]
         for m in unexpected_strings_markers:
-            m.color = ColorRGBA(0.6,0.6,0.6, 0.5)
+            m.color = ColorRGBA(0.6,0.6,0.6, 0.3)
             m.ns = "unexpected "+m.ns
         markers.markers.extend(unexpected_strings_markers)
 
@@ -307,7 +308,7 @@ class StringFitter:
             strings, unaligned_strings = self.split_unaligned_strings(strings)
             unaligned_strings_markers = [StringFitter.string_to_marker(s) for s in unaligned_strings]
             for m in unaligned_strings_markers:
-                m.color = ColorRGBA(0.8,0.1,0.1, 0.7)
+                m.color = ColorRGBA(0.8,0.1,0.1, 0.5)
                 m.ns = "unaligned "+m.ns
             markers.markers.extend(unaligned_strings_markers)
 
