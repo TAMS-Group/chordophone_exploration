@@ -1,24 +1,21 @@
 #!/usr/bin/env python
 
-import rospy
-
-from tf import transformations
-import tf2_ros
-from tf2_msgs.msg import TFMessage
-
-from geometry_msgs.msg import TransformStamped
-from visualization_msgs.msg import MarkerArray, Marker
-from std_msgs.msg import ColorRGBA
-from std_srvs.srv import SetBool
+import copy
+import re
+from threading import Lock
 
 import numpy as np
-
-from skimage.measure import LineModelND, ransac
-from scipy.stats import zscore
-
-from threading import Lock
-import re
-
+import rospy
+import tf2_ros
+from geometry_msgs.msg import TransformStamped
+from skimage.measure import LineModelND
+from skimage.measure import ransac
+from std_msgs.msg import ColorRGBA
+from std_srvs.srv import SetBool
+from tf import transformations
+from tf2_msgs.msg import TFMessage
+from visualization_msgs.msg import Marker
+from visualization_msgs.msg import MarkerArray
 
 class StringFitter:
     def __init__(self):
