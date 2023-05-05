@@ -6,4 +6,6 @@
   </include>
 
   <include file="$(dirname)/detect_onset.launch" />
+
+  <include file="$(dirname)/fit_strings.launch" />
 </launch>

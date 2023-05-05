@@ -24,7 +24,7 @@ class StringFitter:
 
         self.tf_broadcast = tf2_ros.StaticTransformBroadcaster()
         self.pub_strings = rospy.Publisher(
-            'guzheng/fitted_strings',
+            'fitted_strings',
             MarkerArray,
             queue_size=1,
             tcp_nodelay=True,
@@ -35,7 +35,7 @@ class StringFitter:
 
     def start(self):
         self.sub_notes = rospy.Subscriber(
-            'guzheng/onsets_projected',
+            'onsets_projected',
             MarkerArray,
             self.onsets_cb,
             tcp_nodelay=True,
