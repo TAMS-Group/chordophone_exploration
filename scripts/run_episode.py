@@ -2,6 +2,7 @@
 
 import rospy
 
+from geometry_msgs.msg import TransformStamped
 import tf2_ros
 import tf2_geometry_msgs
 
@@ -77,6 +78,8 @@ class RunEpisode():
             queue_size=1,
             tcp_nodelay=True)
 
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
         # leave time for clients to connect
         rospy.sleep(rospy.Duration(1.0))
 
@@ -108,9 +111,21 @@ class RunEpisode():
         if not self.nosleep:
             rospy.sleep(rospy.Duration(t))
 
-    def run_episode(self, path, finger= 'ff'):
+    def publish_support_msgs(self, path, finger):
         self.finger_pub.publish(finger)
         self.keypoint_pub.publish(path.keypoint_marker)
+
+        target_pluck_string = TransformStamped()
+        target_pluck_string.header.stamp = rospy.Time.now()
+        target_pluck_string.header.frame_id = f"guzheng/{path.note}/head"
+        target_pluck_string.child_frame_id = "target_pluck_string"
+        target_pluck_string.transform.rotation.w = 1.0
+        self.tf_broadcaster.sendTransform(target_pluck_string)
+        target_pluck_string.header.stamp += rospy.Duration(3.0)
+        self.tf_broadcaster.sendTransform(target_pluck_string)
+
+    def run_episode(self, path, finger= 'ff'):
+        self.publish_support_msgs(path, finger)
 
         self.new_episode()
 
