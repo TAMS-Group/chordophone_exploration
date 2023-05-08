@@ -24,8 +24,6 @@ from tams_pr2_guzheng.msg import (
 
 from music_perception.msg import NoteOnset
 
-from tams_pr2_guzheng.utils import string_length
-
 import random
 import copy
 
