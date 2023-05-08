@@ -34,7 +34,7 @@ class StringFitter:
         self.storage_path = \
             rospy.get_param('~storage_path',
                             rospkg.RosPack().get_path('tams_pr2_guzheng')
-                            + '/config/strings.yaml')
+                            + '/data/strings.yaml')
 
         self.active= True
         self.enable_srv = rospy.Service('~set_active', SetBool, self.set_active)
