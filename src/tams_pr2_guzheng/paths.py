@@ -183,7 +183,7 @@ class RuckigPath:
             return False
         return True
 
-    def __call__(self):
+    def __call__(self) -> Path:
         '''
         @return: path message
         '''

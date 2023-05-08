@@ -14,6 +14,7 @@ from skimage.measure import LineModelND
 from skimage.measure import ransac
 from std_msgs.msg import ColorRGBA
 from std_srvs.srv import SetBool, Empty as EmptySrv
+from tams_pr2_guzheng.utils import note_to_string
 from tf import transformations
 from tf2_msgs.msg import TFMessage
 from visualization_msgs.msg import Marker
@@ -322,7 +323,7 @@ class StringFitter:
                     continue
 
                 strings.append({
-                    "key": k.replace("♯", "is").lower(),
+                    "key": note_to_string(k),
                     "bridge": bridge_pt,
                     "direction": direction,
                     "end": end_pt,

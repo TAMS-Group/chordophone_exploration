@@ -13,6 +13,12 @@ from tams_pr2_guzheng.msg import (
     RunEpisodeGoal
 )
 
+def note_to_string(note):
+    return note.replace("♯", "is").lower()
+
+def string_to_note(string):
+    return string.replace("is", "♯").upper()
+
 def run_params(run_episode, params, finger='ff'):
     req= RunEpisodeRequest(parameters= params.action_parameters, string= params.note, finger= 'ff')
     run_episode.send_goal(RunEpisodeGoal(req))

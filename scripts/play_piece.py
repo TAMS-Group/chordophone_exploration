@@ -69,13 +69,22 @@ class PlayPiece:
         rospy.loginfo(f"playing piece with {len(msg.onsets)} onsets")
         paths= []
         last_midi_note = 0
+        direction= 1.0
+        last_string_position = 0.1
         for o in msg.onsets:
             midi_note= librosa.note_to_midi(o.note)
-            direction= 1.0 if midi_note > last_midi_note else -1.0
+            if midi_note > last_midi_note:
+                direction= 1.0
+            elif midi_note < last_midi_note:
+                direction= -1.0
+            elif midi_note == last_midi_note:
+                direction*= -1.0
+
             last_midi_note= midi_note
             try:
-                p = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction)
-            except Exception:
+                p = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position)
+                last_string_position = p.poses[0].pose.position.x
+            except ValueError:
                 rospy.logerr(f"No known way to play note {o.note}, will skip it.")
                 continue
             approach_path = copy.deepcopy(p)
