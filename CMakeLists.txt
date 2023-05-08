@@ -39,6 +39,7 @@ DIRECTORY
   action
 FILES
   ExecutePath.action
+  PlayPiece.action
   RunEpisode.action
 )
 

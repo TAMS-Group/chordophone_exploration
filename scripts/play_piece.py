@@ -7,7 +7,8 @@ from tams_pr2_guzheng.msg import (
     RunEpisodeActionResult,
     RunEpisodeResult,
     ExecutePathAction,
-    ExecutePathGoal
+    ExecutePathGoal,
+    PlayPieceAction
 )
 from music_perception.msg import NoteOnset, Piece
 from tams_pr2_guzheng.utils import row_from_result, stitch_paths, run_params
@@ -40,7 +41,9 @@ class PlayPiece:
 
         rospy.on_shutdown(self.store_plucks)
 
-        self.piece_sub= rospy.Subscriber('piece', Piece, self.pieceCb)
+        self.piece_sub= rospy.Subscriber('piece', Piece, self.piece_cb)
+        self.piece_action= actionlib.SimpleActionServer('play_piece', PlayPieceAction, self.play_piece_cb, auto_start=False)
+        self.piece_action.start()
 
     def run_episode_result_cb(self, msg):
         if len(msg.result.onsets) > 0:
@@ -54,12 +57,16 @@ class PlayPiece:
         else:
             rospy.loginfo(f'ignoring result with no detected onsets')
 
-
     def store_plucks(self):
         rospy.loginfo(f"storing plucks in {self.o2p.storage}")
         self.o2p.store_to_file()
 
-    def pieceCb(self, msg):
+    def play_piece_cb(self, goal):
+        self.piece_cb(goal.piece)
+        self.piece_action.set_succeeded()
+
+    def piece_cb(self, msg):
+        rospy.loginfo(f"playing piece with {len(msg.onsets)} onsets")
         paths= []
         last_midi_note = 0
         for o in msg.onsets:
