@@ -5,13 +5,15 @@ import re
 from threading import Lock
 
 import numpy as np
+import rospkg
 import rospy
 import tf2_ros
+import yaml
 from geometry_msgs.msg import TransformStamped
 from skimage.measure import LineModelND
 from skimage.measure import ransac
 from std_msgs.msg import ColorRGBA
-from std_srvs.srv import SetBool
+from std_srvs.srv import SetBool, Empty as EmptySrv
 from tf import transformations
 from tf2_msgs.msg import TFMessage
 from visualization_msgs.msg import Marker
@@ -19,9 +21,6 @@ from visualization_msgs.msg import MarkerArray
 
 class StringFitter:
     def __init__(self):
-        self.lock = Lock()
-        self.onsets = {}
-
         self.tf_broadcast = tf2_ros.StaticTransformBroadcaster()
         self.pub_strings = rospy.Publisher(
             'fitted_strings',
@@ -30,8 +29,16 @@ class StringFitter:
             tcp_nodelay=True,
             latch=True)
 
+        self.strings = []
+        self.storage_path = \
+            rospy.get_param('~storage_path',
+                            rospkg.RosPack().get_path('tams_pr2_guzheng')
+                            + '/config/strings.yaml')
+
         self.active= True
         self.enable_srv = rospy.Service('~set_active', SetBool, self.set_active)
+        self.load_from_file_srv = rospy.Service('~load_from_file', EmptySrv, self.load_from_file)
+        self.store_to_file_srv = rospy.Service('~store_to_file', EmptySrv, self.store_to_file)
 
     def start(self):
         self.sub_notes = rospy.Subscriber(
@@ -47,20 +54,48 @@ class StringFitter:
         if self.active:
             rospy.loginfo("activated fitter")
         else:
-            self.fit()
+            self.publish_strings()
             rospy.loginfo("set fitter inactive after final fit")
         return {'success': True, 'message' : '' }
+
+    def load_from_file(self, req):
+        with open(self.storage_path, 'r') as f:
+            self.active = False
+            plain_strings = yaml.safe_load(f)
+            for s in plain_strings:
+                s['key'] = str(s['key'])
+                s['bridge'] = np.array(s['bridge'])
+                s['direction'] = np.array(s['direction'])
+                s['end'] = np.array(s['end'])
+                s['length'] = float(s['length'])
+            self.strings = plain_strings
+            rospy.loginfo(f"loaded strings from file {self.storage_path}. Set inactive to avoid overwriting them.")
+            self.publish_strings()
+        return {}
+
+    def store_to_file(self, req):
+        plain_strings = copy.deepcopy(self.strings)
+        for s in plain_strings:
+            s['bridge'] = [float(x) for x in s['bridge']]
+            s['direction'] = [float(x) for x in s['direction']]
+            s['end'] = [float(x) for x in s['end']]
+            s['length'] = float(s['length'])
+        with open(self.storage_path, 'w') as f:
+            yaml.dump(plain_strings, f, sort_keys= False)
+            rospy.loginfo(f"stored strings to file {self.storage_path}")
+        return {}
 
     def onsets_cb(self, msg):
         if not self.active:
             return
-        with self.lock:
-            self.onsets = {}
-            for m in msg.markers:
-                if m.ns != "unknown" and m.ns != "":
-                    self.onsets[m.ns] = \
-                        self.onsets.get(m.ns, []) + [m.pose.position]
-            self.fit()
+
+        self.onsets = {}
+        for m in msg.markers:
+            if m.ns != "unknown" and m.ns != "":
+                self.onsets[m.ns] = \
+                    self.onsets.get(m.ns, []) + [m.pose.position]
+        self.fit()
+        self.publish_strings()
         #self.sub_notes.unregister()
 
     @staticmethod
@@ -107,6 +142,7 @@ class StringFitter:
         m.action = Marker.ADD
         m.type = Marker.CYLINDER
         m.header.frame_id = 'base_footprint'
+        m.frame_locked = True
         m.scale.x = m.scale.y = 0.003
         m.scale.z = np.sqrt(np.sum((string["end"]-string["bridge"])**2))
         # color a strings green by convention
@@ -229,12 +265,13 @@ class StringFitter:
 
     def fit(self):
         strings = []
+        onsets = self.onsets
 
         log_info = ""
-        for k in sorted(self.onsets.keys()):
-            if len(self.onsets[k]) >= 2:
+        for k in sorted(onsets.keys()):
+            if len(onsets[k]) >= 2:
                 pts = np.array(
-                    [(p.x, p.y, p.z) for p in self.onsets[k]],
+                    [(p.x, p.y, p.z) for p in onsets[k]],
                     dtype=float)
 
                 inlier_threshold= 0.01
@@ -294,6 +331,10 @@ class StringFitter:
 
         rospy.loginfo(log_info)
 
+        self.strings = strings
+
+    def publish_strings(self):
+        strings = self.strings
         markers = MarkerArray(markers= [Marker(action = Marker.DELETEALL)])
 
         strings, unexpected_strings = self.split_unexpected_strings(strings)

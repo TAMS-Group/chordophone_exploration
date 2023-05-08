@@ -7,5 +7,5 @@
 
   <include file="$(dirname)/detect_onset.launch" />
 
-  <include file="$(dirname)/fit_strings.launch" />
+  <include file="$(dirname)/string_fitter.launch" />
 </launch>

@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+  <group ns="guzheng">
+    <node name="string_fitter" pkg="tams_pr2_guzheng" type="string_fitter_node.py" />
+  </group>
+</launch>
