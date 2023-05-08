@@ -101,7 +101,7 @@ def main():
                     rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
                     vec = np.array(path.keypoint_vel)
                     vec_rotated = np.dot(rot, vec)
-                    if vec_rotated[0] * vec[0] < 0.0:
+                    if vec_rotated[0] * vec[0] <= 0.0:
                         vec_rotated[0] = 0.0
                     path.keypoint_vel= vec_rotated.tolist()
         # shaped string sampling
