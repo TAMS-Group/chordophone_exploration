@@ -22,6 +22,7 @@ import rospy
 import tf2_ros
 import tf2_geometry_msgs
 import actionlib
+import rospkg
 
 class PlayPiece:
     def __init__(self):
@@ -34,7 +35,7 @@ class PlayPiece:
         self.execute_path = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
         self.execute_path.wait_for_server()
 
-        self.o2p= OnsetToPath(rospy.get_param("~storage", "/tmp/plucks.json"))
+        self.o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
         rospy.loginfo(f"OnsetToPath stores {len(self.o2p.pluck_table)} plucks")
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
