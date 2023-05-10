@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(find pr2_machine)/pr2.machine" />
+
+  <include file="$(dirname)/pr2.launch" />
+
+  <include file="$(find tams_execute)/launch/execute.launch">
+    <arg name="machine" value="basestation" />
+    <arg name="workspace" value="~/michael/guzheng_pr2/devel" />
+    <arg name="pkg" value="tams_pr2_guzheng" />
+    <arg name="exe" value="basestation.launch" />
+  </include>
+
+</launch>
+
