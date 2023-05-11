@@ -26,6 +26,7 @@ using tams_pr2_guzheng::ExecutePathResult;
 #include <nav_msgs/Path.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <geometry_msgs/Pose.h>
+#include <std_msgs/String.h>
 
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/image_encodings.h>
@@ -265,6 +266,8 @@ class Server {
   tf2_ros::TransformListener tf_listener_{ *tf_buffer_ };
   planning_scene_monitor::TrajectoryMonitor tm{ csm_, 100.0 };
 
+  ros::Publisher pub_finger_{ nh_.advertise<std_msgs::String>("pluck/active_finger", 1) };
+
   ros::Publisher pub_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/trajectory", 1, true) };
   ros::Publisher pub_executed_traj_{ nh_.advertise<moveit_msgs::DisplayTrajectory>("pluck/executed_trajectory", 1, true) };
   ros::Publisher pub_img_{ nh_.advertise<sensor_msgs::Image>("pluck/projected_img", 2, true) };
@@ -335,18 +338,23 @@ public:
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
-    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_plectrum" };
+    std::string finger_name{ goal->finger.empty() ? finger_ : goal->finger };
+    std::string tip_name{ "rh_" + finger_name + "_plectrum" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
       pluck_.setAborted();
       return;
     }
 
-    ROS_INFO("planning trajectory");
-
     if(!update_scene()){
       pluck_.setAborted();
       return;
+    }
+
+    {
+      std_msgs::String finger_name_msg;
+      finger_name_msg.data = finger_name;
+      pub_finger_.publish(finger_name_msg);
     }
 
     // transform requested path to planning frame
@@ -366,7 +374,7 @@ public:
     }
     pub_path_commanded_.publish( path_transformed );
 
-    // compute trajectory
+    // compute joint trajectory
     robot_trajectory::RobotTrajectory trajectory{ scene_.getRobotModel() };
     try {
       trajectory = generateTrajectory({
@@ -381,8 +389,9 @@ public:
       pluck_.setAborted();
       return;
     }
+    ROS_INFO_STREAM("generated trajectory with " << trajectory.getWayPointCount() << " points");
 
-    // propagate result
+    // publish visualizations of generated trajectory
     moveit_msgs::RobotTrajectory trajectory_msg;
     trajectory.getRobotTrajectoryMsg(trajectory_msg);
     {
@@ -392,10 +401,9 @@ public:
       dtrajectory.trajectory.reserve(1);
       dtrajectory.trajectory.push_back(trajectory_msg);
       pub_traj_.publish(dtrajectory);
-      ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
     }
 
-    // create image to show trajectories
+    // publish planned Cartesian path
     nav_msgs::Path generated_path { getLinkPath({
                                                   .frame = path.header.frame_id,
                                                   .tip = tip_name,
@@ -407,9 +415,8 @@ public:
     // execute after confirmation from user
     remote.waitForNextStep("execute trajectory?");
     if(!remote.getAutonomous()){
-      ros::Duration(1.0).sleep();
+      ros::Duration(1.0).sleep(); // sleep a moment to give the user time to switch their attention
     }
-
     //csm->startStateMonitor();
     tm.clearTrajectory();
     tm.startTrajectoryMonitor();
@@ -417,8 +424,9 @@ public:
     tm.stopTrajectoryMonitor();
     //csm->stopStateMonitor();
     ROS_INFO_STREAM("status after execution: " << status);
-    robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
 
+    // publish executed joint trajectory
+    robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
     moveit_msgs::RobotTrajectory executed_trajectory_msg;
     if(!executed_trajectory.empty()){
       executed_trajectory.getRobotTrajectoryMsg(executed_trajectory_msg);
@@ -435,32 +443,34 @@ public:
       ROS_ERROR("Recorded trajectory is empty? It shouldn't be. Not publishing anything.");
     }
 
+    // publish executed Cartesian path
     nav_msgs::Path executed_path{ getLinkPath({
                                                 .frame = path.header.frame_id,
                                                 .tip = tip_name,
                                                 .trajectory = executed_trajectory,
                                                 .tf = *tf_buffer_
                                               }) };
-    std::string note{ path.header.frame_id };
-    note = note.substr(note.find("/")+1);
-    note = note.substr(0, note.find("/"));
+    pub_path_executed_.publish( executed_path );
+
+    // publish image of all paths in 2d projection in string frame
+    std::string string_name{ path.header.frame_id };
+    string_name = string_name.substr(string_name.find("/")+1);
+    string_name = string_name.substr(0, string_name.find("/"));
     pub_img_.publish(
           paintLocalPaths({
                             .requested = path,
                             .generated = generated_path,
                             .executed = executed_path,
-                            .label = note
+                            .label = string_name
                           })
           );
 
-    pub_path_executed_.publish( executed_path );
-
+    // finish up action
     ExecutePathResult result;
     result.generated_path = generated_path;
     result.generated_trajectory = trajectory_msg.joint_trajectory;
     result.executed_path = executed_path;
     result.executed_trajectory = executed_trajectory_msg.joint_trajectory;
-
     pluck_.setSucceeded(result);
   }
 
@@ -468,18 +478,23 @@ public:
     auto& path{ goal->path };
     ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
 
-    std::string tip_name{ "rh_" + (goal->finger.empty() ? finger_ : goal->finger) + "_plectrum" };
+    std::string finger_name{ goal->finger.empty() ? finger_ : goal->finger };
+    std::string tip_name{ "rh_" + finger_name + "_plectrum" };
     if(!model_.hasLinkModel(tip_name)){
       ROS_ERROR_STREAM("Could not find required tip frame for plucking motion: '" << tip_name << "'.");
       execute_path_.setAborted();
       return;
     }
 
-    ROS_INFO("planning trajectory");
-
     if(!update_scene()){
       execute_path_.setAborted();
       return;
+    }
+
+    {
+      std_msgs::String finger_name_msg;
+      finger_name_msg.data = finger_name;
+      pub_finger_.publish(finger_name_msg);
     }
 
     // transform requested path to planning frame
@@ -512,6 +527,7 @@ public:
       execute_path_.setAborted();
       return;
     }
+    ROS_INFO_STREAM("generated trajectory with " << trajectory.getWayPointCount() << " points");
 
     // propagate result
     moveit_msgs::RobotTrajectory trajectory_msg;
@@ -523,7 +539,6 @@ public:
       dtrajectory.trajectory.reserve(1);
       dtrajectory.trajectory.push_back(trajectory_msg);
       pub_traj_.publish(dtrajectory);
-      ROS_INFO_STREAM("publish trajectory with " << trajectory.getWayPointCount() << " points");
     }
 
     remote.waitForNextStep("execute trajectory?");
@@ -535,7 +550,7 @@ public:
     ROS_INFO_STREAM("status after execution: " << status);
 
     ExecutePathResult result;
-
+    result.generated_trajectory = trajectory_msg.joint_trajectory;
     execute_path_.setSucceeded(result);
   }
 };

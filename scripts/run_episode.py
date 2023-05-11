@@ -58,11 +58,6 @@ class RunEpisode():
             ActionParameters,
             queue_size=10,
             tcp_nodelay=True)
-        self.finger_pub = rospy.Publisher(
-            'pluck/active_finger',
-            String,
-            queue_size=10,
-            tcp_nodelay=True)
 
         self.onset_sub = rospy.Subscriber(
             'guzheng/onsets',
@@ -112,7 +107,6 @@ class RunEpisode():
             rospy.sleep(rospy.Duration(t))
 
     def publish_support_msgs(self, path, finger):
-        self.finger_pub.publish(finger)
         self.keypoint_pub.publish(path.keypoint_marker)
 
         target_pluck_string = TransformStamped()
