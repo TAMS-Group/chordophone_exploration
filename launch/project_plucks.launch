@@ -10,5 +10,7 @@
 
     <remap from="events_markers" to="plucks" />
     <remap from="events_projected" to="plucks_projected" />
+    <remap from="latest_events" to="plucks_latest" />
+    <remap from="active_finger" to="/pluck/active_finger" />
   </node>
 </launch>
