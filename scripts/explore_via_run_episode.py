@@ -64,7 +64,13 @@ def main():
         # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
         for _ in range(runs):
             if string_position is None:
-                trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_length(strings[i], tf))
+                string_len = 0.0
+                try:
+                    string_len = string_length(strings[i], tf)
+                except Exception as e:
+                    rospy.logwarn(e)
+                    continue
+                trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_len)
             else:
                 trial_string_position = string_position
             path = paths.RuckigPath.random(
