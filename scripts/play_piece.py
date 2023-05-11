@@ -48,7 +48,7 @@ class PlayPiece:
 
     def run_episode_result_cb(self, msg):
         if len(msg.result.onsets) > 0:
-            rospy.loginfo(f"add pluck with perceived note '{msg.result.onsets[-1].note}' to table")
+            rospy.loginfo(f"add pluck with perceived note '{msg.result.onsets[-1].note}' ({msg.result.onsets[-1].loudness:.2F}dB) to table")
             self.o2p.add_sample(row_from_result(msg.result))
             if len(self.o2p.pluck_table) % 10 == 1:
                 summary= 'knows:\n'
