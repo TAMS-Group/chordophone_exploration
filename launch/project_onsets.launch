@@ -2,7 +2,7 @@
 <launch>
   <group ns="guzheng">
   <node name="onset_projector" pkg="tams_pr2_guzheng" type="project_events_to_cartesian_frame.py" output="screen">
-    <param name="delta_t" value="-0.35" />
+    <param name="delta_t" value="-0.1" />
     <param name="offset_x" value="0.024" />
     <param name="offset_y" value="0.0" />
     <param name="offset_z" value="-0.01" />
