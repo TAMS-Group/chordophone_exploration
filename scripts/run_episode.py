@@ -71,7 +71,8 @@ class RunEpisode():
             'pluck/keypoint',
             Marker,
             queue_size=1,
-            tcp_nodelay=True)
+            tcp_nodelay=True,
+            latch=True)
 
         self.tf_broadcaster = tf2_ros.TransformBroadcaster()
 

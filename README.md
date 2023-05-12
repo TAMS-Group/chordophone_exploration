@@ -2,7 +2,7 @@
 
 ## Raw Inputs
 
-### Native
+### Native PR2
 
 /joint_states    - current joint readings for PR2 & Shadow Hand
 /hand/rh/tactile - BioTac readings
@@ -13,9 +13,20 @@
 
 (tf already includes plectrum/fingertip positions and detected string frames)
 
+### Guzheng
+
+/guzheng/audio         - unused
+/guzheng/audio_stamped - time-stamped audio
+                         depending on the publisher audio is ros::Time audio or audio pipeline time (drifts over time)
+/guzheng/audio_info    - meta data (1 constant latched message)
+
+### MoveIt
+
 /move_group/monitored_planning_scene - MoveIt's world model
 /execute_trajectory/goal             - MoveIt's Trajectory Execution action (which splits trajectories for hand/arm controller and sends them on)
 /execute_trajectory/result
+
+## Experiment control flow
 
 /run_episode/goal          - generate, execute, and analyze a single pluck (including approach motion)
 /run_episode/result
@@ -35,38 +46,32 @@
 /pluck/trajectory          - generated Trajectory
 /pluck/executed_trajectory - recorded trajectory execution
 /pluck/active_finger       - current finger used in /pluck action (used for projection)
-
 /pluck/keypoint            - keypoint of the ruckig parameterization selected in run_episode
 
-/guzheng/audio         - unused
-/guzheng/audio_stamped - time-stamped audio
-                         depending on the publisher audio is ros::Time audio or audio pipeline time (drifts over time)
-/guzheng/audio_info    - meta data (1 constant latched message)
+/fingertips/plucks                   - detected plucking events
+/fingertips/plucks_projected         - all projected plucks
+/fingertips/plucks_latest            - latest projected pluck only for visualization
+/fingertips/pluck_detector/signal    - thresholding signal
+/fingertips/pluck_detector/detection - high/low signal to debug signal processing
+/fingertips/pluck_detector/parameter_descriptions - dynamic reconfigure for threshold
+/fingertips/pluck_detector/parameter_updates
+/fingertips/pluck_projector/parameter_descriptions - dynamic reconfigure for pluck projection
+/fingertips/pluck_projector/parameter_updates
 
-/guzheng/cqt           - cqt generated as a side-product by detect_onset
+/guzheng/onsets                      - currently detected NoteOnsets
+/guzheng/onsets_markers              - Markers generated from onsets
+/guzheng/onsets_projected            - all onsets projected according to current parameters
+/guzheng/onsets_latest               - latest onsets projected for visualization
+/guzheng/cqt                         - cqt generated as a side-product by detect_onset
+/guzheng/onset_detector/envelope     - envelope used to extract peaks as maxima
+/guzheng/onset_detector/compute_time - debugging topic to measure computation time
+/guzheng/onset_detector/drift        - drift compensation for audio input (onsets are shifted by the value)
+/guzheng/spectrogram                 - image visualization of cqt
+/guzheng/onset_projector/parameter_descriptions - dynamic reconfigure for onset projection
+/guzheng/onset_projector/parameter_updates
 
-/guzheng/events        - unused
+/guzheng/events    - unused (alternative projector input)
+/fingertips/events - unused (alternative projector input)
 
 /guzheng/fitted_strings - string markers for all strings currently fitted through projected note onsets
                           or loaded strings from file
-
-/guzheng/plucks_latest
-/guzheng/onset_detector/compute_time
-/guzheng/onset_detector/drift
-/guzheng/onset_detector/envelope
-
-/guzheng/onset_projector/parameter_descriptions
-/guzheng/onset_projector/parameter_updates
-/guzheng/onsets
-/guzheng/onsets_latest
-/guzheng/onsets_markers
-/guzheng/onsets_projected
-/guzheng/pluck_detector/detection
-/guzheng/pluck_detector/parameter_descriptions
-/guzheng/pluck_detector/parameter_updates
-/guzheng/pluck_detector/signal
-/guzheng/pluck_projector/parameter_descriptions
-/guzheng/pluck_projector/parameter_updates
-/guzheng/plucks
-/guzheng/plucks_projected
-/guzheng/spectrogram
