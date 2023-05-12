@@ -51,7 +51,7 @@ class PlayPiece:
             rospy.loginfo(f"add pluck with perceived note '{msg.result.onsets[-1].note}' ({msg.result.onsets[-1].loudness:.2F}dB) to table")
             self.o2p.add_sample(row_from_result(msg.result))
             if len(self.o2p.pluck_table) % 10 == 1:
-                summary= 'knows:\n'
+                summary= f'knows {len(self.o2p.pluck_table)} plucks:\n'
                 for n in set(self.o2p.pluck_table['detected_note']):
                     summary+= f"{n}: {len(self.o2p.pluck_table[self.o2p.pluck_table['detected_note'] == n])} plucks\n"
                 rospy.loginfo(summary)
