@@ -116,7 +116,7 @@ class RunEpisode():
         target_pluck_string.child_frame_id = "target_pluck_string"
         target_pluck_string.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(target_pluck_string)
-        target_pluck_string.header.stamp += rospy.Duration(3.0)
+        target_pluck_string.header.stamp += rospy.Duration(6.0)
         self.tf_broadcaster.sendTransform(target_pluck_string)
 
     def run_episode(self, path, finger= 'ff'):

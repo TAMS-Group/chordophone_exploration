@@ -275,7 +275,8 @@ class RuckigPath:
             points=[
                 Point(self.string_position, *pk_pos),
                 Point(self.string_position, *(pk_pos + pk_vel_scale*pk_vel))
-            ]
+            ],
+            frame_locked=True
         )
 
 
