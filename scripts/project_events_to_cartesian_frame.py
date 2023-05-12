@@ -13,6 +13,7 @@ from std_msgs.msg import Header, String
 from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from std_srvs.srv import Empty as EmptySrv, EmptyResponse
+from rosapi.srv import DeleteParam
 
 import numpy as np
 
@@ -71,6 +72,8 @@ class Projector:
         self.sub_events= rospy.Subscriber('events', Header, self.event_header_cb, queue_size= 100, tcp_nodelay= True)
         self.sub_marker= rospy.Subscriber('events_markers', MarkerArray, self.event_marker_array_cb, queue_size= 100, tcp_nodelay= True)
 
+        self.drop_events= rospy.Service('~drop_events', DeleteParam, self.delete_events)
+
     def reset(self):
         self.id= 0
         self.events= []
@@ -78,6 +81,12 @@ class Projector:
         self.tf_buffer.clear()
         self.finger= self.default_finger
         self.publish()
+
+
+    def delete_events(self, req):
+        self.events= [e for e in self.events if e[0].ns != req.name]
+        self.publish()
+        return {}
 
     def finger_cb(self, finger):
         if finger.data not in FINGERS:
