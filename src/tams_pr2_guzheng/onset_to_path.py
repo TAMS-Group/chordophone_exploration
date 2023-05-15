@@ -44,6 +44,7 @@ class OnsetToPath:
 
         pluck = note_plucks.iloc[np.argmin(objective)]
 
-        pluck= copy.deepcopy(pluck)
-        pluck['string_position'] = string_position
+        if string_position is not None:
+            pluck= copy.deepcopy(pluck)
+            pluck['string_position'] = string_position
         return RuckigPath.from_map(pluck)()
