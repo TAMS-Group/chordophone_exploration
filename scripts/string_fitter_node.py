@@ -330,7 +330,8 @@ class StringFitter:
                     "length": length
                     })
 
-        rospy.loginfo(log_info)
+        if len(log_info) > 0:
+            rospy.loginfo(log_info)
 
         self.strings = strings
 
