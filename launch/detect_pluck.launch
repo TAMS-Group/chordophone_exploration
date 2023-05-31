@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
-  <node name="pluck_detector" ns="fingertips" pkg="tams_pr2_guzheng" type="detect_pluck">
-    <param name="finger_idx" value="0" />
-    <remap from="hand/rh/tactile" to="/hand/rh/tactile" />
-  </node>
+  <group ns="fingertips">
+    <node name="pluck_detector" pkg="tams_pr2_guzheng" type="detect_pluck">
+      <remap from="hand/rh/tactile" to="/hand/rh/tactile" />
+    </node>
+    <node name="pluck_to_marker" pkg="tams_pr2_guzheng" type="pluck_to_marker.py"/>
+  </group>
 </launch>

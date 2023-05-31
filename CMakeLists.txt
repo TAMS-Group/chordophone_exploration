@@ -55,6 +55,7 @@ FILES
   PluckEpisodeV1.msg
   PluckEpisodeV2.msg
   RunEpisodeRequest.msg
+  TactilePluck.msg
 )
 
 generate_messages(

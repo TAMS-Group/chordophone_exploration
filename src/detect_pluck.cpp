@@ -2,112 +2,165 @@
 
 #include <sr_robot_msgs/BiotacAll.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Float32.h>
+#include <std_msgs/Float64MultiArray.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 
 #include <dynamic_reconfigure/server.h>
+
 #include <tams_pr2_guzheng/ThresholdConfig.h>
+#include <tams_pr2_guzheng/TactilePluck.h>
 
-#include <deque>
+#include <boost/accumulators/accumulators.hpp>
+#include <boost/accumulators/statistics/rolling_mean.hpp>
+#include <boost/accumulators/statistics/rolling_variance.hpp>
+#include <boost/accumulators/statistics/rolling_window.hpp>
 
-const ros::Duration FILTER_WIDTH{ 0.02 };
+namespace acc = boost::accumulators;
 
 struct DetectContact {
-  ros::Publisher pub;
+  using Accumulator = acc::accumulator_set<
+    double, 
+    acc::stats<
+      // acc::tag::rolling_window // TODO: broken in debian testing
+      acc::tag::rolling_window_plus1
+      // acc::tag::rolling_mean,
+      // acc::tag::rolling_variance
+    > >;
+
+  Accumulator aggregator { acc::tag::rolling_window::window_size = 3 };
+  size_t last_event { 4 }; // hack to ensure full buffer before starting detection
+
+  // configuration
+  size_t wait { 10 }; // 100ms in 0.01ms samples
+  double threshold { 10.0 };
+
+  /* 
+    @param value: the new value to be added to the aggregator
+    @param process_signal: the process value thresholded to detect a pluck
+    @return a strength value > 0.0 if a pluck was detected
+  */
+  double operator()(double value, double& process_signal){
+    aggregator(value);
+
+    // if (!acc::impl::is_rolling_window_plus1_full(aggregator))
+    //   return 0.0;
+
+    if(last_event){
+          --last_event;
+          return 0.0;
+    }
+
+    // if aggregators are not full yet, we don't have a valid value
+    // TODO: does not compile
+    // if(!acc::impl::is_rolling_window_plus1_full(aggregators[0]))
+    //   return false;
+
+    auto window{ acc::rolling_window_plus1(aggregator) };
+    if( boost::empty(window) )
+      return 0.0;
+
+    process_signal = window.front()-window.back();
+    if(process_signal > threshold){
+      last_event = wait;
+      return process_signal;
+    }
+
+    // alternative to detect significant positive outliers in process_signal
+    // double sample{ static_cast<double>(tacs.tactiles[i].pdc) };
+    // double mean{ acc::rolling_mean(aggregators[i]) };
+    // double stddev{ std::sqrt(acc::rolling_variance(aggregators[i])) };
+    // signals.data.push_back(mean);
+    // if (std::abs(mean - sample) > stddev*3.5){
+    //   // found outlier, track a pluck
+
+    return 0.0;
+  }
+};
+
+
+struct DetectContactHand {
+  static constexpr std::array<char const*, 5> fingers{ "ff", "mf", "rf", "lf", "th"};
+
+  std::array<DetectContact, fingers.size()> detectors;
+
+  ros::NodeHandle nh;
+  ros::NodeHandle pnh;
+
+  ros::Publisher pub_signals;
   ros::Publisher pub_detect;
-  ros::Publisher pub_event;
+  ros::Publisher pub_plucks;
   ros::Subscriber sub;
 
-  ros::Time last_event;
-
   dynamic_reconfigure::Server<tams_pr2_guzheng::ThresholdConfig> config_server;
-
-  int finger_idx;
   tams_pr2_guzheng::ThresholdConfig config;
 
+  ros::Time last_added_sample;
+
+  DetectContactHand() : nh(), pnh("~") {
+    for (size_t i = 0; i < fingers.size(); ++i)
+      detectors[i] = DetectContact{};
+
+    pub_signals = pnh.advertise<std_msgs::Float64MultiArray>("signal", 1);
+    pub_detect = pnh.advertise<std_msgs::Float64MultiArray>("detection", 1);
+    pub_plucks = nh.advertise<tams_pr2_guzheng::TactilePluck>("plucks", 10);
+
+    config_server.setCallback(
+      [this](tams_pr2_guzheng::ThresholdConfig c, uint32_t lvl){
+        this->config_cb(c,lvl);
+      }
+    );
+
+    sub = nh.subscribe("hand/rh/tactile", 1, &DetectContactHand::getReadings, this);
+  }
+
   void config_cb(tams_pr2_guzheng::ThresholdConfig& c, uint32_t level){
+    if(c.wait != config.wait){
+      for(auto& d : detectors)
+        d.wait = c.wait;
+    }
+
+    if(c.threshold != config.threshold){
+      for(auto& d : detectors)
+        d.threshold = c.threshold;
+    }
+
     config= c;
   }
 
-  DetectContact(ros::NodeHandle& nh, ros::NodeHandle& pnh){
-    pnh.param<int>("finger_idx", finger_idx, 0);
-    assert(finger_idx >= 0 && finger_idx < 5);
-    pub = pnh.advertise<std_msgs::Float32>("signal", 1);
-    pub_detect = pnh.advertise<std_msgs::Float32>("detection", 1);
-    pub_event = nh.advertise<visualization_msgs::MarkerArray>("plucks", 10);
-
-    config_server.setCallback([this](tams_pr2_guzheng::ThresholdConfig c, uint32_t lvl){ this->config_cb(c,lvl); });
-
-    latest_values.push_back({ros::Time(0.0), 0});
-    sub = nh.subscribe("hand/rh/tactile", 1, &DetectContact::getReadings, this);
-  }
-
-  struct Point {
-     ros::Time stamp;
-     short data;
-  };
-  std::deque<Point> latest_values;
-
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
-    double value;
-
-    // with 1khz update rate (our PR2), we get 10 times the same pdc value in a row, so we skip the redundant ones
-    if( tacs.header.stamp - latest_values.back().stamp < ros::Duration(0.01))
+      // with 1khz update rate (our PR2), we get 10 times the same pdc value in a row, so we skip the redundant ones
+    if( tacs.header.stamp - last_added_sample < ros::Duration(0.01))
       return;
 
-    latest_values.push_back({tacs.header.stamp, tacs.tactiles.at(finger_idx).pdc});
+    assert(tacs.tactiles.size() == fingers.size());
 
-    if(latest_values.front().stamp + FILTER_WIDTH > tacs.header.stamp)
-      return;
+    std_msgs::Float64MultiArray signals, detections;
+    signals.data.resize(fingers.size());
+    detections.data.resize(fingers.size());
+    std::array<double, fingers.size()> pluck_strength;
 
-    value= std::abs(latest_values.back().data - latest_values.front().data);
-    std_msgs::Float32 data;
-    data.data= value;
-    pub.publish(data);
-    while(latest_values.front().stamp + FILTER_WIDTH < tacs.header.stamp)
-      latest_values.pop_front();
-
-    if(value > config.threshold && (last_event+ros::Duration(config.wait)) < tacs.header.stamp){
-      last_event = tacs.header.stamp;
-      ROS_INFO_STREAM("detected event (sleeping for " << config.wait << "s)");
-      visualization_msgs::MarkerArray ma;
-      ma.markers.emplace_back([&]{
-        visualization_msgs::Marker m;
-        m.ns= "tactile_pluck";
-        m.header.stamp= tacs.header.stamp;
-        m.action= visualization_msgs::Marker::ADD;
-        m.type= visualization_msgs::Marker::CUBE;
-        m.scale.x= 0.005;
-        m.scale.y= 0.005;
-        m.scale.z= 0.005;
-        m.color.r= 0.4;
-        m.color.g= 0.4;
-        m.color.b= 0.4;
-        m.color.a= 1.0;
-
-        return m;
-      }());
-      pub_event.publish(ma);
-
-      std_msgs::Float32 data;
-		data.data= 1.0;
-      pub_detect.publish(data);
+    for (size_t i = 0; i < fingers.size(); ++i){
+      pluck_strength[i] = detectors[i](tacs.tactiles[i].pdc, signals.data[i]);
+      detections.data[i] = pluck_strength[i] > 0.0 ? 1.0 : 0.0;
+      if (pluck_strength[i] > 0.0){
+        tams_pr2_guzheng::TactilePluck pluck;
+        pluck.finger = fingers[i];
+        pluck.header.stamp = tacs.header.stamp;
+        pluck.strength = pluck_strength[i];
+        pub_plucks.publish(pluck);
+      }
     }
-    else {
-      std_msgs::Float32 data;
-		data.data= 0.0;
-      pub_detect.publish(data);
-    }
+
+    pub_signals.publish(signals);
+    pub_detect.publish(detections);
   }
 };
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "detect_pluck");
 
-  ros::NodeHandle nh{}, pnh{"~"};
-
-  DetectContact dc{ nh, pnh };
+  DetectContactHand dc;
 
   ros::spin();
 

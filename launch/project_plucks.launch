@@ -8,7 +8,7 @@
 
     <param name="marker_scale" value="0.5" />
 
-    <remap from="events_markers" to="plucks" />
+    <remap from="events_markers" to="plucks_markers" />
     <remap from="events_projected" to="plucks_projected" />
     <remap from="latest_events" to="plucks_latest" />
     <remap from="active_finger" to="/pluck/active_finger" />
