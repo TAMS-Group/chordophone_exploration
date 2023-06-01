@@ -9,12 +9,11 @@ from tams_pr2_guzheng.msg import (
     BiotacStamped,
     EpisodeState,
     ActionParameters,
-    NoteOnset,
-    CQTStamped,
     ExecutePathActionGoal,
     ExecutePathActionResult,
     TactilePluck,
     )
+from music_perception.msg import NoteOnset, CQTStamped
 
 from diagnostic_msgs.msg import DiagnosticStatus, DiagnosticArray
 from moveit_msgs.msg import ExecuteTrajectoryActionGoal, ExecuteTrajectoryActionResult, PlanningScene, DisplayTrajectory
@@ -24,7 +23,7 @@ from sr_robot_msgs.msg import BiotacAll
 from sensor_msgs.msg import JointState, Image
 from geometry_msgs.msg import PoseStamped, Pose, Point
 from tf2_msgs.msg import TFMessage
-from std_msgs.msg import Bool as BoolMsg, Float32 as Float32Msg, Header, String as StringMsg, Float32MultiArray
+from std_msgs.msg import Bool as BoolMsg, Float32 as Float32Msg, Header, String as StringMsg, Float64MultiArray
 from nav_msgs.msg import Path
 from dynamic_reconfigure.msg import Config as DynamicReconfigureConfig, ConfigDescription as DynamicReconfigureConfigDescription
 
@@ -97,8 +96,8 @@ class Aggregator():
 
             ('/fingertips/plucks', TactilePluck, self.fingertip_plucks_cb),
             # ('/fingertips/plucks_latest', MarkerArray, self.fingertip_plucks_latest_cb),
-            ('/fingertips/pluck_detector/signal', Float32MultiArray, self.pluck_detector_signal_cb),
-            ('/fingertips/pluck_detector/detection', Float32MultiArray, self.pluck_detector_detection_cb),
+            ('/fingertips/pluck_detector/signal', Float64MultiArray, self.pluck_detector_signal_cb),
+            ('/fingertips/pluck_detector/detection', Float64MultiArray, self.pluck_detector_detection_cb),
             ('/fingertips/pluck_detector/parameter_descriptions', DynamicReconfigureConfigDescription, self.pluck_detector_parameter_desc_cb),
             ('/fingertips/pluck_detector/parameter_updates', DynamicReconfigureConfig, self.pluck_detector_parameter_cb),
             ('/fingertips/pluck_projector/parameter_updates', DynamicReconfigureConfig, self.pluck_parameter_cb),
@@ -182,9 +181,6 @@ class Aggregator():
             self.episode.finger_start_pose= PoseStamped(header= finger_tf.header, pose= Pose(position= finger_tf.transform.translation, orientation= finger_tf.transform.rotation))
         except tf2_ros.TransformException as e:
             rospy.logwarn(e)
-
-        if self.episode.audio_data.header is None:
-            self.episode.audio_data.header = Header()
 
         self.episode.audio_data.header.stamp+= self.audio_delay+self.audio_drift
         self.episode.cqt.header.stamp += self.audio_delay+self.audio_drift
@@ -308,9 +304,8 @@ class Aggregator():
         rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
         #if not self.tracksEpisode():
         #    rospy.logwarn(f"got execute path goal at {msg.header.stamp}, but not tracking an episode")
-        self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
     def active_finger_cb(self, msg):
-        self.episode.finger= msg.data.finger
+        self.episode.finger= msg.data
     def pluck_commanded_path_cb(self, msg):
         self.episode.commanded_path= msg
 
@@ -328,7 +323,7 @@ class Aggregator():
         self.episode.detected_tactile_plucks.append(msg.header.stamp)
     def action_parameter_cb(self, msg):
         self.episode.action_parameters= msg
-        self.episode.string= re.match("guzheng/(.*)/head", msg.goal.path.header.frame_id).group(1)
+        self.episode.string= re.match("guzheng/(.*)/head", msg.header.frame_id).group(1)
 
     def mannequin_mode_cb(self, msg):
         if msg.data:
