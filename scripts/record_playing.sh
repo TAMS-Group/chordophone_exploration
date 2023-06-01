@@ -41,7 +41,6 @@ rosbag record \
   /pluck/keypoint \
   \
   /fingertips/plucks \
-  /fingertips/plucks_projected \
   /fingertips/plucks_latest \
   /fingertips/pluck_detector/signal \
   /fingertips/pluck_detector/detection \
@@ -52,7 +51,6 @@ rosbag record \
   \
   /guzheng/onsets \
   /guzheng/onsets_markers \
-  /guzheng/onsets_projected \
   /guzheng/onsets_latest \
   /guzheng/cqt \
   /guzheng/onset_detector/drift \
