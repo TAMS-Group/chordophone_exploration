@@ -38,6 +38,7 @@ def main():
     if string_position is not None and string_position < 0.0:
         string_position = None
     runs = rospy.get_param("~runs", 1)
+    attempts = rospy.get_param("~attempts", 0)
 
     run_episode = SimpleActionClient("run_episode", RunEpisodeAction)
     run_episode.wait_for_server()
@@ -110,6 +111,12 @@ def main():
                     if vec_rotated[0] * vec[0] <= 0.0:
                         vec_rotated[0] = 0.0
                     path.keypoint_vel= vec_rotated.tolist()
+
+        if attempts == 1:
+            break
+        if attempts > 1:
+            attempts-= 1
+
         # shaped string sampling
         # stay close
         p= stats.norm.pdf(strings_idx, loc= i, scale= 1.0)
