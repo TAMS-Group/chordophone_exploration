@@ -75,7 +75,7 @@ class PlayPiece:
         paths= []
         last_midi_note = 0
         direction= 1.0
-        last_string_position = 0.1
+        last_string_position = 0.05
         for o in msg.onsets:
             midi_note= librosa.note_to_midi(o.note)
             if midi_note > last_midi_note:
@@ -105,6 +105,8 @@ class PlayPiece:
         except tf2_ros.TransformException as e:
             rospy.logerr("will not attempt execution")
             return
+
+        stitched_path.poses = stitched_path.poses[::3]
         self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= 'ff'))
         self.execute_path.wait_for_result()
 
