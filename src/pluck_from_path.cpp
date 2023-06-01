@@ -99,6 +99,8 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 	constraints.replace= true;
 	constraints.return_approximate_solution = true;
 
+  double is_thumb{ args.tip == "rh_th_plectrum" ? -1.0 : 1.0 };
+
 	for(const auto& pose : args.path.poses){
 		Eigen::Vector3d expected_tip_position{ pose.pose.position.x, pose.pose.position.y, pose.pose.position.z };
 
@@ -119,7 +121,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
         // plectrum should hit string with the flat side
         .add<bio_ik::DirectionGoal>(
 		         args.tip,
-		         tf2::Vector3{ 0, 1, 0 },
+		         tf2::Vector3{ 0, is_thumb, 0 },
 		         tf2::Vector3{ 0, 1, 0 },
 		         0.005
              )
