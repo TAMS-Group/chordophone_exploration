@@ -29,7 +29,7 @@ class LoopDetector:
         last_call= self.time
         self.time= rospy.Time.now()
         return last_call > self.time
-    def __bool__(self):
+    def __bool__(self) -> bool:
         return self.has_looped()
 
 class TransformListenerCb(tf2_ros.TransformListener):
