@@ -36,7 +36,7 @@ class PlayPiece:
         self.execute_path.wait_for_server()
 
         self.o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
-        rospy.loginfo(f"OnsetToPath stores {len(self.o2p.pluck_table)} plucks")
+        self.print_summary()
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
 
@@ -46,15 +46,19 @@ class PlayPiece:
         self.piece_action= actionlib.SimpleActionServer('play_piece', PlayPieceAction, self.play_piece_cb, auto_start=False)
         self.piece_action.start()
 
+    def print_summary(self):
+        summary= f"OnsetToPath stores {len(self.o2p.pluck_table)} plucks\n"
+        for n in set(self.o2p.pluck_table['detected_note']):
+            summary+= f"{n}: {len(self.o2p.pluck_table[self.o2p.pluck_table['detected_note'] == n])} plucks\n"
+        rospy.loginfo(summary)
+
+
     def run_episode_result_cb(self, msg):
         if len(msg.result.onsets) > 0:
             rospy.loginfo(f"add pluck with perceived note '{msg.result.onsets[-1].note}' ({msg.result.onsets[-1].loudness:.2F}dB) to table")
             self.o2p.add_sample(row_from_result(msg.result))
             if len(self.o2p.pluck_table) % 10 == 1:
-                summary= f'knows {len(self.o2p.pluck_table)} plucks:\n'
-                for n in set(self.o2p.pluck_table['detected_note']):
-                    summary+= f"{n}: {len(self.o2p.pluck_table[self.o2p.pluck_table['detected_note'] == n])} plucks\n"
-                rospy.loginfo(summary)
+                self.print_summary()
         else:
             rospy.loginfo(f'ignoring result with no detected onsets')
 
