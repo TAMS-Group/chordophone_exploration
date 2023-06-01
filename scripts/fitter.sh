@@ -11,6 +11,7 @@ elif [ "$1" = "store" ]; then
 elif [ "$1" = "drop" -a -n "$2" ]; then
     rosservice call /guzheng/onset_projector/drop_events "name: '$2'"
 else
-    echo "Usage: $0 <on/off>"
+    echo "Usage: $0 <on/off/store/load>"
+    echo "or usage: $0 <drop> <notes to drop>"
     exit 1
 fi
