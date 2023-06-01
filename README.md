@@ -1,8 +1,6 @@
-# Topics
+# Raw Inputs
 
-## Raw Inputs
-
-### Native PR2
+## Native PR2
 
 /joint_states    - current joint readings for PR2 & Shadow Hand
 /hand/rh/tactile - BioTac readings
@@ -13,20 +11,20 @@
 
 (tf already includes plectrum/fingertip positions and detected string frames)
 
-### Guzheng
+## Guzheng
 
 /guzheng/audio         - unused
 /guzheng/audio_stamped - time-stamped audio
                          depending on the publisher audio is ros::Time audio or audio pipeline time (drifts over time)
 /guzheng/audio_info    - meta data (1 constant latched message)
 
-### MoveIt
+## MoveIt
 
 /move_group/monitored_planning_scene - MoveIt's world model
 /execute_trajectory/goal             - MoveIt's Trajectory Execution action (which splits trajectories for hand/arm controller and sends them on)
 /execute_trajectory/result
 
-## Experiment control flow
+# Experiment control flow
 
 /run_episode/goal          - generate, execute, and analyze a single pluck (including approach motion)
 /run_episode/result
@@ -75,3 +73,8 @@
 
 /guzheng/fitted_strings - string markers for all strings currently fitted through projected note onsets
                           or loaded strings from file
+
+# TF frames
+
+target_pluck_string - a dynamic frame published when run_episode attempts to target a string
+rh_{finger}_plectrum - tip of the plectrum as calibrated by hand
