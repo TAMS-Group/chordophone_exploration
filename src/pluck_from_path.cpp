@@ -82,7 +82,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		return state.setFromIK(jmg,
 		          geometry_msgs::Pose{},
 		          arbitrary_tip_link,
-		          0.1,
+		          0.03,
 		          [&args](
 		            auto robot_state,
 		            auto jmg,
@@ -145,8 +145,8 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 		wp.updateLinkTransforms();
 		traj.addSuffixWayPoint(wp, 1.0);
 
-		Eigen::Isometry3d tip_pose_solved { wp.getFrameTransform(args.tip) };
-		double translation_max_dimension_distance{ (tip_pose_solved.translation()-expected_tip_position).array().abs().maxCoeff() };
+		// Eigen::Isometry3d tip_pose_solved { wp.getFrameTransform(args.tip) };
+		// double translation_max_dimension_distance{ (tip_pose_solved.translation()-expected_tip_position).array().abs().maxCoeff() };
 		// ROS_INFO_STREAM("distance: " << translation_max_dimension_distance);
 
 		previous_wp = wp;
@@ -155,7 +155,7 @@ robot_trajectory::RobotTrajectory generateTrajectory(const GenerateArgs& args){
 	{
 		constexpr double path_tolerance{ 0.1 };
       constexpr double resample_dt{ 0.05 };
-      constexpr double min_angle_change{ 0.001 };
+      constexpr double min_angle_change{ 0.005 };
 		trajectory_processing::TimeOptimalTrajectoryGeneration time_parameterization{ path_tolerance, resample_dt, min_angle_change };
 		if(!time_parameterization.computeTimeStamps(traj)){
 			throw std::runtime_error{"could not parameterize path"};
