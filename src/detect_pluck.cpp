@@ -18,6 +18,8 @@
 
 namespace acc = boost::accumulators;
 
+constexpr double FILTER_RATE = 100.0; // Hz
+
 struct DetectContact {
   using Accumulator = acc::accumulator_set<
     double, 
@@ -32,7 +34,7 @@ struct DetectContact {
   size_t last_event { 4 }; // hack to ensure full buffer before starting detection
 
   // configuration
-  size_t wait { 10 }; // 100ms in 0.01ms samples
+  size_t wait { 0 }; // in 0.01ms samples
   double threshold { 10.0 };
 
   /* 
@@ -117,7 +119,7 @@ struct DetectContactHand {
   void config_cb(tams_pr2_guzheng::ThresholdConfig& c, uint32_t level){
     if(c.wait != config.wait){
       for(auto& d : detectors)
-        d.wait = c.wait;
+        d.wait = static_cast<size_t>(FILTER_RATE/c.wait);
     }
 
     if(c.threshold != config.threshold){
@@ -130,7 +132,7 @@ struct DetectContactHand {
 
   void getReadings(const sr_robot_msgs::BiotacAll& tacs){
       // with 1khz update rate (our PR2), we get 10 times the same pdc value in a row, so we skip the redundant ones
-    if( tacs.header.stamp - last_added_sample < ros::Duration(0.01))
+    if( tacs.header.stamp - last_added_sample < ros::Duration(1.0/FILTER_RATE))
       return;
 
     assert(tacs.tactiles.size() == fingers.size());

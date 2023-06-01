@@ -31,11 +31,11 @@
 /run_episode/goal          - generate, execute, and analyze a single pluck (including approach motion)
 /run_episode/result
 
-/episode/action_parameters - selected and executed parameters for single episode pluck
 /episode/state             - "start"/"end" before/after path is sent to /pluck/pluck action
+/episode/action_parameters - selected and executed parameters for single episode pluck
 
 /pluck/execute_path/goal   - generate and execute a generic Cartesian trajectory with a target frame
-/pluck/execute_path/result 
+/pluck/execute_path/result
 
 /pluck/pluck/goal          - same as execute_path but provides the following additional debugging output/data collection
 /pluck/pluck/result
