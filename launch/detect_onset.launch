@@ -3,5 +3,6 @@
   <group ns="guzheng">
     <include file="$(find music_perception)/launch/guzheng_onsets.launch" />
     <node name="onset_to_marker" pkg="music_perception" type="onset_to_marker.py" />
+    <node name="onset_overlay_text" pkg="tams_pr2_guzheng_rviz" type="overlay_onsets.py" />
   </group>
 </launch>
