@@ -34,7 +34,6 @@ rosbag record \
   \
   /pluck/planned_path \
   /pluck/executed_path \
-  /pluck/projected_img \
   /pluck/trajectory \
   /pluck/executed_trajectory \
   /pluck/active_finger \
@@ -65,3 +64,5 @@ rosbag record \
   /guzheng/pluck_projector/parameter_updates \
   \
   /guzheng/fitted_strings \
+  /piece \
+  /piece_midi_loudness
