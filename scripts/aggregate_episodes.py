@@ -56,6 +56,16 @@ class Aggregator(audio_tactile_delay= 0.0):
         self.episodes= []
         self.subs= []
 
+        self.topics_ignored= [
+            '/guzheng/onsets_latest',
+            '/guzheng/onsets_markers',
+            '/fingertips/plucks_latest',
+            '/pluck/keypoint',
+            '/pluck/projected_img',
+            '/run_episode/goal',
+            '/run_episode/result',
+        ]
+
         self.topics= [
             # native PR2
             ('/joint_states', JointState, self.joint_states_cb),
@@ -134,7 +144,7 @@ class Aggregator(audio_tactile_delay= 0.0):
         for topic, msg, stamp in bag.read_messages():
             if topic in dispatch:
                 dispatch[topic](msg) #, stamp)
-            else:
+            elif topic not in self.topics_ignored:
                 rospy.logwarn(f'processed message without callback on topic {topic}')
             if rospy.is_shutdown():
                 print('Abort')
