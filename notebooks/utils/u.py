@@ -51,7 +51,48 @@ def label_outer():
             ax.label_outer()
         except:
             pass
-    
+
+def plot_cqt_energy(e):
+    data_start = (e.cqt.header.stamp - e.start_execution).to_sec()
+    cqt = cqt_from_episode(e).T
+    plt.plot(
+        data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate +magic_cqt_offset,
+        cqt.sum(axis=0),
+        'o-'
+        )
+
+def plot_aligned_audio_tactile(e, context= 0.3):
+    plt.suptitle("Aligned Modalities")
+
+    N=5
+    n=iter(range(1,N+1))
+
+    plots = [
+        ("raw audio", lambda: plot_raw_audio(e)),
+        ("cqt", lambda: plot_audio(e)),
+        ("cqt\nenergy", lambda: plot_cqt_energy(e)),
+        ("target\nnote", lambda: plot_target_note(e)),
+        ("pdc", lambda: plot_tactile(e)),
+        ("pac", lambda: plot_tactile_ac(e)),
+        (f"rh_{e.finger.upper()}J3\nposition", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J3")),
+        (f"rh_{e.finger.upper()}J2\nposition", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J2")),
+    ]
+
+    N = len(plots)
+    ax = None
+    for n in range(0,N):
+        ax = plt.subplot(N,1,n+1, sharex=ax)
+        plots[n][1]()
+        plt.ylabel(plots[n][0])
+
+    plt.xlabel('time')
+    label_outer()
+
+    os = [p.header.stamp.to_sec() for p in e.detected_tactile_plucks]+[o.header.stamp.to_sec() for o in e.detected_audio_onsets]
+    if len(os) == 0:
+        os= [(e.header.stamp+e.length/2).to_sec()]
+    plt.xlim((min(os)-context)-e.start_execution.to_sec(), (max(os)+context)-e.start_execution.to_sec())
+
 
 def plot_episode(e, joints= True):
     plt.figure(figsize=(7,3), dpi=100)
@@ -63,31 +104,7 @@ def plot_episode(e, joints= True):
     plot_tip_path(e)
 
     plt.figure()
-    plt.suptitle("audio/tactile onsets")
-    N=4
-    ax = plt.subplot(N,1,1)
-    plot_raw_audio(e)
-    plt.ylabel("raw audio")
-    context= 0.2
-    os = [o.to_sec() for o in e.detected_tactile_plucks]+[o.header.stamp.to_sec() for o in e.detected_audio_onsets]
-    if len(os) == 0:
-        os= [(e.header.stamp+e.length/2).to_sec()]
-    plt.xlim((min(os)-context)-e.start_execution.to_sec(), (max(os)+context)-e.start_execution.to_sec())
-
-    ax = plt.subplot(N,1,2, sharex=ax)
-    plot_audio(e)
-    plt.ylabel("cqt")
-
-    ax = plt.subplot(N,1,3, sharex=ax)
-    plot_tactile(e)
-    plt.ylabel("pdc")
-
-    ax = plt.subplot(N,1,4, sharex=ax)
-    plot_tactile_ac(e)
-    plt.ylabel("pac")
-
-    plt.xlabel('time')
-    label_outer()
+    plot_aligned_audio_tactile(e)
 
     if joints:
         plt.figure(figsize=(7,15), dpi=100)
@@ -100,6 +117,14 @@ def plot_tip_path(e):
     plt.plot([-p.pose.position.y for p in e.planned_path.poses], [p.pose.position.z for p in e.planned_path.poses], color='g')
     plt.plot([-p.pose.position.y for p in e.executed_path.poses], [p.pose.position.z for p in e.executed_path.poses], color='b')
     plt.legend(['commanded', 'planned', 'executed'])
+
+def plot_joint_pos(e, joint):
+    plt.plot(*joint_positions(e.executed_trajectory, joint), color='b')
+    # plt.ylabel(f"{joint}\nposition")
+
+def plot_joint_vel(e, joint):
+    plt.plot(*joint_velocities(e.executed_trajectory, joint), color='b')
+    # plt.ylabel(f"{joint}\nvelocity")
 
 def plot_joints(e):
     right_arm_executed_joints = ['r_shoulder_pan_joint','r_shoulder_lift_joint','r_upper_arm_roll_joint','r_elbow_flex_joint','r_forearm_roll_joint','rh_WRJ2','rh_WRJ1']
@@ -121,90 +146,67 @@ def plot_joints(e):
     for j in ["rh_FFJ3", "rh_FFJ2"]:
         plt.subplot(9, 2, idx)
         idx+= 1
-        plt.title(f"{j} positions")
-        plt.plot(*joint_positions(e.executed_trajectory, j), color='b')
+        plot_joint_pos(e, j)
 
         plt.subplot(9, 2, idx)
         idx+= 1
-        plt.title(f"{j} velocity")
-        plt.plot(*joint_velocities(e.executed_trajectory, j), color='b')
+        plot_joint_vel(e, j)
 
     plt.tight_layout()
 
-    
+def plot_cqt(e):
+    data_start = (e.cqt.header.stamp - e.start_execution).to_sec()
+    cqt = cqt_from_episode(e).T[30:35,:]
+
+    X= np.tile((data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate +magic_cqt_offset)[:, np.newaxis], cqt.shape[0]).T
+    Y= np.tile(np.arange(cqt.shape[0])[:,np.newaxis], cqt.shape[1])
+
+    plt.pcolormesh(X, Y, cqt, cmap='jet')
+    plot_onsets(e)
+
+def plot_target_note(e):
+    data_start = (e.cqt.header.stamp-e.start_execution).to_sec()
+    cqt = cqt_from_episode(e).T
+    plt.plot(data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate, cqt[33,:], 'o-') # TODO: only works for A4 right now
+    plot_onsets(e)
+
 def plot_audio(e):
-    cqt = np.log(cqt_from_episode(e)).T
-    #plt.imshow(cqt, cmap='jet')
     plt.grid(False)
-    
-    X= np.tile(np.arange(84).T[:,np.newaxis], cqt.shape[1])
-    Y= np.tile((np.arange(cqt.shape[1])*512/44100 + (e.cqt.header.stamp - e.start_execution).to_sec()+magic_cqt_offset)[:, np.newaxis], cqt.shape[0]).T
-    
-    plt.pcolormesh(Y, X, cqt, cmap='jet')
-    
-    plt.vlines([(o.header.stamp-e.start_execution).to_sec()+magic_cqt_offset for o in e.detected_audio_onsets], ymin=0, ymax= 84, color=(1.0,0,1.0,0.8))
-    plt.vlines([(o-e.start_execution).to_sec() for o in e.detected_tactile_plucks], ymin=0-4, ymax= 84+4, color='red')
+
+    plot_cqt(e)
+    plot_onsets(e)
+
+def audio_from_episode(e):
+    return np.frombuffer(e.audio_data.audio.data, dtype=np.int16).astype(float)
 
 def plot_raw_audio(e):
+    data_start = (e.audio_data.header.stamp-e.start_execution).to_sec()
+
     signal = np.array(struct.unpack('{0}h'.format(int(len(e.audio_data.audio.data)/2)), e.audio_data.audio.data), dtype=float)
-    
-    plt.plot(np.arange(len(signal), dtype=float)/e.audio_info.sample_rate+e.audio_data.header.stamp.to_sec() - e.start_execution.to_sec(), signal)
-
-    vmin = np.min(signal)*1.05
-    vmax = np.max(signal)*1.05
-
-    plt.vlines([(o.header.stamp - e.start_execution).to_sec()+magic_cqt_offset for o in e.detected_audio_onsets], ymin=vmin, ymax=vmax, color='purple')
-    plt.vlines([o.to_sec() - e.start_execution.to_sec() for o in e.detected_tactile_plucks], ymin=vmin, ymax= vmax, color='red')
+    plt.plot(data_start + np.arange(len(signal), dtype=float)/e.audio_info.sample_rate, signal)
+    plot_onsets(e)
 
 def plot_tactile(e):
-    plt.plot([t.header.stamp.to_sec()-e.start_execution.to_sec() for t in e.tactile_data],[t.tactile.pdc for t in e.tactile_data])
-    vmin = np.min([t.tactile.pdc for t in e.tactile_data])
-    vmax = np.max([t.tactile.pdc for t in e.tactile_data])
-    delta = (vmax - vmin)*0.05
-    vmin = vmin - delta
-    vmax = vmax + delta
-    plt.vlines([o.header.stamp.to_sec()-e.start_execution.to_sec()+magic_cqt_offset for o in e.detected_audio_onsets],
-               vmin,
-               vmax,
-               'purple')
-    plt.vlines([o.to_sec()-e.start_execution.to_sec() for o in e.detected_tactile_plucks],
-               vmin,
-               vmax, 'red')
+    plt.plot([ (t.header.stamp-e.start_execution).to_sec() for t in e.tactile_data],[t.tactile.pdc for t in e.tactile_data])
+    plot_onsets(e)
 
 def plot_tactile_ac(e):
-    plt.plot([t.header.stamp.to_sec()-e.start_execution.to_sec() for t in e.tactile_data],[t.tactile.pac0 for t in e.tactile_data])
-    vmin = np.min([t.tactile.pac0 for t in e.tactile_data])
-    vmax = np.max([t.tactile.pac0 for t in e.tactile_data])
-    delta = (vmax - vmin)*0.05
-    vmin = vmin - delta
-    vmax = vmax + delta
-    plt.vlines([o.header.stamp.to_sec()-e.start_execution.to_sec()+magic_cqt_offset for o in e.detected_audio_onsets],
-               vmin,
-               vmax,
-               'purple')
-    plt.vlines([o.to_sec()-e.start_execution.to_sec() for o in e.detected_tactile_plucks],
-               vmin,
-               vmax, 'red')
-
+    plt.plot([ (t.header.stamp-e.start_execution).to_sec() for t in e.tactile_data],[t.tactile.pac0 for t in e.tactile_data])
+    plot_onsets(e)
     
 def plot_joint(e, joint):
     j_idx = e.executed_trajectory.joint_names.index(joint)
     sample_times = [p.time_from_start.to_sec()-e.start_execution.to_sec() for p in e.executed_trajectory.points]+[(e.header.stamp+e.length).to_sec()]
     sample_pos = [p.positions[j_idx] for p in e.executed_trajectory.points]+[e.executed_trajectory.points[-1].positions[j_idx]]
     plt.plot(sample_times, sample_pos, color='b')
+    plot_onsets(e)
+
+def plot_onsets(e):
+    for o in [o.header.stamp+rospy.Duration(magic_cqt_offset) for o in e.detected_audio_onsets]:
+        plt.axvline((o-e.start_execution).to_sec(), ymin= 0.05, ymax= 0.95, color= 'purple')
     
-    vmin = np.min(sample_pos)
-    vmax = np.max(sample_pos)
-    delta = (vmax - vmin)*0.5
-    vmin = vmin - delta
-    vmax = vmax + delta
-    plt.vlines([o.header.stamp.to_sec()-e.start_execution.to_sec()+magic_cqt_offset for o in e.detected_audio_onsets],
-               vmin,
-               vmax,
-               'purple')
-    plt.vlines([o.to_sec()-e.start_execution.to_sec() for o in e.detected_tactile_plucks],
-               vmin,
-               vmax, 'red')
+    for p in [p.header.stamp for p in e.detected_tactile_plucks]:
+        plt.axvline((p-e.start_execution).to_sec(), ymin= 0.05, ymax= 0.95, color= 'red')
 
 # Audio - requires `roslaunch tams_pr2_guzheng play_audio_topic.launch`
 
