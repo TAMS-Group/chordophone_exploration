@@ -86,7 +86,7 @@ def main():
     i= random.randint(0, len(strings)-1)
 
     while not rospy.is_shutdown():
-        rospy.loginfo(f"attempting to pluck string {strings[i]}")
+        # rospy.loginfo(f"attempting to pluck string {strings[i]}")
         # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
         for _ in range(runs):
             if string_position is None:
@@ -141,6 +141,7 @@ def main():
             break
         if attempts > 1:
             attempts-= 1
+            rospy.loginfo(f"{attempts} more attempts")
 
         # shaped string sampling
         # stay close

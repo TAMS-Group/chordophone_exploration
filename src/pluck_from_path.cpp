@@ -339,7 +339,9 @@ public:
 
   void pluck(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
     auto& path{ goal->path };
-    ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+    std::stringstream logstream;
+    logstream << "got path with " << path.poses.size() << " poses, ";
 
     std::string finger_name{ goal->finger.empty() ? finger_ : goal->finger };
     std::string tip_name{ "rh_" + finger_name + "_plectrum" };
@@ -392,7 +394,9 @@ public:
       pluck_.setAborted();
       return;
     }
-    ROS_INFO_STREAM("generated trajectory with " << trajectory.getWayPointCount() << " points");
+
+    logstream << "generated trajectory with " << trajectory.getWayPointCount() << " points";
+    ROS_INFO_STREAM(logstream.str());
 
     // publish visualizations of generated trajectory
     moveit_msgs::RobotTrajectory trajectory_msg;
@@ -426,7 +430,9 @@ public:
     auto status{ mgi_.execute(trajectory_msg) };
     tm.stopTrajectoryMonitor();
     //csm->stopStateMonitor();
-    ROS_INFO_STREAM("status after execution: " << status);
+
+    if(status != moveit_msgs::MoveItErrorCodes::SUCCESS)
+      ROS_INFO_STREAM("status after execution: " << status);
 
     // publish executed joint trajectory
     robot_trajectory::RobotTrajectory executed_trajectory{ tm.getTrajectory() };
@@ -479,7 +485,9 @@ public:
 
   void execute_path(const tams_pr2_guzheng::ExecutePathGoalConstPtr& goal){
     auto& path{ goal->path };
-    ROS_INFO_STREAM("got path with " << path.poses.size() << " poses");
+
+    std::stringstream logstream;
+    logstream << "got path with " << path.poses.size() << " poses, ";
 
     std::string finger_name{ goal->finger.empty() ? finger_ : goal->finger };
     std::string tip_name{ "rh_" + finger_name + "_plectrum" };
@@ -530,7 +538,9 @@ public:
       execute_path_.setAborted();
       return;
     }
-    ROS_INFO_STREAM("generated trajectory with " << trajectory.getWayPointCount() << " points");
+
+    logstream << "generated trajectory with " << trajectory.getWayPointCount() << " points";
+    ROS_INFO_STREAM(logstream.str());
 
     // propagate result
     moveit_msgs::RobotTrajectory trajectory_msg;
@@ -550,7 +560,9 @@ public:
     }
 
     auto status{ mgi_.execute(trajectory_msg) };
-    ROS_INFO_STREAM("status after execution: " << status);
+
+    if(status != moveit_msgs::MoveItErrorCodes::SUCCESS)
+      ROS_INFO_STREAM("status after execution: " << status);
 
     ExecutePathResult result;
     result.generated_trajectory = trajectory_msg.joint_trajectory;
