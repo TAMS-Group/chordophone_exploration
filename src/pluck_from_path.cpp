@@ -374,7 +374,7 @@ public:
         return;
       }
     }
-    pub_path_commanded_.publish( path_transformed );
+    pub_path_commanded_.publish( path ); // publish only now to make sure transform succeeded
 
     // compute joint trajectory
     robot_trajectory::RobotTrajectory trajectory{ scene_.getRobotModel() };
