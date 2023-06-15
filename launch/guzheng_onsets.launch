@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<launch>
+  <param name="min_note" value="C2" />
+  <param name="max_note" value="D6" />
+
+  <include file="$(find music_perception)/launch/onsets.launch">
+    <arg name="semitones_above" value="26" />
+
+    <arg name="reference_amplitude" value="480.0" />
+    <arg name="log_max_raw_cqt" default="false" />
+    <arg name="perceptual_weighting" value="false" />
+
+    <arg name="onset_delta" value="0.1" />
+    <arg name="loudest_expected_db" value="50.0" />
+    <arg name="drift_s_per_hour" value="-0.10" />
+  </include>
+</launch>
