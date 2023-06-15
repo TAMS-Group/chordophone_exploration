@@ -82,9 +82,11 @@ class Projector:
         self.finger= self.default_finger
         self.publish()
 
-
     def delete_events(self, req):
-        self.events= [e for e in self.events if e[0].ns != req.name]
+        if req.name == 'ALL':
+            self.events= []
+        else:
+            self.events= [e for e in self.events if e[0].ns != req.name]
         self.publish()
         return {}
 
