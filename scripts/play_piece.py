@@ -43,6 +43,8 @@ class PlayPiece:
         rospy.on_shutdown(self.store_plucks)
 
         self.piece_sub= rospy.Subscriber('piece', Piece, self.piece_cb)
+        self.piece_sub= rospy.Subscriber('piece_midi_loudness', Piece, self.piece_midi_loudness_cb)
+
         self.piece_action= actionlib.SimpleActionServer('play_piece', PlayPieceAction, self.play_piece_cb, auto_start=False)
         self.piece_action.start()
 
@@ -69,6 +71,16 @@ class PlayPiece:
     def play_piece_cb(self, goal):
         self.piece_cb(goal.piece)
         self.piece_action.set_succeeded()
+
+    def piece_midi_loudness_cb(self, msg):
+        # loudness of msg.onsets is 1-127, we scale it between min and max in o2p.pluck_table
+
+        for o in msg.onsets:
+            loudness_min, loudness_max = self.o2p.get_note_min_max(o.note)
+            loudness_range = loudness_max - loudness_min
+            o.loudness = loudness_min + loudness_range * (o.loudness-1) / 127.0
+
+        self.piece_cb(msg)
 
     def piece_cb(self, msg):
         rospy.loginfo(f"playing piece with {len(msg.onsets)} onsets")
