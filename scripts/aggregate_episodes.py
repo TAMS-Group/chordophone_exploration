@@ -306,13 +306,6 @@ class Aggregator(audio_tactile_delay= 0.0):
             rospy.logwarn(f"found note onset for note '{msg.note}' at {msg.header.stamp.to_sec()} without tracking an episode. Ignoring")
         else:
             self.episode.detected_audio_onsets.append(msg)
-    def plucks_cb(self, msg):
-        if not self.tracksEpisode():
-            rospy.logwarn(f"found pluck event at {msg.markers[0].header.stamp.to_sec()} without tracking an episode. Ignoring")
-        elif len(msg.markers) == 0:
-            rospy.logerr("found empty plucks marker message")
-        else:
-            self.episode.detected_tactile_plucks.append(msg.markers[0].header.stamp)
     def pluck_cb(self, msg):
         rospy.loginfo(f'  sent path for {msg.goal.finger} in frame {msg.goal.path.header.frame_id} at {msg.header.stamp.to_sec()}')
         #if not self.tracksEpisode():
@@ -333,7 +326,15 @@ class Aggregator(audio_tactile_delay= 0.0):
                 ))
             
     def fingertip_plucks_cb(self, msg):
-        self.episode.detected_tactile_plucks.append(msg.header.stamp)
+        if not self.tracksEpisode():
+            rospy.logwarn(f"found fingertip pluck for finger '{msg.finger}' at {msg.header.stamp.to_sec()} without tracking an episode. Ignoring")
+            return
+        if self.episode.finger != msg.finger:
+            rospy.logwarn(f"found fingertip pluck for finger '{msg.finger}' at {msg.header.stamp.to_sec()} while tracking finger '{self.episode.finger}'. Ignoring")
+            return
+
+        self.episode.detected_tactile_plucks.append(msg)
+
     def action_parameter_cb(self, msg):
         self.episode.action_parameters= msg
         self.episode.string= re.match("guzheng/(.*)/head", msg.header.frame_id).group(1)
