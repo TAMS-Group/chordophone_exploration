@@ -194,7 +194,9 @@ class Aggregator(audio_tactile_delay= 0.0):
             rospy.logwarn(e)
 
         self.episode.audio_data.header.stamp+= self.audio_delay+self.audio_drift
-        self.episode.cqt.header.stamp += self.audio_delay+self.audio_drift
+        self.episode.cqt.header.stamp += self.audio_delay
+        for o in self.episode.detected_audio_onsets:
+            o.header.stamp += self.audio_delay
 
         self.publishEpisode()
 
