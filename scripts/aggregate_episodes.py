@@ -39,13 +39,14 @@ def finger_link(finger):
     #return 'rh_'+finger+'_biotac_link'
     return f'rh_{finger}_plectrum'
 
-class Aggregator():
+class Aggregator(audio_tactile_delay= 0.0):
     def __init__(self):
         self.mannequin_mode = False
 
         self.audio_info= None
-        self.audio_delay = rospy.Duration(0.0)
+        self.audio_delay= rospy.Duration(0.0)
         self.audio_drift= rospy.Duration(0)
+        self.aggregation_audio_tactile_delay= rospy.Duration(audio_tactile_delay) # TODO: UNUSED as of now. support custom delay in finalize_episode
 
         self.episode_count= 0
         self.tf= tf2_ros.Buffer(cache_time= rospy.Duration(30))
