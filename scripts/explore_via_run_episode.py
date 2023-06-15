@@ -17,6 +17,31 @@ from tams_pr2_guzheng.msg import (
     RunEpisodeRequest)
 from tams_pr2_guzheng.utils import string_length
 
+import matplotlib.pyplot as plt
+plt.switch_backend('agg')
+import cv_bridge
+from sensor_msgs.msg import Image
+
+pub_p = None
+cv_bridge_object = cv_bridge.CvBridge()
+
+def plot_p(strings, p):
+    global pub_p
+    if pub_p is None:
+        pub_p = rospy.Publisher(
+            "~p", Image, queue_size=1, tcp_nodelay=True, latch=True
+        )
+
+    if pub_p.get_num_connections() > 0:
+        fig = plt.figure(dpi= 300)
+        fig.gca().set_title("explore distribution across target strings")
+        # barplot with labels from strings
+        fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
+        fig.canvas.draw()
+        w, h = fig.canvas.get_width_height()
+        env_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
+        plt.close(fig)
+        pub_p.publish(cv_bridge_object.cv2_to_imgmsg(env_img, "rgb8"))
 
 def main():
     rospy.init_node('explore')
@@ -126,6 +151,7 @@ def main():
         p/= onset_hist
         # TODO: could normalize by string length as well, but how important is full geometrical coverage?
         p/= p.sum()
+        plot_p(strings, p)
         i = np.random.choice(strings_idx, 1, p= p)[0]
 
 if __name__ == "__main__":
