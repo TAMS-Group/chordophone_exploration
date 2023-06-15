@@ -22,6 +22,18 @@ class OnsetToPath:
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
         self.pluck_table = pd.concat((self.pluck_table, row_df), ignore_index=True)
 
+    def get_note_min_max(self, note : str):
+        '''
+        Returns the minimum and maximum loudness for the given note.
+        '''
+        note_plucks = self.pluck_table[
+            (self.pluck_table['note'] == note_to_string(note)) &
+            (self.pluck_table['detected_note'] == note) &
+            (self.pluck_table['onset_cnt'] == 1)]
+        if len(note_plucks) == 0:
+            raise ValueError(f"No plucks found for note {note}")
+        return np.min(note_plucks['loudness']), np.max(note_plucks['loudness'])
+
     def get_path(self, note : str, loudness : float, direction = 0.0, string_position= None) -> Path:
         '''
         Returns a path for the given note and loudness.
