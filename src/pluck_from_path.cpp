@@ -254,6 +254,7 @@ class Server {
   actionlib::SimpleActionServer<tams_pr2_guzheng::ExecutePathAction> execute_path_{ nh_, "pluck/execute_path", [this](auto& goal){ execute_path(goal); }, false};
 
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_{ std::make_shared<tf2_ros::Buffer>(ros::Duration(30.0)) };
+  tf2_ros::TransformListener tf_listener_{ *tf_buffer_ };
   planning_scene_monitor::PlanningSceneMonitor psm_{ "robot_description", tf_buffer_ };
   planning_scene::PlanningScene& scene_{ *psm_.getPlanningScene() };
   const moveit::core::RobotModel& model_{ *scene_.getRobotModel() };
@@ -262,10 +263,10 @@ class Server {
       auto m= std::make_shared<planning_scene_monitor::CurrentStateMonitor>(scene_.getRobotModel(), tf_buffer_, nh_);
       m->enableCopyDynamics(true);
       m->startStateMonitor();
+      m->waitForCompleteState(10.0);
       return m;
     }()
   };
-  tf2_ros::TransformListener tf_listener_{ *tf_buffer_ };
   planning_scene_monitor::TrajectoryMonitor tm{ csm_, 100.0 };
 
   ros::Publisher pub_finger_{ nh_.advertise<std_msgs::String>("pluck/active_finger", 1) };
