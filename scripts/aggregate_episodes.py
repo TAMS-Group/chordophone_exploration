@@ -39,8 +39,8 @@ def finger_link(finger):
     #return 'rh_'+finger+'_biotac_link'
     return f'rh_{finger}_plectrum'
 
-class Aggregator(audio_tactile_delay= 0.0):
-    def __init__(self):
+class Aggregator():
+    def __init__(self, audio_tactile_delay= 0.0):
         self.mannequin_mode = False
 
         self.audio_info= None
