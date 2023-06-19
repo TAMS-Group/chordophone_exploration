@@ -97,7 +97,7 @@ def main():
                 #tf = tf
                 )
 
-            if reduce_variance and (nbp := o2p.infer_next_best_pluck(strings[i], finger, direction)) is not None:
+            if reduce_variance and (nbp := o2p.infer_next_best_pluck(string= strings[i], finger= finger, string_length= string_len, direction= path.direction)) is not None:
                 path.string_position = nbp[0]
                 path.keypoint_pos[0] = nbp[1]
             
