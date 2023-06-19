@@ -1,5 +1,6 @@
 import rospy
 
+import numpy as np
 import tf2_ros
 import tf2_geometry_msgs
 
@@ -7,6 +8,7 @@ from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
 from std_msgs.msg import String, Header, ColorRGBA
 from visualization_msgs.msg import Marker
+from sensor_msgs.msg import Image
 
 from tams_pr2_guzheng.msg import (
     RunEpisodeRequest,
@@ -30,6 +32,7 @@ def row_from_result(result):
     row = RuckigPath.from_action_parameters(result.parameters).params_map
     row['onset_cnt'] = len(result.onsets)
     row['onsets'] = str(result.onsets)
+    row['finger'] = result.finger
     if len(result.onsets) > 0:
         row['loudness'] = result.onsets[-1].loudness
         row['detected_note'] = result.onsets[-1].note
@@ -64,3 +67,22 @@ def stitch_paths(paths, tf, frame= 'base_footprint'):
         raise e
 
     return stitched
+
+_image_publisher = {}
+_cv_bridge = None
+def publish_figure(topic_name, fig):
+    from matplotlib import pyplot as plt
+    
+    global _cv_bridge
+    if _cv_bridge is None:
+        import cv_bridge
+        _cv_bridge = cv_bridge.CvBridge()
+
+    if topic_name not in _image_publisher:
+        _image_publisher[topic_name] = rospy.Publisher(f"~{topic_name}", Image, queue_size=1, latch=True)
+
+    fig.canvas.draw()
+    w, h = fig.canvas.get_width_height()
+    img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
+    plt.close(fig)
+    _image_publisher[topic_name].publish(_cv_bridge.cv2_to_imgmsg(img, encoding="bgr8"))

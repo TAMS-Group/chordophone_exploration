@@ -2,4 +2,5 @@ RunEpisodeRequest req
 ---
 music_perception/NoteOnset[] onsets
 tams_pr2_guzheng/ActionParameters parameters
+string finger
 ---

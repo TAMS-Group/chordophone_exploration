@@ -4,44 +4,31 @@ import random
 from math import tau
 
 import numpy as np
+import rospkg
 import rospy
 import tf2_geometry_msgs
 import tf2_ros
 from actionlib import SimpleActionClient
 import scipy.stats as stats
 
+from tams_pr2_guzheng.onset_to_path import OnsetToPath
 import tams_pr2_guzheng.paths as paths
+import tams_pr2_guzheng.utils as utils
+
 from tams_pr2_guzheng.msg import (
     RunEpisodeAction,
     RunEpisodeGoal,
     RunEpisodeRequest)
-from tams_pr2_guzheng.utils import string_length
+from tams_pr2_guzheng.utils import string_length, publish_figure
 
 import matplotlib.pyplot as plt
 plt.switch_backend('agg')
-import cv_bridge
-from sensor_msgs.msg import Image
-
-pub_p = None
-cv_bridge_object = cv_bridge.CvBridge()
 
 def plot_p(strings, p):
-    global pub_p
-    if pub_p is None:
-        pub_p = rospy.Publisher(
-            "~p", Image, queue_size=1, tcp_nodelay=True, latch=True
-        )
-
-    if pub_p.get_num_connections() > 0:
-        fig = plt.figure(dpi= 300)
-        fig.gca().set_title("explore distribution across target strings")
-        # barplot with labels from strings
-        fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
-        fig.canvas.draw()
-        w, h = fig.canvas.get_width_height()
-        env_img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
-        plt.close(fig)
-        pub_p.publish(cv_bridge_object.cv2_to_imgmsg(env_img, "rgb8"))
+    fig = plt.figure(dpi= 150)
+    fig.gca().set_title("explore distribution across target strings")
+    fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
+    publish_figure("p", fig)
 
 def main():
     rospy.init_node('explore')
@@ -64,6 +51,9 @@ def main():
         string_position = None
     runs = rospy.get_param("~runs", 1)
     attempts = rospy.get_param("~attempts", 0)
+
+    reduce_variance = rospy.get_param("~reduce_variance", False)
+    o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json"))
 
     run_episode = SimpleActionClient("run_episode", RunEpisodeAction)
     run_episode.wait_for_server()
@@ -99,33 +89,39 @@ def main():
                 trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_len)
             else:
                 trial_string_position = string_position
+
             path = paths.RuckigPath.random(
                 note = strings[i],
                 direction= direction,
                 string_position= trial_string_position,
                 #tf = tf
                 )
-            onsets = []
+
+            if reduce_variance and (nbp := o2p.infer_next_best_pluck(strings[i], finger, direction)) is not None:
+                path.string_position = nbp[0]
+                path.keypoint_pos[0] = nbp[1]
+            
             for _ in range(attempts_for_good_pluck):
                 run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.note, finger= finger)))
                 run_episode.wait_for_result()
                 if rospy.is_shutdown():
                     return
-                onsets = run_episode.get_result().onsets
+                result = run_episode.get_result()
 
-                if len(onsets) > 0:
+                if len(result.onsets) > 0:
+                    rospy.loginfo(f"add pluck with perceived note '{result.onsets[0].note}' ({result.onsets[0].loudness:.2F}dB) to table")
+                    o2p.add_sample(utils.row_from_result(result))
                     onset_hist[i]+= 1
 
-                if len(onsets) == 1:
+                if len(result.onsets) == 1:
                     break
-
-                if len(onsets) == 0:
+                if len(result.onsets) == 0:
                     rospy.logwarn("no onset detected, retry with adapted parameters")
                     # lower and further in the pluck direction
                     path.keypoint_pos[0] += 0.003 * path.direction
                     path.keypoint_pos[1] -= 0.003
                 else: # len(onsets) > 1
-                    rospy.logwarn(f"multiple onsets detected, but one expected (got {len(onsets)}), retry with adapted parameters")
+                    rospy.logwarn(f"multiple onsets detected, but one expected (got {len(result.onsets)}), retry with adapted parameters")
                     # higher
                     path.keypoint_pos[1] += 0.005
                     # move velocity vector (12/13) up by a bit and clip to avoid changing direction

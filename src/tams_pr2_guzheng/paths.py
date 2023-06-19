@@ -167,8 +167,12 @@ class RuckigPath:
 
         p.pre = [direction*(-0.015), 0.015]
         p.post = [direction*0.01, 0.02]
-        p.keypoint_pos = [random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001)]
-        p.keypoint_vel = [direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03)]
+
+        p.keypoint_pos = [random.uniform(-0.005, 0.005), -0.003]
+        p.keypoint_vel = [direction*0.035, 0.015]
+
+        # p.keypoint_pos = [random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001)]
+        # p.keypoint_vel = [direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03)]
 
         return p
 

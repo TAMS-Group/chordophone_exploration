@@ -208,7 +208,8 @@ def main():
             action_server.set_succeeded(result=
                                         RunEpisodeResult(
                                             onsets= re.episode_onsets,
-                                            parameters= path.action_parameters
+                                            parameters= path.action_parameters,
+                                            finger= goal.req.finger,
                                         )
             )
             return True

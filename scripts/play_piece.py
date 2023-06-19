@@ -36,11 +36,8 @@ class PlayPiece:
         self.execute_path.wait_for_server()
 
         self.o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
-        self.print_summary()
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
-
-        rospy.on_shutdown(self.store_plucks)
 
         self.piece_sub= rospy.Subscriber('piece', Piece, self.piece_cb)
         self.piece_sub= rospy.Subscriber('piece_midi_loudness', Piece, self.piece_midi_loudness_cb)
@@ -48,25 +45,14 @@ class PlayPiece:
         self.piece_action= actionlib.SimpleActionServer('play_piece', PlayPieceAction, self.play_piece_cb, auto_start=False)
         self.piece_action.start()
 
-    def print_summary(self):
-        summary= f"OnsetToPath stores {len(self.o2p.pluck_table)} plucks\n"
-        for n in set(self.o2p.pluck_table['detected_note']):
-            summary+= f"{n}: {len(self.o2p.pluck_table[self.o2p.pluck_table['detected_note'] == n])} plucks\n"
-        rospy.loginfo(summary)
-
-
     def run_episode_result_cb(self, msg):
         if len(msg.result.onsets) > 0:
             rospy.loginfo(f"add pluck with perceived note '{msg.result.onsets[-1].note}' ({msg.result.onsets[-1].loudness:.2F}dB) to table")
             self.o2p.add_sample(row_from_result(msg.result))
             if len(self.o2p.pluck_table) % 10 == 1:
-                self.print_summary()
+                self.o2p.print_summary()
         else:
             rospy.loginfo(f'ignoring result with no detected onsets')
-
-    def store_plucks(self):
-        rospy.loginfo(f"storing plucks in {self.o2p.storage}")
-        self.o2p.store_to_file()
 
     def play_piece_cb(self, goal):
         self.piece_cb(goal.piece)
@@ -88,6 +74,7 @@ class PlayPiece:
         last_midi_note = 0
         direction= 1.0
         last_string_position = 0.05
+        finger = None
         for o in msg.onsets:
             midi_note= librosa.note_to_midi(o.note)
             if midi_note > last_midi_note:
@@ -99,18 +86,19 @@ class PlayPiece:
 
             last_midi_note= midi_note
             try:
-                p = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position)
-                last_string_position = p.poses[0].pose.position.x
+                # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
+                path, finger = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position, finger= finger)
+                last_string_position = path.poses[0].pose.position.x
             except ValueError:
                 rospy.logerr(f"No known way to play note {o.note}, will skip it.")
                 continue
-            approach_path = copy.deepcopy(p)
+            approach_path = copy.deepcopy(path)
             approach_path.poses = approach_path.poses[0:1]
             approach_pose = copy.deepcopy(approach_path.poses[0])
             approach_pose.pose.position.z += 0.010
             approach_path.poses.insert(0, approach_pose)
             paths.append(approach_path)
-            paths.append(p)
+            paths.append(path)
 
         try:
             stitched_path = stitch_paths(paths, self.tf)
@@ -119,7 +107,7 @@ class PlayPiece:
             return
 
         stitched_path.poses = stitched_path.poses[::3]
-        self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= 'ff'))
+        self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= finger))
         self.execute_path.wait_for_result()
 
 

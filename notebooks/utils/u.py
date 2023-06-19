@@ -10,6 +10,9 @@ from collections import Counter
 
 from functools import reduce
 
+import librosa
+from tams_pr2_guzheng.msg import PluckEpisodeV2
+
 # constants
 
 guzheng_range = reduce(lambda a,b: a+b, list(map(lambda o: [f"{n}{o}" for n in ["d", "e", "fis", "a", "b"]], range(2, 6)))) + ["d6"]
@@ -21,6 +24,9 @@ magic_cqt_offset= 0.0
 
 def note_to_string(n):
     return n.lower().replace('♯', 'is')
+
+def string_to_note(s):
+    return s.upper().replace('IS', '♯')
 
 def cqt_from_episode(e):
     return np.array(e.cqt.data).reshape((-1,e.cqt.number_of_semitones))
@@ -64,12 +70,12 @@ def plot_cqt_energy(e):
 def plot_aligned_audio_tactile(e, context= 0.3):
     plt.suptitle("Aligned Modalities")
 
-    N=5
-    n=iter(range(1,N+1))
+    cqt = cqt_from_episode(e).T[target_cqt_idx(e)-2:target_cqt_idx(e)+3,:]
 
     plots = [
         ("raw audio", lambda: plot_raw_audio(e)),
         ("cqt", lambda: plot_audio(e)),
+        ("cqt\ntarget", lambda: plot_cqt(e, cqt)),
         ("cqt\nenergy", lambda: plot_cqt_energy(e)),
         ("target\nnote", lambda: plot_target_note(e)),
         ("pdc", lambda: plot_tactile(e)),
@@ -154,9 +160,11 @@ def plot_joints(e):
 
     plt.tight_layout()
 
-def plot_cqt(e):
+def plot_cqt(e, cqt= None):
     data_start = (e.cqt.header.stamp - e.start_execution).to_sec()
-    cqt = cqt_from_episode(e).T[30:35,:]
+
+    if cqt is None:
+        cqt = cqt_from_episode(e).T
 
     X= np.tile((data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate +magic_cqt_offset)[:, np.newaxis], cqt.shape[0]).T
     Y= np.tile(np.arange(cqt.shape[0])[:,np.newaxis], cqt.shape[1])
@@ -164,10 +172,13 @@ def plot_cqt(e):
     plt.pcolormesh(X, Y, cqt, cmap='jet')
     plot_onsets(e)
 
+def target_cqt_idx(e : PluckEpisodeV2) -> int:
+    return int(librosa.note_to_midi(string_to_note(e.string)) - librosa.note_to_midi(e.cqt.min_note))
+
 def plot_target_note(e):
     data_start = (e.cqt.header.stamp-e.start_execution).to_sec()
     cqt = cqt_from_episode(e).T
-    plt.plot(data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate, cqt[33,:], 'o-') # TODO: only works for A4 right now
+    plt.plot(data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate, cqt[target_cqt_idx(e),:], 'o-')
     plot_onsets(e)
 
 def plot_audio(e):
