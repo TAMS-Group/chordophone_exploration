@@ -112,7 +112,7 @@ class RunEpisode():
 
         target_pluck_string = TransformStamped()
         target_pluck_string.header.stamp = rospy.Time.now()
-        target_pluck_string.header.frame_id = f"guzheng/{path.note}/head"
+        target_pluck_string.header.frame_id = f"guzheng/{path.string}/head"
         target_pluck_string.child_frame_id = "target_pluck_string"
         target_pluck_string.transform.rotation.w = 1.0
         self.tf_broadcaster.sendTransform(target_pluck_string)
@@ -174,7 +174,7 @@ def main():
     nosleep = rospy.get_param("~nosleep", False)
     re = RunEpisode(nosleep= nosleep)
 
-    note = rospy.get_param("~note", "d6")
+    string = rospy.get_param("~string", "d6")
     finger = rospy.get_param("~finger", "ff")
     direction = rospy.get_param("~direction", None)
     if direction == 0.0:
@@ -228,7 +228,7 @@ def main():
             if rospy.is_shutdown():
                 break
             path = paths.RuckigPath.random(
-                note = note,
+                string = string,
                 direction= direction,
                 string_position= string_position,
                 tf = tf

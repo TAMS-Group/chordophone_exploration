@@ -32,8 +32,8 @@ import pickle
 import re
 import sys
 
-def string_link(note):
-    return 'guzheng/'+note+'/head'
+def string_link(string):
+    return 'guzheng/'+string+'/head'
 
 def finger_link(finger):
     #return 'rh_'+finger+'_biotac_link'

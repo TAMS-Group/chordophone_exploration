@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="note" />
+  <arg name="string" />
   <arg name="finger" default="ff" />
   <arg name="runs" default="1" />
   <arg name="direction" default="0.0" />
@@ -9,7 +9,7 @@
   <arg name="reduce_variance" default="false" />
 
   <node name="explore" pkg="tams_pr2_guzheng" type="explore_via_run_episode.py" output="screen">
-    <param name="note" value="$(arg note)" />
+    <param name="string" value="$(arg string)" />
     <param name="finger" value="$(arg finger)" />
     <param name="runs" value="$(arg runs)" />
     <param name="direction" value="$(arg direction)" />

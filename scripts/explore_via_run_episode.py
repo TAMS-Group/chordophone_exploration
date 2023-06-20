@@ -41,7 +41,7 @@ def main():
     def say(txt):
         say_pub.publish(txt)
 
-    note = rospy.get_param("~note", "d6")
+    string = rospy.get_param("~string", "d6")
     finger = rospy.get_param("~finger", "ff")
     direction = rospy.get_param("~direction", None)
     if direction == 0.0:
@@ -53,14 +53,14 @@ def main():
     attempts = rospy.get_param("~attempts", 0)
 
     reduce_variance = rospy.get_param("~reduce_variance", False)
-    o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json"))
+    o2p= OnsetToPath(storage= rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json"))
 
     run_episode = SimpleActionClient("run_episode", RunEpisodeAction)
     run_episode.wait_for_server()
 
     # strings to explore
     #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-    strings= note.split(" ")
+    strings= string.split(" ")
 
     jump_size= 3 # max size of the jump between two consecutively explored strings
     attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset
@@ -79,43 +79,60 @@ def main():
         # rospy.loginfo(f"attempting to pluck string {strings[i]}")
         # "runs" in explore mode is the number of times we try to pluck the string before switching the target string
         for _ in range(runs):
-            if string_position is None:
+            trial_string_position = string_position
+            if trial_string_position is None:
                 string_len = 0.0
                 try:
                     string_len = string_length(strings[i], tf)
                 except Exception as e:
                     rospy.logwarn(e)
-                    continue
+                    break
                 trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_len)
-            else:
-                trial_string_position = string_position
 
             path = paths.RuckigPath.random(
-                note = strings[i],
+                string = strings[i],
                 direction= direction,
-                string_position= trial_string_position,
-                #tf = tf
-                )
+                string_position= trial_string_position
+            )
 
-            if reduce_variance and (nbp := o2p.infer_next_best_pluck(string= strings[i], finger= finger, string_length= string_len, direction= path.direction)) is not None:
+            nbp = o2p.infer_next_best_pluck(
+                string= strings[i],
+                finger= finger,
+                direction= path.direction,
+                actionspace= OnsetToPath.ActionSpace(
+                    string_position= np.array((0.0, string_len)),
+                    keypoint_pos_y= np.array((-0.004, 0.008)),
+                ),
+            )
+            if reduce_variance and nbp is not None:
                 path.string_position = nbp[0]
                 path.keypoint_pos[0] = nbp[1]
-            
+
             for _ in range(attempts_for_good_pluck):
-                run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.note, finger= finger)))
+                run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.string, finger= finger)))
                 run_episode.wait_for_result()
                 if rospy.is_shutdown():
                     return
                 result = run_episode.get_result()
 
-                if len(result.onsets) > 0:
-                    rospy.loginfo(f"add pluck with perceived note '{result.onsets[0].note}' ({result.onsets[0].loudness:.2F}dB) to table")
+                if len(result.onsets) < 2:
+                    log = "add pluck "
+                    if len(result.onsets) > 0:
+                        log+= f"with perceived note '{result.onsets[0].note}' ({result.onsets[0].loudness:.2F}dB) "
+                    else:
+                        log+= "without onset "
+                    log+= "to table"
+                    rospy.loginfo(log)
                     o2p.add_sample(utils.row_from_result(result))
+
+                if len(result.onsets) > 0:
                     onset_hist[i]+= 1
 
-                if len(result.onsets) == 1:
+                # either we have a good pluck by now or we recorded a bad pluck explicitly in o2p and leave the next parameters to the model
+                if reduce_variance or len(result.onsets) == 1:
                     break
-                if len(result.onsets) == 0:
+
+                if len(result.onsets) == 0 :
                     rospy.logwarn("no onset detected, retry with adapted parameters")
                     # lower and further in the pluck direction
                     path.keypoint_pos[0] += 0.003 * path.direction

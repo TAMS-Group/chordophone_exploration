@@ -45,13 +45,13 @@ class RuckigPath:
         self.keypoint_pos = [0.0, 0.0]
         self.keypoint_vel = [0.0, 0.0]
 
-        self.note = "None"
+        self.string = "None"
         self.string_position = 0.0
 
     def __str__(self) -> str:
         return (
             f"RuckigPath(\n"
-            f"    note= {self.note}\n"
+            f"    string= {self.string}\n"
             f"    string_position= {self.string_position:.3f}\n"
             f"    keypoint_pos= {self.keypoint_pos[0]:.3f} {self.keypoint_pos[1]:.3f}\n"
             f"    keypoint_vel= {self.keypoint_vel[1]:.4f} {self.keypoint_vel[1]:.4f}\n"
@@ -74,7 +74,7 @@ class RuckigPath:
     @property
     def params_map(self):
         return {
-            "note": self.note,
+            "string": self.string,
             "max_vel_y": self.max_vel[0],
             "max_vel_z": self.max_vel[1],
             "max_acc_y": self.max_acc[0],
@@ -110,7 +110,7 @@ class RuckigPath:
             raise ValueError(f"Invalid frame_id '{msg.header.frame_id}'")
 
         params = cls()
-        params.note = m.group(1)
+        params.string = m.group(1)
 
         msg_parameters = list(msg.action_parameters)
         params.max_vel = msg_parameters[0:2]
@@ -126,7 +126,7 @@ class RuckigPath:
     @classmethod
     def from_map(cls, m):
         params = cls()
-        params.note = m['note']
+        params.string = m['string']
         params.max_vel[0] = m['max_vel_y']
         params.max_vel[1] = m['max_vel_z']
         params.max_acc[0] = m['max_acc_y']
@@ -145,9 +145,9 @@ class RuckigPath:
         return params
 
     @classmethod
-    def random(cls, *, note : str, direction : float = None, string_position : float = None, tf = None):
+    def random(cls, *, string : str, direction : float = None, string_position : float = None, tf = None):
         '''
-        @param note: note to play
+        @param string: string to pluck
         @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
         @param string_position: pluck position on string in meters. Random on string if None and tf are given
         '''
@@ -157,9 +157,9 @@ class RuckigPath:
 
         p = __class__()
 
-        p.note = note
+        p.string = string
         if string_position is None:
-            string_position = random.uniform(0.0, string_length(note, tf))
+            string_position = random.uniform(0.0, string_length(string, tf))
         p.string_position = string_position
 
         if direction is None:
@@ -253,7 +253,7 @@ class RuckigPath:
 
     @property
     def frame_id(self) -> str:
-        return f"guzheng/{self.note}/head"
+        return f"guzheng/{self.string}/head"
 
     @property
     def direction(self) -> float:
@@ -294,7 +294,7 @@ def _make_parameters(parameter_type, parameters, now=None):
     ap.action_parameters = parameters
     return ap
 
-def get_path_yz_offsets_yz_start(note):
+def get_path_yz_offsets_yz_start(string):
     y_start = random.uniform(-0.010, 0.000)
     z_start = random.uniform(0.0, 0.010)
 #        y_start = -0.015
@@ -317,7 +317,7 @@ def get_path_yz_offsets_yz_start(note):
         w[2] += z_start
 
     path = Path()
-    path.header.frame_id = 'guzheng/{}/head'.format(note)
+    path.header.frame_id = 'guzheng/{}/head'.format(string)
 
     for x, y, z in waypoints:
         p = PoseStamped()
@@ -331,7 +331,7 @@ def get_path_yz_offsets_yz_start(note):
         "y z waypoint offsets / yz start",
         [y_rand, z_rand, y_start, z_start])
 
-def get_path_yz_start_y_offset_lift_angle(note, params= None):
+def get_path_yz_start_y_offset_lift_angle(string, params= None):
     if params is None:
         y_start = random.uniform(-0.010, 0.005)
         z_start = random.uniform(-0.000, 0.005)
@@ -362,7 +362,7 @@ def get_path_yz_start_y_offset_lift_angle(note, params= None):
         w[2] += z_start
 
     path = Path()
-    path.header.frame_id = 'guzheng/{}/head'.format(note)
+    path.header.frame_id = f'guzheng/{string}/head'
 
     for x, y, z in waypoints:
         p = PoseStamped()

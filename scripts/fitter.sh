@@ -11,7 +11,12 @@ elif [ "$1" = "store" ]; then
 elif [ "$1" = "drop" ]; then
     rosservice call /guzheng/onset_projector/drop_events "name: '$2'"
 else
-    echo "Usage: $0 <on/off/store/load>"
-    echo "or usage: $0 <drop> <notes to drop>"
+    echo "usage: $0 <on/off/store/load>"
+    echo "   in order to turn on/off the fitter"
+    echo "   or to store/load fit strings"
+    echo
+    echo "or usage: $0 drop <note to drop>"
+    echo "or usage: $0 drop ALL"
+    echo "   in order to drop projected events"
     exit 1
 fi
