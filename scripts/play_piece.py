@@ -35,7 +35,7 @@ class PlayPiece:
         self.execute_path = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
         self.execute_path.wait_for_server()
 
-        self.o2p= OnsetToPath(rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
+        self.o2p= OnsetToPath(storage= rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
 
@@ -89,8 +89,8 @@ class PlayPiece:
                 # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
                 path, finger = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position, finger= finger)
                 last_string_position = path.poses[0].pose.position.x
-            except ValueError:
-                rospy.logerr(f"No known way to play note {o.note}, will skip it.")
+            except ValueError as e:
+                rospy.logerr(f"No known way to play note {o.note}, will skip it. ({e})")
                 continue
             approach_path = copy.deepcopy(path)
             approach_path.poses = approach_path.poses[0:1]
