@@ -95,18 +95,19 @@ def main():
                 string_position= trial_string_position
             )
 
-            nbp = o2p.infer_next_best_pluck(
-                string= strings[i],
-                finger= finger,
-                direction= path.direction,
-                actionspace= OnsetToPath.ActionSpace(
-                    string_position= np.array((0.0, string_len)),
-                    keypoint_pos_y= np.array((-0.004, 0.008)),
-                ),
-            )
-            if reduce_variance and nbp is not None:
-                path.string_position = nbp[0]
-                path.keypoint_pos[0] = nbp[1]
+            if reduce_variance:
+                nbp = o2p.infer_next_best_pluck(
+                    string= strings[i],
+                    finger= finger,
+                    direction= path.direction,
+                    actionspace= OnsetToPath.ActionSpace(
+                        string_position= np.array((0.0, string_len)),
+                        keypoint_pos_y= np.array((-0.004, 0.008)),
+                    ),
+                )
+                if nbp is not None:
+                    path.string_position = nbp[0]
+                    path.keypoint_pos[0] = nbp[1]
 
             for _ in range(attempts_for_good_pluck):
                 run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.string, finger= finger)))
@@ -115,16 +116,34 @@ def main():
                     return
                 result = run_episode.get_result()
 
-                if len(result.onsets) < 2:
-                    log = "add pluck "
-                    if len(result.onsets) > 0:
-                        log+= f"with perceived note '{result.onsets[0].note}' ({result.onsets[0].loudness:.2F}dB) "
-                    else:
-                        log+= "without onset "
-                    log+= "to table"
-                    rospy.loginfo(log)
-                    o2p.add_sample(utils.row_from_result(result))
+                # if more than one onset with expected note exists, only keep the one with highest loudness
+                expected_onset = [o for o in result.onsets if o.note == utils.string_to_note(strings[i])]
+                if len(expected_onset) > 1:
+                    # some strings "echo" with a high delay, so we only keep the one with highest loudness to supress artifacts
+                    # TODO: get rid of this through tactile validation
+                    expected_onset = [max(expected_onset, key= lambda o: o.loudness)]
+                unexpected_onsets = [o for o in result.onsets if o.note != utils.string_to_note(strings[i])]
 
+                log = f"add pluck for string {strings[i]} "
+                warn = False
+
+                if len(unexpected_onsets) > 0:
+                    log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])} as 0.0dB "
+                    warn = True
+                    # technically an invalid pluck (or wrong classification...)
+                    # treat it as a pluck with no onset to avoid it later on
+                    expected_onset = []
+                elif len(expected_onset) > 0:
+                    log+= f"with perceived note '{expected_onset[0].note}' ({expected_onset[0].loudness:.2F}dB) "
+                else:
+                    log+= "without onset "
+                log+= "to table"
+                if warn:
+                    rospy.logwarn(log)
+                else:
+                    rospy.loginfo(log)
+                o2p.add_sample(utils.row_from_result(result))
+            
                 if len(result.onsets) > 0:
                     onset_hist[i]+= 1
 
@@ -132,7 +151,7 @@ def main():
                 if reduce_variance or len(result.onsets) == 1:
                     break
 
-                if len(result.onsets) == 0 :
+                if len(result.onsets) == 0:
                     rospy.logwarn("no onset detected, retry with adapted parameters")
                     # lower and further in the pluck direction
                     path.keypoint_pos[0] += 0.003 * path.direction

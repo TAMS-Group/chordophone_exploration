@@ -22,7 +22,7 @@ def string_to_note(string):
     return string.replace("is", "♯").upper()
 
 def run_params(run_episode, params, finger='ff'):
-    req= RunEpisodeRequest(parameters= params.action_parameters, string= params.note, finger= 'ff')
+    req= RunEpisodeRequest(parameters= params.action_parameters, string= params.string, finger= 'ff')
     run_episode.send_goal(RunEpisodeGoal(req))
     run_episode.wait_for_result()
     return run_episode.get_result()

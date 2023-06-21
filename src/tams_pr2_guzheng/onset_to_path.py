@@ -40,8 +40,8 @@ class OnsetToPath:
             return np.logical_and.reduce((
                 plucks['string_position'] >= self.string_position[0],
                 plucks['string_position'] <= self.string_position[1],
-                plucks['keypoint_pos_y'] >= self.keypoint_pos_y[0],
-                plucks['keypoint_pos_y'] <= self.keypoint_pos_y[1],
+                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) >= self.keypoint_pos_y[0],
+                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) <= self.keypoint_pos_y[1],
             ))
 
     def __init__(self, *, storage : str = '/tmp/plucks.json'):
@@ -118,14 +118,24 @@ class OnsetToPath:
 
         GPR= self.fit_GPR(features, loudness)
 
-        # TODO: sample randomly or CEM instead?
-        grid_size = 100
-
         # limits are always given as lower(closer to pre), higher(closer to post), so invert if needed
         pos_limits= actionspace.keypoint_pos_y
         if direction < 0.0:
             pos_limits= -1.0*pos_limits[::-1]
 
+        # TODO: CEM?
+        sample_size= 100
+
+        xi = np.random.uniform(actionspace.string_position[0], actionspace.string_position[1], sample_size)
+        yi = np.random.uniform(pos_limits[0], pos_limits[1], sample_size)
+        point_set = np.column_stack((xi, yi))
+        point_set = normalize(point_set, features_norm_params)
+        means, std = GPR.predict(point_set, return_std=True)
+        idx_max_std= np.argmax(std)
+        features_max_std= np.array([xi[idx_max_std], yi[idx_max_std]])
+
+        # optional visualization
+        grid_size = 50
         xi, yi = np.meshgrid(
             np.linspace(actionspace.string_position[0], actionspace.string_position[1], grid_size),
             np.linspace(pos_limits[0], pos_limits[1], grid_size)
@@ -134,11 +144,7 @@ class OnsetToPath:
         yi= yi.ravel()
         grid_points = np.column_stack((xi, yi))
         grid_points = normalize(grid_points, features_norm_params)
-
         means, std = GPR.predict(grid_points, return_std=True)
-        idx_max_std= np.argmax(std)
-        features_max_std= np.array([xi[idx_max_std], yi[idx_max_std]])
-
         fig = plt.figure(dpi= 50)
         means = means.reshape((grid_size, grid_size))
         plt.imshow(means, origin='lower', cmap=plt.get_cmap("RdPu"))
@@ -269,11 +275,12 @@ class OnsetToPath:
         keypoint_pos_y_limits = (np.min(plucks['keypoint_pos_y']), np.max(plucks['keypoint_pos_y']))
 
         if string_position is not None:
-            xi = np.linspace(string_position-.02, string_position+.02, 5)
-        xi = np.linspace(*string_limits, grid_size)
+            string_positions = np.linspace(np.max((0.0, string_position-.02)), np.min((string_position+.02, string_limits[1])), 5)
+        else:
+            string_positions = np.linspace(*string_limits, grid_size)
 
-        yi = np.linspace(*keypoint_pos_y_limits, grid_size)
-        xi, yi = np.meshgrid(xi, yi)
+        keypoint_pos_ys = np.linspace(*keypoint_pos_y_limits, grid_size)
+        xi, yi = np.meshgrid(string_positions, keypoint_pos_ys)
         xi= xi.ravel()
         yi= yi.ravel()
         grid_features = np.column_stack((xi, yi))
@@ -282,7 +289,7 @@ class OnsetToPath:
         # pick mean closest to target loudness
         # TODO: prefer plucks with low std close to target loudness
         means = GPR.predict(grid_features_normalized, return_std=False)
-        means = means.reshape((grid_size, grid_size))
+        means = means.reshape((string_positions.size, keypoint_pos_ys.size))
         features_idx = np.argmin(np.abs(means-loudness))
 
         string_position= xi[features_idx]
@@ -291,4 +298,4 @@ class OnsetToPath:
         p = RuckigPath.random(string= string, direction= direction, string_position= string_position)
         p.keypoint_pos[0] = keypoint_pos_y
 
-        return p(), finger
+        return p, finger

@@ -10,7 +10,7 @@
     <arg name="log_max_raw_cqt" default="false" />
     <arg name="perceptual_weighting" value="false" />
 
-    <arg name="onset_delta" value="0.05" />
+    <arg name="onset_delta" value="0.1" />
     <arg name="loudest_expected_db" value="50.0" />
     <arg name="drift_s_per_hour" value="-0.10" />
   </include>
