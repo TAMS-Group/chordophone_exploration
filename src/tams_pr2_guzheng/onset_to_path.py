@@ -267,7 +267,11 @@ class OnsetToPath:
         grid_size = 100
         string_limits = (np.min(plucks['string_position']), np.max(plucks['string_position']))
         keypoint_pos_y_limits = (np.min(plucks['keypoint_pos_y']), np.max(plucks['keypoint_pos_y']))
+
+        if string_position is not None:
+            xi = np.linspace(string_position-.02, string_position+.02, 5)
         xi = np.linspace(*string_limits, grid_size)
+
         yi = np.linspace(*keypoint_pos_y_limits, grid_size)
         xi, yi = np.meshgrid(xi, yi)
         xi= xi.ravel()
