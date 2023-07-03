@@ -2,7 +2,12 @@
 <launch>
   <group ns="guzheng">
     <include file="$(dirname)/guzheng_onsets.launch" />
-    <node name="onset_to_marker" pkg="music_perception" type="onset_to_marker.py" />
     <node name="onset_overlay_text" pkg="tams_pr2_guzheng_rviz" type="overlay_onsets.py" />
+
+    <node name="tactile_onset_validation" pkg="tams_pr2_guzheng" type="validate_onsets.py" />
+
+    <node name="onset_to_marker" pkg="music_perception" type="onset_to_marker.py">
+      <remap from="onsets" to="onsets_haptically_validated" />
+    </node>
   </group>
 </launch>
