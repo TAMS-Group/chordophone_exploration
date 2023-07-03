@@ -54,6 +54,7 @@ rosbag record \
   /fingertips/pluck_projector/parameter_updates \
   \
   /guzheng/onsets \
+  /guzheng/onsets_haptically_validated \
   /guzheng/onsets_markers \
   /guzheng/onsets_latest \
   /guzheng/cqt \
@@ -62,6 +63,7 @@ rosbag record \
   /guzheng/spectrogram \
   /guzheng/onset_projector/parameter_descriptions \
   /guzheng/onset_projector/parameter_updates \
+  /guzheng/validate_onsets/audio_tactile_delay \
   \
   /guzheng/plucks \
   \
