@@ -2,6 +2,11 @@
 
 # optional argument allows for custom filename
 
+if [[ "$1" = "--help" ]]; then
+  echo "usage: $0 [keywords to add to rosbag name]"
+  exit 0
+fi
+
 rosbag record \
   --tcpnodelay \
   -o "guzheng${1:+_$1}" \
