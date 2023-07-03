@@ -6,5 +6,5 @@
   <param name="robot_description" command="xacro '$(dirname)/../urdf/tams_pr2.urdf.xacro'"/>
   <node name="plectrum_poses" pkg="tams_pr2_guzheng" type="plectrum_poses.py" />
 
-  <node if="$(arg robot_state_publisher)" name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" />
+  <node if="$(arg robot_state_publisher)" name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true"/>
 </launch>
