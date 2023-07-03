@@ -25,11 +25,13 @@ class ValidateOnsets:
         self.recent_plucks.append(msg)
 
     def onset_cb(self, msg):
-        for p in reversed(self.recent_plucks):
+        for i, p in reversed(enumerate(self.recent_plucks)):
             # this should actually require the pluck *before* the onset, but signal alignment is not perfect
             # Also, onsets come in only every 1.5s, so the later plucks will still be here already
             delay= (msg.header.stamp - p.header.stamp).to_sec()
             if abs(delay) < self.tolerance:
+                # this pluck is accounted for now / don't explain other onsets through it as well
+                self.recent_plucks.pop(i)
                 self.delay_pub.publish(Float32Msg(delay))
                 # if so, publish the onset
                 self.onset_pub.publish(msg)
