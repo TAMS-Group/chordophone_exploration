@@ -12,6 +12,7 @@ from functools import reduce
 
 import librosa
 from tams_pr2_guzheng.msg import PluckEpisodeV2
+from audio_common_msgs.msg import AudioData
 
 # constants
 
@@ -228,4 +229,10 @@ def init_audio():
 init_audio()
 
 def play_audio(e):
-    audio_pub.publish(e.audio_data.audio)
+    if hasattr(e, 'audio_data'):
+        audio_pub.publish(e.audio_data.audio)
+    if isinstance(e, bytes):
+        A= AudioData(data= e)
+        audio_pub.publish(A)
+    else:
+        raise RuntimeError(f"can't play {type(e)}")
