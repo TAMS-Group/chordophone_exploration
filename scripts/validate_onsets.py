@@ -36,7 +36,7 @@ class ValidateOnsets:
                 return
         if len(self.recent_plucks) > 0:
             # publish rejected match to most current pluck
-            self.delay_pub.publish(Float32Msg(msg.header.stamp - self.recent_plucks[-1].header.stamp).to_sec())
+            self.delay_pub.publish(Float32Msg((msg.header.stamp - self.recent_plucks[-1].header.stamp).to_sec()))
 
         self.delay_pub.publish(Float32Msg(msg.header.stamp.to_sec()))
             
