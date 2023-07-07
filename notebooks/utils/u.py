@@ -14,6 +14,8 @@ import librosa
 from tams_pr2_guzheng.msg import PluckEpisodeV2
 from audio_common_msgs.msg import AudioData
 
+from IPython import display
+
 # constants
 
 guzheng_range = reduce(lambda a,b: a+b, list(map(lambda o: [f"{n}{o}" for n in ["d", "e", "fis", "a", "b"]], range(2, 6)))) + ["d6"]
@@ -182,6 +184,26 @@ def plot_target_note(e):
     plt.plot(data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate, cqt[target_cqt_idx(e),:], 'o-')
     plot_onsets(e)
 
+def plot_harmonics(e, ax= None):
+    if ax is None:
+        ax= plt.gca()
+
+    ax.set_prop_cycle(None)
+
+    fundamental_note_idx = cqt_range.index(e.string)
+    # fundamental_note_idx = u.cqt_range.index('b3')
+    harmonics = [fundamental_note_idx + i for i in (0, 12, 19, 24, 28, 31, 35, 36) if fundamental_note_idx + i < len(cqt_range)]
+
+    cqt= cqt_from_episode(e).T
+    cqt_t= (e.cqt.header.stamp - e.start_execution).to_sec() + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate
+    cqt= cqt[harmonics, :]
+    plot = ax.plot(
+        cqt_t,
+        cqt.T)
+    plt.xlim([0, max(cqt_t)])
+    plt.legend([cqt_range[h] for h in harmonics], loc='upper left')
+    return plot
+
 def plot_audio(e):
     plt.grid(False)
 
@@ -235,6 +257,17 @@ def describe_episode(e):
     print(f'plucks: {len(e.detected_tactile_plucks)}')
     for p in e.detected_tactile_plucks:
         print(f'       - {(p.header.stamp-e.start_execution).to_sec():.6} {p.finger} with strength {p.strength:.2F}')
+
+def show_animation(anim):
+    video= anim.to_html5_video()
+    html = display.HTML(video)
+    display.display(html)
+    plt.close()
+
+def interactive_animation(anim):
+    html = display.HTML(anim.to_jshtml())
+    display.display(html)
+    plt.close()
 
 # Audio - requires `roslaunch tams_pr2_guzheng play_audio_topic.launch`
 
