@@ -13,5 +13,10 @@
     <arg name="onset_delta" value="0.1" />
     <arg name="loudest_expected_db" value="50.0" />
     <arg name="drift_s_per_hour" value="-0.10" />
+
+    <arg name="window_size" value="0.5" />
+    <arg name="window_overlap" value="0.25" />
+
+    <arg name="spectrum_length" value="2.0" />
   </include>
 </launch>
