@@ -126,7 +126,7 @@ def plot_tip_path(e):
     plt.legend(['commanded', 'planned', 'executed'])
 
 def plot_joint_pos(e, joint):
-    plt.plot(*joint_positions(e.executed_trajectory, joint), color='b')
+    plt.plot(*joint_positions(e.executed_trajectory, joint), 'o-', color='b')
     # plt.ylabel(f"{joint}\nposition")
 
 def plot_joint_vel(e, joint):
@@ -220,6 +220,22 @@ def plot_onsets(e):
     for p in [p.header.stamp for p in e.detected_tactile_plucks]:
         plt.axvline((p-e.start_execution).to_sec(), ymin= 0.05, ymax= 0.95, color= 'red')
 
+def describe_episode(e):
+    header= f'Episode {e.id}'
+    print(f'{header}\n{"-"*len(header)}\n\n'
+        f'start: {e.header.stamp.to_sec()}\n'
+        f'length: {e.length.to_sec()}\n')
+
+    e_avg_sample_dt= ((e.executed_trajectory.points[-1].time_from_start - e.executed_trajectory.points[0].time_from_start)/len(e.executed_trajectory.points)).to_sec()
+    print(f'executed trajectory sampled at {1/e_avg_sample_dt}\n')
+
+    print(f'onsets: {len(e.detected_audio_onsets)}')
+    for o in e.detected_audio_onsets:
+        print(f'       - {o.note} at {(o.header.stamp-e.start_execution).to_sec():.6} with {o.loudness:.2F}dB')
+    print(f'plucks: {len(e.detected_tactile_plucks)}')
+    for p in e.detected_tactile_plucks:
+        print(f'       - {(p.header.stamp-e.start_execution).to_sec():.6} {p.finger} with strength {p.strength:.2F}')
+
 # Audio - requires `roslaunch tams_pr2_guzheng play_audio_topic.launch`
 
 def init_audio():
@@ -231,7 +247,7 @@ init_audio()
 def play_audio(e):
     if hasattr(e, 'audio_data'):
         audio_pub.publish(e.audio_data.audio)
-    if isinstance(e, bytes):
+    elif isinstance(e, bytes):
         A= AudioData(data= e)
         audio_pub.publish(A)
     else:
