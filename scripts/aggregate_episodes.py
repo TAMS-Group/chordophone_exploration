@@ -195,6 +195,7 @@ class Aggregator():
 
         self.episode.audio_data.header.stamp+= self.audio_delay+self.audio_drift
         self.episode.cqt.header.stamp += self.audio_delay
+
         for o in self.episode.detected_audio_onsets:
             o.header.stamp += self.audio_delay
 
@@ -222,6 +223,10 @@ class Aggregator():
             rospy.logerr('received start of episode {}, but still tracking episode {}'.format(msg.episode, self.episode.id))
         elif self.episode.id is not None and msg.episode != self.episode.id:
             rospy.logerr('received state {}/{} but currently episode {} is still tracked'.format(msg.episode,msg.state,self.episode.id))
+        elif msg.state == 'end' and self.episode.id is None:
+            rospy.logwarn('received end of episode {}, but not tracking any episode'.format(msg.episode))
+            self.start_episode()
+            return
 
         if msg.state == 'start':
             rospy.loginfo(f'{self.episode_count}th episode starts at {msg.header.stamp.to_sec()} with id {msg.episode}')
