@@ -18,7 +18,7 @@
 
     <arg name="spectrum_length" value="2.0" />
 
-    <arg name="onset_delta" value="0.2" />
+    <arg name="onset_delta" value="0.4" />
     <arg name="ctx_pre" value="0.15" />
     <arg name="ctx_post" value="0.15" />
   </include>
