@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import librosa
 import matplotlib.pyplot as plt; plt.switch_backend('agg')
 import numpy as np
 import random
@@ -59,7 +60,7 @@ def main():
     #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
     if string == "all":
         strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
-        strings = [m.ns for m in strings.markers if " " not in m.ns and len(m.ns) > 0]
+        strings = sorted([m.ns for m in strings.markers if " " not in m.ns and len(m.ns) > 0], key = lambda s: librosa.note_to_midi((utils.string_to_note(s))))
     else:
         strings= string.split(" ")
 
