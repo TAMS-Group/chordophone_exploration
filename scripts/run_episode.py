@@ -127,6 +127,7 @@ class RunEpisode():
         p = path()
 
         # build two-waypoint path to approach start position with some clearance from above
+        # TODO: for *long* approach paths, go up first, then towards a higher approach point, then down
         approach_path = copy.deepcopy(p)
         approach_path.poses = approach_path.poses[0:1]
         approach_pose = copy.deepcopy(approach_path.poses[0])
