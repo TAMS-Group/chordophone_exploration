@@ -162,13 +162,13 @@ def main():
                     # higher
                     path.keypoint_pos[1] += 0.005
                     # move velocity vector (12/13) up by a bit and clip to avoid changing direction
-                    theta = tau/4/2 * path.direction
-                    rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
-                    vec = np.array(path.keypoint_vel)
-                    vec_rotated = np.dot(rot, vec)
-                    if vec_rotated[0] * vec[0] <= 0.0:
-                        vec_rotated[0] = 0.0
-                    path.keypoint_vel= vec_rotated.tolist()
+                    # theta = tau/4/2 * path.direction
+                    # rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
+                    # vec = np.array(path.keypoint_vel)
+                    # vec_rotated = np.dot(rot, vec)
+                    # if vec_rotated[0] * vec[0] <= 0.0:
+                    #     vec_rotated[0] = 0.0
+                    # path.keypoint_vel= vec_rotated.tolist()
 
         if attempts == 1:
             break
