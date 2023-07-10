@@ -59,7 +59,7 @@ def main():
     #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
     if string == "all":
         strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
-        strings = [m.ns for m in strings.markers if " " not in m.ns]
+        strings = [m.ns for m in strings.markers if " " not in m.ns and len(m.ns) > 0]
     else:
         strings= string.split(" ")
 
