@@ -13,6 +13,7 @@ class ValidateOnsets:
         self.tolerance = rospy.get_param("~tolerance", 0.3)
 
         self.onset_pub = rospy.Publisher("onsets_haptically_validated", NoteOnset, queue_size=50, tcp_nodelay=True)
+        self.onset_failed_pub = rospy.Publisher("onsets_failed_to_validate", NoteOnset, queue_size=50, tcp_nodelay=True)
         self.delay_pub = rospy.Publisher("~audio_tactile_delay", Float32Msg, queue_size=1, tcp_nodelay=True)
 
         self.pluck_sub = rospy.Subscriber("plucks", TactilePluck, self.pluck_cb, tcp_nodelay=True)
@@ -36,11 +37,14 @@ class ValidateOnsets:
                 # if so, publish the onset
                 self.onset_pub.publish(msg)
                 return
-        if len(self.recent_plucks) > 0:
-            # publish rejected match to most current pluck
-            self.delay_pub.publish(Float32Msg((msg.header.stamp - self.recent_plucks[-1].header.stamp).to_sec()))
+        # could not find corresponding pluck
+        self.onset_failed_pub.publish(msg)
 
-        self.delay_pub.publish(Float32Msg(msg.header.stamp.to_sec()))
+        # publish delay to most recent pluck, if any
+        if len(self.recent_plucks) > 0:
+            self.delay_pub.publish(Float32Msg((msg.header.stamp - self.recent_plucks[-1].header.stamp).to_sec()))
+        else:
+            self.delay_pub.publish(Float32Msg(msg.header.stamp.to_sec()))
             
 if __name__ == "__main__":
     rospy.init_node("validate_onsets")
