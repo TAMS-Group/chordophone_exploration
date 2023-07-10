@@ -118,12 +118,11 @@ def main():
                     return
                 result = run_episode.get_result()
 
-                # if more than one onset with expected note exists, only keep the one with highest loudness
                 expected_onset = [o for o in result.onsets if o.note == utils.string_to_note(strings[i])]
                 if len(expected_onset) > 1:
                     # some strings "echo" with a high delay, so we only keep the one with highest loudness to supress artifacts
-                    # TODO: get rid of this through tactile validation
                     expected_onset = [max(expected_onset, key= lambda o: o.loudness)]
+
                 unexpected_onsets = [o for o in result.onsets if o.note != utils.string_to_note(strings[i])]
 
                 log = f"add pluck for string {strings[i]} "
