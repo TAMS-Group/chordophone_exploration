@@ -130,7 +130,7 @@ class RunEpisode():
         approach_path = copy.deepcopy(p)
         approach_path.poses = approach_path.poses[0:1]
         approach_pose = copy.deepcopy(approach_path.poses[0])
-        approach_pose.pose.position.z += 0.020
+        approach_pose.pose.position.z += 0.025
         approach_path.poses.insert(0, approach_pose)
         self.goto_start_client.send_goal(ExecutePathGoal(
             path=approach_path,
@@ -152,10 +152,10 @@ class RunEpisode():
         self.parameter_pub.publish(params)
         self.pluck_client.wait_for_result()
         # wait to collect data
-        self.sleep(2.0)
+        self.sleep(0.8)
         self.publishState("end")
         # some more buffer to associate messages later if needed
-        self.sleep(1.0)
+        #self.sleep(1.0)
 
         return self.episode_onsets
 
