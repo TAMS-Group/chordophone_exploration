@@ -60,7 +60,7 @@ class RunEpisode():
             tcp_nodelay=True)
 
         self.onset_sub = rospy.Subscriber(
-            'guzheng/onsets',
+            'guzheng/onsets_haptically_validated',
             NoteOnset,
             self.onset_cb,
             queue_size=500,
