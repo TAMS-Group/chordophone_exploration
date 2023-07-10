@@ -1,28 +1,25 @@
 #!/usr/bin/env python
 
-import random
-from math import tau
-
+import matplotlib.pyplot as plt; plt.switch_backend('agg')
 import numpy as np
+import random
 import rospkg
 import rospy
-import tf2_geometry_msgs
-import tf2_ros
-from actionlib import SimpleActionClient
 import scipy.stats as stats
-
-from tams_pr2_guzheng.onset_to_path import OnsetToPath
 import tams_pr2_guzheng.paths as paths
 import tams_pr2_guzheng.utils as utils
+import tf2_geometry_msgs
+import tf2_ros
 
+from actionlib import SimpleActionClient
+from math import tau
+from tams_pr2_guzheng.onset_to_path import OnsetToPath
+from tams_pr2_guzheng.utils import string_length, publish_figure
 from tams_pr2_guzheng.msg import (
     RunEpisodeAction,
     RunEpisodeGoal,
     RunEpisodeRequest)
-from tams_pr2_guzheng.utils import string_length, publish_figure
-
-import matplotlib.pyplot as plt
-plt.switch_backend('agg')
+from visualization_msgs.msg import MarkerArray
 
 def plot_p(strings, p):
     fig = plt.figure(dpi= 150)
@@ -60,7 +57,11 @@ def main():
 
     # strings to explore
     #strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-    strings= string.split(" ")
+    if string == "all":
+        strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
+        strings = [m.ns for m in strings.markers if " " not in m.ns]
+    else:
+        strings= string.split(" ")
 
     jump_size= 3 # max size of the jump between two consecutively explored strings
     attempts_for_good_pluck = 4 # max number of attempts to pluck string with one onset

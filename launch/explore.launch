@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="string" />
+  <arg name="string" default="all" />
   <arg name="finger" default="ff" />
   <arg name="runs" default="1" />
   <arg name="direction" default="0.0" />
