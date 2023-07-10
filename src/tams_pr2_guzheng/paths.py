@@ -165,7 +165,7 @@ class RuckigPath:
         if direction is None:
             direction = random.choice((-1.0, 1.0))
 
-        p.pre = [direction*(-0.01), 0.01]
+        p.pre = [direction*(-0.007), 0.01]
         p.post = [direction*0.01, 0.02]
 
         pos_limits= np.array([-0.004, 0.005])
