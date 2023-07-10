@@ -77,14 +77,14 @@ def plot_aligned_audio_tactile(e, context= 0.3):
 
     plots = [
         ("raw audio", lambda: plot_raw_audio(e)),
-        ("cqt", lambda: plot_audio(e)),
+        ("cqt", lambda: plot_cqt(e)),
         ("cqt\ntarget", lambda: plot_cqt(e, cqt)),
         ("cqt\nenergy", lambda: plot_cqt_energy(e)),
         ("target\nnote", lambda: plot_target_note(e)),
         ("pdc", lambda: plot_tactile(e)),
         ("pac", lambda: plot_tactile_ac(e)),
-        (f"rh_{e.finger.upper()}J3\nposition", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J3")),
-        (f"rh_{e.finger.upper()}J2\nposition", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J2")),
+        (f"{e.finger.upper()}J3\npos", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J3")),
+        (f"{e.finger.upper()}J2\npos", lambda: plot_joint_pos(e, f"rh_{e.finger.upper()}J2")),
     ]
 
     N = len(plots)
@@ -163,7 +163,7 @@ def plot_joints(e):
 
     plt.tight_layout()
 
-def plot_cqt(e, cqt= None):
+def plot_cqt(e, cqt= None, onsets= True):
     data_start = (e.cqt.header.stamp - e.start_execution).to_sec()
 
     if cqt is None:
@@ -173,7 +173,8 @@ def plot_cqt(e, cqt= None):
     Y= np.tile(np.arange(cqt.shape[0])[:,np.newaxis], cqt.shape[1])
 
     plt.pcolormesh(X, Y, cqt, cmap='jet')
-    plot_onsets(e)
+    if onsets:
+        plot_onsets(e)
 
 def target_cqt_idx(e : PluckEpisodeV2) -> int:
     return int(librosa.note_to_midi(string_to_note(e.string)) - librosa.note_to_midi(e.cqt.min_note))
@@ -204,21 +205,16 @@ def plot_harmonics(e, ax= None):
     plt.legend([cqt_range[h] for h in harmonics], loc='upper left')
     return plot
 
-def plot_audio(e):
-    plt.grid(False)
-
-    plot_cqt(e)
-    plot_onsets(e)
-
 def audio_from_episode(e):
     return np.frombuffer(e.audio_data.audio.data, dtype=np.int16).astype(float)
 
-def plot_raw_audio(e):
+def plot_raw_audio(e, onsets = True):
     data_start = (e.audio_data.header.stamp-e.start_execution).to_sec()
 
     signal = np.array(struct.unpack('{0}h'.format(int(len(e.audio_data.audio.data)/2)), e.audio_data.audio.data), dtype=float)
     plt.plot(data_start + np.arange(len(signal), dtype=float)/e.audio_info.sample_rate, signal)
-    plot_onsets(e)
+    if onsets:
+        plot_onsets(e)
 
 def plot_tactile(e):
     plt.plot([ (t.header.stamp-e.start_execution).to_sec() for t in e.tactile_data],[t.tactile.pdc for t in e.tactile_data])
@@ -265,7 +261,7 @@ def show_animation(anim):
     plt.close()
 
 def interactive_animation(anim):
-    html = display.HTML(anim.to_jshtml())
+    html = HTML(anim.to_jshtml())
     display.display(html)
     plt.close()
 
