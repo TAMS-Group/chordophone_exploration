@@ -57,6 +57,7 @@ class Aggregator():
         self.subs= []
 
         self.topics_ignored= [
+            '/guzheng/onsets',
             '/guzheng/onsets_latest',
             '/guzheng/onsets_markers',
             '/fingertips/plucks_latest',
@@ -114,7 +115,7 @@ class Aggregator():
             ('/fingertips/pluck_projector/parameter_updates', DynamicReconfigureConfig, self.pluck_parameter_cb),
             ('/fingertips/pluck_projector/parameter_descriptions', DynamicReconfigureConfigDescription, self.pluck_parameter_desc_cb),
 
-            ('/guzheng/onsets', NoteOnset, self.onsets_cb),
+            ('/guzheng/onsets_haptically_validated', NoteOnset, self.onsets_cb),
             # ('/guzheng/onsets_latest', MarkerArray, self.onsets_latest_cb),
             ('/guzheng/cqt', CQTStamped, self.cqt_cb),
             # ('/guzheng/onset_detector/envelope', Float32Msg, self.envelope_cb),
