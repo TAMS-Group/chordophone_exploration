@@ -55,6 +55,7 @@ rosbag record \
   \
   /guzheng/onsets \
   /guzheng/onsets_haptically_validated \
+  /guzheng/onsets_failed_to_validate \
   /guzheng/onsets_markers \
   /guzheng/onsets_latest \
   /guzheng/cqt \
