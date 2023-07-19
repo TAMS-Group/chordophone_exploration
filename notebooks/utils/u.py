@@ -1,7 +1,9 @@
 import rospy
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+
 mpl.style.use('seaborn-v0_8')
+plt.rcParams['font.sans-serif'] = ['Arial'] # support MUSIC SHARP
 
 import numpy as np
 import struct
