@@ -118,7 +118,7 @@ def plot_episode(e, joints= True):
     plot_aligned_audio_tactile(e)
 
     if joints:
-        plt.figure(figsize=(7,15), dpi=100)
+        #plt.figure(figsize=(7,15), dpi=100)
         plot_joints(e)
 
 def plot_tip_path(e):
@@ -187,6 +187,9 @@ def plot_target_note(e):
     plt.plot(data_start + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate, cqt[target_cqt_idx(e),:], 'o-')
     plot_onsets(e)
 
+def harmonics_for_index(fundamental_note_idx):
+    return np.array([fundamental_note_idx + i for i in (0, 12, 19, 24, 28, 31, 35, 36) if fundamental_note_idx + i < len(cqt_range)])
+
 def plot_harmonics(e, ax= None):
     if ax is None:
         ax= plt.gca()
@@ -195,7 +198,7 @@ def plot_harmonics(e, ax= None):
 
     fundamental_note_idx = cqt_range.index(e.string)
     # fundamental_note_idx = u.cqt_range.index('b3')
-    harmonics = [fundamental_note_idx + i for i in (0, 12, 19, 24, 28, 31, 35, 36) if fundamental_note_idx + i < len(cqt_range)]
+    harmonics = harmonics_for_index(fundamental_note_idx)
 
     cqt= cqt_from_episode(e).T
     cqt_t= (e.cqt.header.stamp - e.start_execution).to_sec() + np.arange(cqt.shape[1])*e.cqt.hop_length/e.cqt.sample_rate
@@ -204,8 +207,40 @@ def plot_harmonics(e, ax= None):
         cqt_t,
         cqt.T)
     plt.xlim([0, max(cqt_t)])
+    plt.xlabel('time (hops)')
+    plt.ylabel('cqt')
     plt.legend([cqt_range[h] for h in harmonics], loc='upper left')
     return plot
+
+def plot_harmonics_bars(e, note= None, cqt= None, ax= None):
+    if ax is None:
+        ax= plt.gca()
+
+    ax.set_prop_cycle(None)
+
+    if note is None:
+        note= e.string
+    fundamental_note_idx = cqt_range.index(note)
+    harmonics = harmonics_for_index(fundamental_note_idx)
+    if cqt is None:
+        cqt= cqt_from_episode(e)
+
+    # reset colors
+    ax.set_prop_cycle(None)
+    for i in reversed(range(len(harmonics)-1)):
+        plt.bar(
+            range(cqt.shape[0]),
+            cqt[:,harmonics[:i+1]].sum(axis=-1)
+            )
+    plt.xticks(
+        range(cqt.shape[0]),
+        [(f'{(i-2)*e.cqt.hop_length/e.cqt.sample_rate:.2F}' if (i+3)%5==0 else '') for i in range(0, cqt.shape[0])]
+        )
+    plt.xticks(rotation= 90)
+
+    plt.xlabel('time (s)')
+    plt.ylabel('cqt')
+    plt.legend([cqt_range[h] for h in reversed(harmonics)], loc='upper right')
 
 def audio_from_episode(e):
     return np.frombuffer(e.audio_data.audio.data, dtype=np.int16).astype(float)
