@@ -6,9 +6,9 @@
   <include file="$(find music_perception)/launch/onsets.launch">
     <arg name="semitones_above" value="26" />
 
-    <arg name="reference_amplitude" value="480.0" />
+    <arg name="reference_amplitude" value="10.0" />
     <arg name="log_max_raw_cqt" default="false" />
-    <arg name="perceptual_weighting" value="false" />
+    <arg name="perceptual_weighting" value="true" />
 
     <arg name="loudest_expected_db" value="50.0" />
     <arg name="drift_s_per_hour" value="-0.10" />
@@ -18,8 +18,8 @@
 
     <arg name="spectrum_length" value="2.0" />
 
-    <arg name="onset_delta" value="0.4" />
+    <arg name="onset_delta" value="1.0" />
     <arg name="ctx_pre" value="0.15" />
-    <arg name="ctx_post" value="0.15" />
+    <arg name="ctx_post" value="0.25" />
   </include>
 </launch>
