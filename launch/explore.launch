@@ -2,19 +2,28 @@
 <launch>
   <arg name="string" default="all" />
   <arg name="finger" default="ff" />
-  <arg name="runs" default="1" />
   <arg name="direction" default="0.0" />
   <arg name="string_position" default="-1.0" />
-  <arg name="attempts" default="0" />
-  <arg name="reduce_variance" default="false" />
+
+  <arg name="runs" default="0" />
+  <arg name="attempts_per_string" default="1" />
+
+  <!-- valid values: 'geometry', 'reduce_variance', 'random' -->
+  <arg name="strategy" default="random" />
+  <!-- valid values: 'uniform', 'halton' -->
+  <arg name="position_strategy" default="halton" />
+  <!-- <arg name="attempts_for_good_pluck" default="4" /> -->
 
   <node name="explore" pkg="tams_pr2_guzheng" type="explore_via_run_episode.py" output="screen">
     <param name="string" value="$(arg string)" />
     <param name="finger" value="$(arg finger)" />
-    <param name="runs" value="$(arg runs)" />
     <param name="direction" value="$(arg direction)" />
     <param name="string_position" value="$(arg string_position)" />
-    <param name="attempts" value="$(arg attempts)" />
-    <param name="reduce_variance" value="$(arg reduce_variance)" />
+
+    <param name="runs" value="$(arg runs)" />
+    <param name="attempts_per_string" value="$(arg attempts_per_string)" />
+
+    <param name="strategy" value="$(arg strategy)" />
+    <param name="position_strategy" value="$(arg position_strategy)" />
   </node>
 </launch>

@@ -145,28 +145,52 @@ class RuckigPath:
         return params
 
     @classmethod
-    def random(cls, *, string : str, direction : float = None, string_position : float = None, tf = None):
+    def prototype(cls, *, string : str, string_position : float, direction : float):
         '''
         @param string: string to pluck
         @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
         @param string_position: pluck position on string in meters. Random on string if None and tf are given
         '''
 
-        if string_position is None and tf is None:
-            raise ValueError("Must provide either string_position or tf")
+        assert(string_position >= 0.0)
+        assert(direction in [-1.0, 1.0])
 
-        p = __class__()
+        p = cls()
 
         p.string = string
-        if string_position is None:
-            string_position = random.uniform(0.0, string_length(string, tf))
         p.string_position = string_position
-
-        if direction is None:
-            direction = random.choice((-1.0, 1.0))
 
         p.pre = [direction*(-0.007), 0.01]
         p.post = [direction*0.01, 0.02]
+
+        pos_limits= np.array([-0.004, 0.005])
+        if direction < 0.0:
+            pos_limits= -1.0*pos_limits[::-1]
+        p.keypoint_pos = [0.0, -0.004]
+        p.keypoint_vel = [direction*0.015, 0.015]
+
+        return p
+
+    @classmethod
+    def random(cls, *, string : str, direction : float = 0.0, string_position : float = -1.0, tf = None):
+        '''
+        @param string: string to pluck
+        @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
+        @param string_position: pluck position on string in meters. Random on string if None and tf are given
+        '''
+
+        if string_position < 0.0 and tf is None:
+            raise ValueError("Must provide either string_position or tf")
+
+        assert(direction in [-1.0, 0.0, 1.0])
+
+        if string_position < 0.0:
+            string_position = random.uniform(0.0, string_length(string, tf))
+
+        if direction == 0.0:
+            direction = random.choice((-1.0, 1.0))
+
+        p = cls.prototype(string= string, string_position= string_position, direction= direction)
 
         pos_limits= np.array([-0.004, 0.005])
         if direction < 0.0:
