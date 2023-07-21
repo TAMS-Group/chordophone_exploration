@@ -54,6 +54,8 @@ class StringFitter:
         self.active = req.data
         if self.active:
             rospy.loginfo("activated fitter")
+            self.fit()
+            self.publish_strings()
         else:
             self.publish_strings()
             rospy.loginfo("set fitter inactive after final fit")
