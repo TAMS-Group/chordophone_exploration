@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import rospy
 import sklearn.gaussian_process as gp
+import scipy.stats as stats
 
 from typing import NamedTuple, Tuple
 
@@ -123,7 +124,7 @@ class OnsetToPath:
         if direction < 0.0:
             pos_limits= -1.0*pos_limits[::-1]
 
-        # TODO: CEM?
+        # TODO: CEM? Second-Order Optimization?
         sample_size= 100
 
         xi = np.random.uniform(actionspace.string_position[0], actionspace.string_position[1], sample_size)
@@ -136,22 +137,27 @@ class OnsetToPath:
 
         # optional visualization
         grid_size = 50
+        grid_string_position = np.linspace(actionspace.string_position[0], actionspace.string_position[1], grid_size)
+        grid_keypoint_pos_y = np.linspace(pos_limits[0], pos_limits[1], grid_size)
+
         xi, yi = np.meshgrid(
-            np.linspace(actionspace.string_position[0], actionspace.string_position[1], grid_size),
-            np.linspace(pos_limits[0], pos_limits[1], grid_size)
+            grid_string_position,
+            grid_keypoint_pos_y
             )
         xi= xi.ravel()
         yi= yi.ravel()
         grid_points = np.column_stack((xi, yi))
         grid_points = normalize(grid_points, features_norm_params)
         means, std = GPR.predict(grid_points, return_std=True)
-        fig = plt.figure(dpi= 50)
+        fig = plt.figure(dpi= 100)
         means = means.reshape((grid_size, grid_size))
         plt.imshow(means, origin='lower', cmap=plt.get_cmap("RdPu"))
         plt.colorbar()
         plt.grid(False)
-        plt.xticks([])
-        plt.yticks([])
+        plt.xticks(range(len(grid_string_position)), labels= [(f"{p:.2F}" if i%10==0 else "") for (i,p) in enumerate(grid_string_position)])
+        plt.yticks(range(len(grid_keypoint_pos_y)), labels= [(f"{p:.4F}" if i%10==0 else "") for (i,p) in enumerate(grid_keypoint_pos_y)])
+        plt.xlabel("string position")
+        plt.ylabel("keypoint pos y")
         publish_figure("gp_loudness", fig)
         fig = plt.figure(dpi= 50)
         std = std.reshape((grid_size, grid_size))
@@ -213,7 +219,7 @@ class OnsetToPath:
             pluck['string_position'] = string_position
         return RuckigPath.from_map(pluck)(), pluck['finger']
 
-    def get_path(self, note : str, finger : str, direction : float, loudness : float= None, string_position : float= None) -> Tuple[Path, float, float]:
+    def get_path(self, note : str, finger : str, direction : float, loudness : float= None, string_position : float= None) -> Tuple[Path, str, float]:
         '''
         Returns a path for the given note and loudness.
 
@@ -251,7 +257,6 @@ class OnsetToPath:
         if len(plucks) == 0:
             raise ValueError(f"No plucks found for note {note} and finger {finger} in direction {direction}")
 
-
         if plucks[
             (plucks['detected_note'] == note) &
             (plucks['onset_cnt'] == 1)
@@ -275,7 +280,8 @@ class OnsetToPath:
         keypoint_pos_y_limits = (np.min(plucks['keypoint_pos_y']), np.max(plucks['keypoint_pos_y']))
 
         if string_position is not None:
-            string_positions = np.linspace(np.max((0.0, string_position-.02)), np.min((string_position+.02, string_limits[1])), 5)
+            context = 0.07 # m around string_position
+            string_positions = np.linspace(np.max((0.0, string_position-context)), np.min((string_position+context, string_limits[1])), 10)
         else:
             string_positions = np.linspace(*string_limits, grid_size)
 
@@ -286,16 +292,17 @@ class OnsetToPath:
         grid_features = np.column_stack((xi, yi))
         grid_features_normalized = normalize(grid_features, features_norm_params)
 
-        # pick mean closest to target loudness
-        # TODO: prefer plucks with low std close to target loudness
-        means = GPR.predict(grid_features_normalized, return_std=False)
-        means = means.reshape((string_positions.size, keypoint_pos_ys.size))
-        features_idx = np.argmin(np.abs(means-loudness))
+        # pick point with highest pdf for target loudness
+        means, stds = GPR.predict(grid_features_normalized, return_std=True)
+        probs = stats.norm(means, stds).pdf(loudness)
+        # TODO: trade-off pdf and distance to target
+        features_idx = np.argmax(probs)
+        #features_idx = np.argmin(np.abs(means-loudness))
 
         string_position= xi[features_idx]
         keypoint_pos_y= yi[features_idx]
 
-        p = RuckigPath.random(string= string, direction= direction, string_position= string_position)
+        p = RuckigPath.prototype(string= string, direction= direction, string_position= string_position)
         p.keypoint_pos[0] = keypoint_pos_y
 
-        return p, finger
+        return p, finger, probs[features_idx]

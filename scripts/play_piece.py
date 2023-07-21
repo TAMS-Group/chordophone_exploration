@@ -36,7 +36,7 @@ class PlayPiece:
         self.execute_path.wait_for_server()
 
         self.o2p= OnsetToPath(storage= rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
-        self.start_string_position = rospy.get_param("~start_string_position", 0.1)
+        self.start_string_position = rospy.get_param("~start_string_position", None)
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
 
@@ -89,7 +89,7 @@ class PlayPiece:
             last_midi_note= midi_note
             try:
                 # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
-                path, finger = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position, finger= finger)
+                path, finger, prob = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position, finger= finger)
                 path = path()
                 last_string_position = path.poses[0].pose.position.x
             except ValueError as e:
