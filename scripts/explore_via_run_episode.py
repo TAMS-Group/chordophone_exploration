@@ -148,24 +148,24 @@ def main():
                 direction= direction,
                 string_position= trial_string_position
             )
-
-        if strategy == "reduce_variance":
+        else:
             if direction == 0.0:
-                direction = random.choice((-1.0, 1.0)) # TODO: consider NBP of either direction
+                trial_direction = random.choice((-1.0, 1.0)) # TODO: consider NBP of either direction
 
             path = paths.RuckigPath.prototype(
                 string = strings[i],
-                direction= direction,
+                direction= trial_direction,
                 string_position= trial_string_position
             )
 
+        if strategy == "reduce_variance":
             nbp = o2p.infer_next_best_pluck(
                 string= strings[i],
                 finger= finger,
                 direction= path.direction,
                 actionspace= OnsetToPath.ActionSpace(
                     string_position= np.array((0.0, string_len)),
-                    keypoint_pos_y= np.array((-0.004, 0.008)),
+                    keypoint_pos_y= np.array((-0.007, 0.008)),
                 ),
             )
             if nbp is not None:
