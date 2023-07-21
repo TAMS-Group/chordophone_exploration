@@ -2,7 +2,10 @@ import rospy
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 
-mpl.style.use('seaborn-v0_8')
+try:
+    mpl.style.use('seaborn-v0_8')
+except:
+    pass
 plt.rcParams['font.sans-serif'] = ['Arial'] # support MUSIC SHARP
 
 import numpy as np
