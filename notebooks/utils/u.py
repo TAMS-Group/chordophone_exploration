@@ -6,7 +6,7 @@ try:
     mpl.style.use('seaborn-v0_8')
 except:
     pass
-plt.rcParams['font.sans-serif'] = ['Arial'] # support MUSIC SHARP
+#plt.rcParams['font.sans-serif'] = ['Arial'] # support MUSIC SHARP
 
 import numpy as np
 import struct
@@ -55,7 +55,7 @@ def save_plot(s):
 
 def save_anim(a, s):
     a.save(f'plots/{s}.mp4', dpi= 150)
-    
+
 def big_plot():
     plt.figure(figsize=(15,8), dpi=100)
 
@@ -150,7 +150,7 @@ def plot_joints(e):
         plt.title(f"{j} positions")
         plt.plot(*joint_positions(e.planned_trajectory, j), color='r')
         plt.plot(*joint_positions(e.executed_trajectory, j), color='b')
-    
+
         plt.subplot(9, 2, 2*(i+1))
         plt.title(f"{j} velocities")
         plt.plot(*joint_velocities(e.planned_trajectory, j), color='r')
@@ -263,7 +263,7 @@ def plot_tactile(e):
 def plot_tactile_ac(e):
     plt.plot([ (t.header.stamp-e.start_execution).to_sec() for t in e.tactile_data],[t.tactile.pac0 for t in e.tactile_data])
     plot_onsets(e)
-    
+
 def plot_joint(e, joint):
     j_idx = e.executed_trajectory.joint_names.index(joint)
     sample_times = [p.time_from_start.to_sec()-e.start_execution.to_sec() for p in e.executed_trajectory.points]+[(e.header.stamp+e.length).to_sec()]
@@ -274,7 +274,7 @@ def plot_joint(e, joint):
 def plot_onsets(e):
     for o in [o.header.stamp+rospy.Duration(magic_cqt_offset) for o in e.detected_audio_onsets]:
         plt.axvline((o-e.start_execution).to_sec(), ymin= 0.05, ymax= 0.95, color= 'purple')
-    
+
     for p in [p.header.stamp for p in e.detected_tactile_plucks]:
         plt.axvline((p-e.start_execution).to_sec(), ymin= 0.05, ymax= 0.95, color= 'red')
 
