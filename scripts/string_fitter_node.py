@@ -303,12 +303,8 @@ class StringFitter:
 
                 inlier_pts = pts[inliers]
 
-                # flip direction to face left for horizontal strings
-                if np.abs(direction[1]) > 1.5*np.abs(direction[2]) and direction[1] < 0:
-                    direction = -direction
-
-                # flip direction to face upwards for vertical strings
-                if np.abs(direction[2]) > 1.5*np.abs(direction[1]) and direction[2] < 0:
+                # ensure string direction to face left and/or upward
+                if direction @ np.array([1, 1, 1]) < 0:
                     direction = -direction
 
                 inlier_positions_on_string = (inlier_pts - model.params[0]) @ direction
