@@ -66,11 +66,10 @@ rosbag record \
   /guzheng/onset_projector/parameter_updates \
   /guzheng/validate_onsets/audio_tactile_delay \
   \
-  /guzheng/plucks \
-  \
   /guzheng/onset_projector/parameter_updates \
   /guzheng/pluck_projector/parameter_updates \
   \
   /guzheng/fitted_strings \
   /piece \
-  /piece_midi_loudness
+  /piece_midi_loudness \
+  __name:=rosbag_recorder
