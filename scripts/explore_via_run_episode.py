@@ -158,6 +158,9 @@ def main():
                 string_position= trial_string_position
             )
 
+        if strategy == "geometry":
+            path.keypoint_pos[1] = -0.002 # more cautious initial pluck
+
         if strategy == "reduce_variance":
             nbp = o2p.infer_next_best_pluck(
                 string= strings[i],
@@ -220,7 +223,7 @@ def main():
                 rospy.logwarn("no onset detected, retry with adapted parameters")
                 # lower and further in the pluck direction
                 path.keypoint_pos[0] += 0.003 * path.direction
-                path.keypoint_pos[1] -= 0.003
+                path.keypoint_pos[1] -= 0.002
             else: # len(onsets) > 1
                 rospy.logwarn(f"multiple onsets detected, but one expected (got {len(result.onsets)}), retry with adapted parameters")
                 # higher
