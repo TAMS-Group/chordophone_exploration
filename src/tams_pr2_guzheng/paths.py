@@ -163,9 +163,6 @@ class RuckigPath:
         p.pre = [direction*(-0.007), 0.01]
         p.post = [direction*0.01, 0.02]
 
-        pos_limits= np.array([-0.004, 0.005])
-        if direction < 0.0:
-            pos_limits= -1.0*pos_limits[::-1]
         p.keypoint_pos = [0.0, -0.004]
         p.keypoint_vel = [direction*0.015, 0.015]
 
