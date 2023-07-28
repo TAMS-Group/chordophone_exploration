@@ -215,7 +215,9 @@ sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	// indicate string position
 	cv::circle(img, cv::Point{width/2, height*3/4}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
 
-   cv::putText(img, args.label, cv::Point(0, height-10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+  cv::putText(img, args.label, cv::Point(0, height-10), cv::FONT_HERSHEY_COMPLEX_SMALL, 1.0, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+
+  // TODO: draw millimeter line at top
 
 	auto drawPoses{
 		[&](const nav_msgs::Path& path, const cv::Scalar& color){
