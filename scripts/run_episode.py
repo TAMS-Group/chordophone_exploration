@@ -140,7 +140,7 @@ class RunEpisode():
         self.goto_start_client.wait_for_result()
 
         if rospy.is_shutdown():
-            return 
+            return
 
         now = rospy.Time.now()
         self.publishState("start", now)
@@ -177,12 +177,8 @@ def main():
 
     string = rospy.get_param("~string", "d6")
     finger = rospy.get_param("~finger", "ff")
-    direction = rospy.get_param("~direction", None)
-    if direction == 0.0:
-        direction = None
-    string_position = rospy.get_param("~string_position", None)
-    if string_position < 0.0:
-        string_position = None
+    direction = rospy.get_param("~direction", 0.0)
+    string_position = rospy.get_param("~string_position", -1.0)
 
     continuous = rospy.get_param("~continuous", False)
     runs = rospy.get_param("~runs", 1)

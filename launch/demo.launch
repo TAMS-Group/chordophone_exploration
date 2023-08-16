@@ -10,10 +10,17 @@
     <arg name="robot_state_publisher" value="false" />
   </include>
 
-  <include file="$(dirname)/spawn_example_d6.launch" />
-
   <node name="rviz" pkg="rviz" type="rviz" args="-d '$(dirname)/../config/guzheng.rviz'" />
 
   <!-- used to set offsets -->
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
+
+  <include file="$(dirname)/string_fitter.launch" />
+  <param name="/guzheng/string_fitter/storage_path" value="$(find tams_pr2_guzheng)/data/strings_example.yaml" />
+  <param name="/guzheng/string_fitter/load_static_on_startup" value="true" />
+
+  <include file="$(dirname)/pluck_from_path.launch" />
+  <include file="$(dirname)/run_episode.launch">
+    <arg name="listen" value="true" />
+  </include>
 </launch>

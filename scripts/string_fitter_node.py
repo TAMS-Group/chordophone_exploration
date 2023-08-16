@@ -36,7 +36,10 @@ class StringFitter:
                             rospkg.RosPack().get_path('tams_pr2_guzheng')
                             + '/data/strings.yaml')
 
-        self.active= True
+        if rospy.get_param('~load_static_on_startup', False):
+            self.load_from_file(None)
+        else:
+            self.active= True
         self.enable_srv = rospy.Service('~set_active', SetBool, self.set_active)
         self.load_from_file_srv = rospy.Service('~load_from_file', EmptySrv, self.load_from_file)
         self.store_to_file_srv = rospy.Service('~store_to_file', EmptySrv, self.store_to_file)
