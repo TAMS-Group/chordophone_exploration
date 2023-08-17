@@ -239,7 +239,7 @@ class RuckigPath:
         inp.target_velocity = self.keypoint_vel
         inp.target_acceleration = (0.0,0.0)
         t= traj_from_input(inp)
-        
+
         kp= np.array(t.at_time(t.duration)).T
         inp.current_position = kp[:,0]
         inp.current_velocity = kp[:,1]

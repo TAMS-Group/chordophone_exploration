@@ -6,10 +6,13 @@ import pandas as pd
 import rospy
 import sklearn.gaussian_process as gp
 import scipy.stats as stats
+import tams_pr2_guzheng.utils as utils
 
 from typing import NamedTuple, Tuple
 
 from nav_msgs.msg import Path
+from tams_pr2_guzheng.msg import RunEpisodeResult
+
 from .paths import RuckigPath
 from .utils import note_to_string, string_to_note, publish_figure
 
@@ -80,7 +83,8 @@ class OnsetToPath:
     def store_to_file(self):
         self.pluck_table.to_json(self.storage)
 
-    def add_sample(self, row):
+    def add_sample(self, result : RunEpisodeResult):
+        row = utils.row_from_result(result)
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 

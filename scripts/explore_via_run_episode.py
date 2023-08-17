@@ -28,6 +28,12 @@ def plot_p(strings, p):
     fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
     publish_figure("p", fig)
 
+known_strings = []
+def known_strings_cb(strings):
+    '''collect names of all fitted instrument strings'''
+    global known_strings
+    known_strings = [s.ns for s in strings.markers if len(s.ns) > 0 and ' ' not in s.ns]
+
 def main():
     rospy.init_node('explore')
 
@@ -82,6 +88,12 @@ def main():
     tf = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf)
 
+    known_strings_sub = rospy.Subscriber(
+        'guzheng/fitted_strings',
+        MarkerArray,
+        known_strings_cb,
+        queue_size=1)
+
     run_episode = SimpleActionClient("run_episode", RunEpisodeAction)
     run_episode.wait_for_server()
 
@@ -132,6 +144,7 @@ def main():
         rospy.loginfo(f"run {current_run}{'/'+str(runs) if runs > 0 else ''} targeting string {strings[i]}")
 
         # decide string position
+
         trial_string_position = string_position
         if trial_string_position < 0.0:
             string_len = 0.0
@@ -195,9 +208,37 @@ def main():
             unexpected_onsets = [o for o in result.onsets if o.note != utils.string_to_note(strings[i])]
 
             if strategy != "geometry":
+                # compute safety score of parameters based on result
+
+                minimum_distance = np.inf
+                known_strings_cp = known_strings[:]
+                for string in known_strings_cp:
+                    string_frame = f"guzheng/{string}/head"
+                    if string_frame == result.executed_path.header.frame_id:
+                        continue
+                    for p in result.executed_path.poses:
+                        ps = tf.transform(p, string_frame).pose.position
+                        if (distance:=np.sqrt(ps.y**2 + ps.z**2)) < minimum_distance:
+                            minimum_distance = distance
+                            closest_neighbor = string
+                rospy.loginfo(f"minimum distance to neighbor {closest_neighbor}: {minimum_distance:.4F}m")
+
+                # minimum distance to neighbors to consider as safe
+                safe_threshold = 0.004
+                # distance to saturation of distance safety score
+                saturation_threshold  = 0.01
+
+                score = np.nan
+                if minimum_distance >= saturation_threshold:
+                    score = 1.0
+                else:
+                    a = 1/(saturation_threshold-safe_threshold)
+                    b = -a*safe_threshold
+                    score = a*minimum_distance+b
+
+                # compact log output and eventually add result to o2p
                 log = f"add pluck for string {strings[i]} "
                 warn = False
-
                 if len(unexpected_onsets) > 0:
                     log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])} as 0.0dB "
                     warn = True
@@ -209,12 +250,13 @@ def main():
                     log+= f"with perceived note '{expected_onset[0].note}' ({expected_onset[0].loudness:.2F}dB) "
                 else:
                     log+= "without onset "
-                log+= "to table"
+                log+= f"and score {score:.3F} to table"
                 if warn:
                     rospy.logwarn(log)
                 else:
                     rospy.loginfo(log)
-                o2p.add_sample(utils.row_from_result(result))
+
+                o2p.add_sample(result)
 
             if len(result.onsets) > 0:
                 onset_hist[i]+= 1
