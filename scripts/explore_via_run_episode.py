@@ -15,7 +15,7 @@ import tf2_ros
 from actionlib import SimpleActionClient
 from math import tau
 from tams_pr2_guzheng.onset_to_path import OnsetToPath
-from tams_pr2_guzheng.utils import string_length, publish_figure
+from tams_pr2_guzheng.utils import string_length, publish_figure, say
 from tams_pr2_guzheng.msg import (
     RunEpisodeAction,
     RunEpisodeGoal,
@@ -54,6 +54,7 @@ def main():
     storage_path = rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json")
 
     # validate parameters
+
     if attempts_per_string < 1:
         rospy.logfatal("attempts_per_string must be >= 1")
         return
@@ -74,13 +75,9 @@ def main():
         return
 
     # prepare exploration
+
     if strategy != "geometry":
         o2p= OnsetToPath(storage= storage_path) # throws on invalid path
-
-    from std_msgs.msg import String as StringMsg
-    say_pub = rospy.Publisher("/say", StringMsg, queue_size= 1, tcp_nodelay= True)
-    def say(txt):
-        say_pub.publish(txt)
 
     tf = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf)

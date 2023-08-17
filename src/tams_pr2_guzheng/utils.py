@@ -6,8 +6,6 @@ import tf2_geometry_msgs
 
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
-from std_msgs.msg import String, Header, ColorRGBA
-from visualization_msgs.msg import Marker
 from sensor_msgs.msg import Image
 
 from tams_pr2_guzheng.msg import (
@@ -72,7 +70,7 @@ _image_publisher = {}
 _cv_bridge = None
 def publish_figure(topic_name, fig):
     from matplotlib import pyplot as plt
-    
+
     global _cv_bridge
     if _cv_bridge is None:
         import cv_bridge
@@ -86,3 +84,10 @@ def publish_figure(topic_name, fig):
     img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
     plt.close(fig)
     _image_publisher[topic_name].publish(_cv_bridge.cv2_to_imgmsg(img, encoding="bgr8"))
+
+_say_pub = None
+def say(txt):
+    global _say_pub
+    from std_msgs.msg import String as StringMsg
+    _say_pub = rospy.Publisher("/say", StringMsg, queue_size= 1, tcp_nodelay= True, latch= True)
+    _say_pub.publish(txt)
