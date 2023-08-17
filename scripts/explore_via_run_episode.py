@@ -172,7 +172,6 @@ def main():
                 path.string_position = nbp[0]
                 path.keypoint_pos[0] = nbp[1]
 
-        # TODO: adjust launch file to new parameter meanings!
         for _ in range(attempts_for_good_pluck):
             run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.string, finger= finger)))
             run_episode.wait_for_result()
