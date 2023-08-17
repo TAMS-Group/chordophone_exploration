@@ -111,6 +111,8 @@ def main():
 
     current_run = 0
     while not rospy.is_shutdown() and (runs == 0 or current_run < runs):
+
+        # sample new target string
         if current_run % attempts_per_string == 0:
             # shaped string sampling
             p = np.zeros(len(strings))
@@ -121,7 +123,7 @@ def main():
             p+= stats.uniform.pdf(strings_idx, loc= 0, scale= 20)
             # penalize previously explored strings
             p/= onset_hist
-            # TODO: could normalize by string length as well, but how important is full geometrical coverage?
+            # we could normalize by string length as well, but geometric coverage turns out to be less important
             p/= p.sum()
             plot_p(strings, p)
             i = np.random.choice(strings_idx, 1, p= p)[0]
@@ -129,6 +131,7 @@ def main():
         current_run+= 1
         rospy.loginfo(f"run {current_run}{'/'+str(runs) if runs > 0 else ''} targeting string {strings[i]}")
 
+        # decide string position
         trial_string_position = string_position
         if trial_string_position < 0.0:
             string_len = 0.0
@@ -138,6 +141,8 @@ def main():
                 rospy.logwarn(e)
                 break
             trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_len)
+
+        # prepare path depending on strategy
 
         if strategy == "random":
             path = paths.RuckigPath.random(
@@ -156,7 +161,9 @@ def main():
             )
 
         if strategy == "geometry":
-            path.keypoint_pos[1] = -0.002 # more cautious initial pluck
+            # start with a slightly higher pluck in geometry exploration
+            # if the string is missed, the follow-up attempts will be lower
+            path.keypoint_pos[1] = -0.002
 
         if strategy == "reduce_variance":
             nbp = o2p.infer_next_best_pluck(
