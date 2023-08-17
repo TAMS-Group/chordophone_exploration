@@ -1,4 +1,5 @@
 import copy
+import librosa
 import numpy as np
 import os
 import pandas as pd
@@ -10,9 +11,10 @@ from typing import NamedTuple, Tuple
 
 from nav_msgs.msg import Path
 from .paths import RuckigPath
-from .utils import note_to_string, publish_figure
+from .utils import note_to_string, string_to_note, publish_figure
 
 import matplotlib.pyplot as plt
+import seaborn as sns
 plt.switch_backend('agg')
 
 
@@ -82,6 +84,24 @@ class OnsetToPath:
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
+        self.plot_loudness_strips()
+
+    def plot_loudness_strips(self):
+        '''plot cross-string loudness overview'''
+
+        # we want to keep the original order in pluck_table to notice temporal effects
+        # so we prepare a copy for plotting
+        X = self.pluck_table.copy()
+        X= X.sort_values('string', key= lambda x: x.map(lambda a: librosa.note_to_midi(string_to_note(a))))
+        X['direction'] = self.pluck_table['pre_y'].map(lambda y: 'inwards' if y < 0.0 else 'outwards')
+        X['loudness'] = X['loudness'].fillna(-1.0)
+
+        fig = plt.figure(dpi= 100)
+        ax : plt.Axes = sns.stripplot(x=X['string'], y=X['loudness'], hue= X['direction'], hue_order= ['inwards', 'outwards'], ax = fig.gca())
+        ax.set_ylabel('loudness [dBA]')
+        publish_figure("loudness_strips", fig)
+
+
     def fit_GPR(self, features, loudness):
         GPR= gp.GaussianProcessRegressor(n_restarts_optimizer=10, alpha=0.5**2)
         GPR.fit(features, loudness)
@@ -91,7 +111,7 @@ class OnsetToPath:
         string_position : float
         keypoint_pos_y : float
 
-    def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : ActionSpace, direction : float):
+    def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : ActionSpace, direction : float) -> ActionParameters:
         assert(direction in [-1.0, 1.0])
 
         plucks = self.pluck_table[
