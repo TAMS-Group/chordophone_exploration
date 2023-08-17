@@ -1,6 +1,7 @@
 RunEpisodeRequest req
 ---
 music_perception/NoteOnset[] onsets
+nav_msgs/Path executed_path
 tams_pr2_guzheng/ActionParameters parameters
 string finger
 ---

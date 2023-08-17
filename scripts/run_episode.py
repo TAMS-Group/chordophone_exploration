@@ -2,12 +2,11 @@
 
 import rospy
 
-from geometry_msgs.msg import TransformStamped
 import tf2_ros
 import tf2_geometry_msgs
 
 from actionlib import SimpleActionClient, SimpleActionServer
-
+from geometry_msgs.msg import TransformStamped
 from std_msgs.msg import String
 from visualization_msgs.msg import Marker
 
@@ -33,7 +32,13 @@ from scipy.stats import qmc
 from math import tau
 
 class RunEpisode():
-    def __init__(self, nosleep= False):
+    def __init__(self, *, tf, nosleep= False):
+        self.episode_id = 0
+        self.episode_cnt = 0
+
+        self.episode_onsets = []
+        self.executed_path = None
+
         rospy.loginfo("connect to execute_path action")
         self.goto_start_client = SimpleActionClient(
             'pluck/execute_path',
@@ -59,6 +64,17 @@ class RunEpisode():
             queue_size=10,
             tcp_nodelay=True)
 
+        self.keypoint_pub = rospy.Publisher(
+            'pluck/keypoint',
+            Marker,
+            queue_size=1,
+            tcp_nodelay=True,
+            latch=True)
+
+        self.tf = tf
+
+        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
+
         self.onset_sub = rospy.Subscriber(
             'guzheng/onsets_haptically_validated',
             NoteOnset,
@@ -67,31 +83,20 @@ class RunEpisode():
             tcp_nodelay=True
             )
 
-        self.keypoint_pub = rospy.Publisher(
-            'pluck/keypoint',
-            Marker,
-            queue_size=1,
-            tcp_nodelay=True,
-            latch=True)
-
-        self.tf_broadcaster = tf2_ros.TransformBroadcaster()
-
         # leave time for clients to connect
         rospy.sleep(rospy.Duration(1.0))
-
-        self.episode_id = 0
-        self.episode_cnt = 0
-
-        self.episode_onsets = []
 
         rospy.loginfo("startup complete")
 
     def new_episode(self):
         self.episode_id = int(rospy.Time.now().to_sec())
         self.episode_cnt+= 1
-        self.episode_onsets = []
 
         rospy.loginfo(f'run episode number {self.episode_cnt}')
+
+    def reset_buffers(self):
+        self.episode_onsets = []
+        self.executed_path = None
 
     def onset_cb(self, onset):
         self.episode_onsets.append(onset)
@@ -142,6 +147,8 @@ class RunEpisode():
         if rospy.is_shutdown():
             return
 
+        self.reset_buffers()
+
         now = rospy.Time.now()
         self.publishState("start", now)
         self.pluck_client.send_goal(ExecutePathGoal(
@@ -152,13 +159,15 @@ class RunEpisode():
         params.header.stamp = now
         self.parameter_pub.publish(params)
         self.pluck_client.wait_for_result()
+
+        self.finger = finger
+        self.executed_path = self.pluck_client.get_result().executed_path
+
         # wait to collect data
         self.sleep(0.8)
         self.publishState("end")
         # some more buffer to associate messages later if needed
         #self.sleep(1.0)
-
-        return self.episode_onsets
 
 def main():
     rospy.init_node('run_episode')
@@ -173,7 +182,7 @@ def main():
 
     listen = rospy.get_param("~listen", False)
     nosleep = rospy.get_param("~nosleep", False)
-    re = RunEpisode(nosleep= nosleep)
+    re = RunEpisode(nosleep= nosleep, tf = tf)
 
     string = rospy.get_param("~string", "d6")
     finger = rospy.get_param("~finger", "ff")
@@ -205,6 +214,7 @@ def main():
             action_server.set_succeeded(result=
                                         RunEpisodeResult(
                                             onsets= re.episode_onsets,
+                                            executed_path= re.executed_path,
                                             parameters= path.action_parameters,
                                             finger= goal.req.finger,
                                         )
@@ -228,13 +238,13 @@ def main():
                 string = string,
                 direction= direction,
                 string_position= string_position,
-                tf = tf
+                tf = re.tf
             )
 
             for i in range(repeat):
                 if rospy.is_shutdown():
                     break
-                onsets = re.run_episode(finger= finger, path= path)
+                re.run_episode(finger= finger, path= path)
             i+=1
             say("next")
     else:
