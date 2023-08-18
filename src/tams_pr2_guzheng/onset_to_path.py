@@ -89,6 +89,7 @@ class OnsetToPath:
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
+        self.plot_scores(row)
 
     def score_row(self, row):
         r = copy.deepcopy(row)
@@ -118,6 +119,31 @@ class OnsetToPath:
         scores[df['unexpected_onsets'] > 0] = -1.0
 
         return scores
+
+    def plot_scores(self, row):
+        '''plot and publish safety scores related to pluck family of row'''
+
+        # find related plucks
+        plucks = self.pluck_table[
+            (self.pluck_table['string'] == row['string']) &
+            (self.pluck_table['finger'] == row['finger']) &
+            (self.pluck_table['post_y']*row['post_y'] >= 0.0)
+        ]
+
+        if len(plucks) < 1:
+            return
+
+        # compute scores
+        scores = self.score(plucks)
+
+        fig, ax = plt.subplots(dpi= 100)
+        cmap = sns.color_palette("seismic", as_cmap=True)
+        norm = plt.Normalize(vmin=-1.0, vmax=1.0)
+        sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= scores, palette= cmap, hue_norm= norm, legend= False, s= 100, ax= ax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        fig.colorbar(sm, ax=ax)
+
+        publish_figure("scores", fig)
 
 
     def plot_loudness_strips(self):
