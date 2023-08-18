@@ -223,42 +223,29 @@ def main():
                         if (distance:=np.sqrt(ps.y**2 + ps.z**2)) < minimum_distance:
                             minimum_distance = distance
                             closest_neighbor = string
-                rospy.loginfo(f"minimum distance to neighbor {closest_neighbor}: {minimum_distance:.4F}m")
 
-                # minimum distance to neighbors to consider as safe
-                safe_threshold = 0.004
-                # distance to saturation of distance safety score
-                saturation_threshold  = 0.01
-
-                score = np.nan
-                if minimum_distance >= saturation_threshold:
-                    score = 1.0
-                else:
-                    a = 1/(saturation_threshold-safe_threshold)
-                    b = -a*safe_threshold
-                    score = a*minimum_distance+b
+                row = utils.row_from_result(result)
+                row['min_distance'] = minimum_distance
+                score = o2p.score_row(row)
 
                 # compact log output and eventually add result to o2p
                 log = f"add pluck for string {strings[i]} "
-                warn = False
+                logger = {'info' : rospy.loginfo, 'warn' : rospy.logwarn, 'error' : rospy.logerr}
+                level = "info"
                 if len(unexpected_onsets) > 0:
-                    log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])} as 0.0dB "
-                    warn = True
-                    # technically an invalid pluck (or wrong classification...)
-                    # treat it as a pluck with no onset to avoid it later on
-                    expected_onset = []
-                    result.onsets = []
+                    log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])}"
                 elif len(expected_onset) > 0:
                     log+= f"with perceived note '{expected_onset[0].note}' ({expected_onset[0].loudness:.2F}dB) "
                 else:
                     log+= "without onset "
-                log+= f"and score {score:.3F} to table"
-                if warn:
-                    rospy.logwarn(log)
-                else:
-                    rospy.loginfo(log)
+                log+= f"and score {score:.3F} (dist {minimum_distance:.4F}m to {closest_neighbor}) "
+                log+= "to table"
 
-                o2p.add_sample(result)
+                if score < 0.0:
+                    level= "warn"
+                logger[level](log)
+
+                o2p.add_sample(row)
 
             if len(result.onsets) > 0:
                 onset_hist[i]+= 1

@@ -83,12 +83,42 @@ class OnsetToPath:
     def store_to_file(self):
         self.pluck_table.to_json(self.storage)
 
-    def add_sample(self, result : RunEpisodeResult):
-        row = utils.row_from_result(result)
+    def add_sample(self, row):
+        row['onsets'] = str(row['onsets']) # convert to string for eventual json serialization
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
+
+    def score_row(self, row):
+        r = copy.deepcopy(row)
+        try:
+            del r['onsets'] # this field is a list of onsets, but pandas just ignores the whole dict if it sees it
+        except KeyError:
+            pass
+        df = pd.DataFrame(r, columns= r.keys(), index= [0])
+
+        return self.score(df)[0]
+
+    def score(self, df):
+        # minimum distance to neighbors to consider as safe
+        safe_threshold = 0.006 # m
+        # safe_threshold = 0.004 # m
+        # distance to saturation of distance safety score
+        saturation_threshold  = 0.01 # m
+        # loudness cut-off
+        loudness_threshold = 60.0 # dBA
+
+        a = 1/(saturation_threshold-safe_threshold)
+        b = -a*safe_threshold
+
+        scores = (a*df['min_distance']+b).to_numpy()
+        scores[df['min_distance'] >= saturation_threshold] = 1.0
+        scores[df['loudness'] > loudness_threshold] = -0.5
+        scores[df['unexpected_onsets'] > 0] = -1.0
+
+        return scores
+
 
     def plot_loudness_strips(self):
         '''plot cross-string loudness overview'''
@@ -105,10 +135,9 @@ class OnsetToPath:
         ax.set_ylabel('loudness [dBA]')
         publish_figure("loudness_strips", fig)
 
-
-    def fit_GPR(self, features, loudness):
+    def fit_GPR(self, features, value):
         GPR= gp.GaussianProcessRegressor(n_restarts_optimizer=10, alpha=0.5**2)
-        GPR.fit(features, loudness)
+        GPR.fit(features, value)
         return GPR
 
     class ActionParameters(NamedTuple):

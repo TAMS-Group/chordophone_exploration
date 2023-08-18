@@ -3,6 +3,7 @@ import rospy
 import numpy as np
 import tf2_ros
 import tf2_geometry_msgs
+import tams_pr2_guzheng.utils as utils
 
 from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
@@ -28,15 +29,27 @@ def run_params(run_episode, params, finger='ff'):
 def row_from_result(result):
     from .paths import RuckigPath
     row = RuckigPath.from_action_parameters(result.parameters).params_map
-    row['onset_cnt'] = len(result.onsets)
-    row['onsets'] = str(result.onsets)
     row['finger'] = result.finger
-    if len(result.onsets) > 0:
-        row['loudness'] = result.onsets[-1].loudness
+
+    expected_onsets = [o for o in result.onsets if o.note == utils.string_to_note(row['string'])]
+    unexpected_onsets = [o for o in result.onsets if o.note != utils.string_to_note(row['string'])]
+
+    row['onset_cnt'] = len(result.onsets)
+    row['unexpected_onsets'] = len(unexpected_onsets)
+
+    row['onsets'] = result.onsets[:]
+
+    if len(expected_onsets) > 0:
+        row['loudness'] = max([o.loudness for o in expected_onsets])
         row['detected_note'] = result.onsets[-1].note
+    elif len(unexpected_onsets) > 0:
+        loudest = max(unexpected_onsets, key= lambda o: o.loudness)
+        row['loudness'] = loudest.loudness
+        row['detected_note'] = loudest.note
     else:
         row['loudness'] = None
         row['detected_note'] = None
+
     return row
 
 def string_length(string, tf):
