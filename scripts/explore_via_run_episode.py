@@ -166,6 +166,8 @@ def main():
         else:
             if direction == 0.0:
                 trial_direction = random.choice((-1.0, 1.0)) # TODO: consider NBP of either direction
+            else:
+                trial_direction = direction
 
             path = paths.RuckigPath.prototype(
                 string = strings[i],
