@@ -233,7 +233,7 @@ def main():
                 logger = {'info' : rospy.loginfo, 'warn' : rospy.logwarn, 'error' : rospy.logerr}
                 level = "info"
                 if len(unexpected_onsets) > 0:
-                    log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])}"
+                    log+= f"with unexpected onsets {', '.join([o.note for o in unexpected_onsets])} "
                 elif len(expected_onset) > 0:
                     log+= f"with perceived note '{expected_onset[0].note}' ({expected_onset[0].loudness:.2F}dB) "
                 else:
