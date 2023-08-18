@@ -73,7 +73,8 @@ class StringFitter:
                 s['bridge'] = np.array(s['bridge'])
                 s['direction'] = np.array(s['direction'])
                 s['end'] = np.array(s['end'])
-                s['length'] = float(s['length'])
+                # s['length'] = float(s['length'])
+                s['length'] = np.sqrt(np.sum((s['end'] - s['bridge'])**2))
             self.strings = plain_strings
             rospy.loginfo(f"loaded strings from file {self.storage_path}. Set inactive to avoid overwriting them.")
             self.publish_strings()
@@ -263,9 +264,9 @@ class StringFitter:
             intersect = model_origin + t * model_direction
 
             # adapt bridge along string in 3d
-            s["bridge"] += s["direction"] * (
-                (intersect - self.project(s["bridge"])) @ self.project(s["direction"])
-                )
+            length_offset = (intersect - self.project(s["bridge"])) @ self.project(s["direction"])
+            s["bridge"] += s["direction"] * length_offset
+            s["length"] -= length_offset
 
         return aligned_strings
 
