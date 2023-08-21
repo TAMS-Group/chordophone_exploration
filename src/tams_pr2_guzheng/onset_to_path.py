@@ -18,8 +18,6 @@ from .utils import note_to_string, string_to_note, publish_figure
 
 import matplotlib.pyplot as plt
 import seaborn as sns
-plt.switch_backend('agg')
-
 
 def normalize(x, params = None):
     if params is None:
@@ -123,16 +121,16 @@ class OnsetToPath:
 
         # compute scores
         scores = self.score(plucks)
-
+        backend= plt.get_backend()
+        plt.switch_backend('agg')
         fig, ax = plt.subplots(dpi= 100)
         cmap = sns.color_palette("seismic", as_cmap=True)
         norm = plt.Normalize(vmin=-1.0, vmax=1.0)
         sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= scores, palette= cmap, hue_norm= norm, legend= False, s= 100, ax= ax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         fig.colorbar(sm, ax=ax)
-
         publish_figure("scores", fig)
-
+        plt.switch_backend(backend)
 
     def plot_loudness_strips(self):
         '''plot cross-string loudness overview'''
@@ -144,10 +142,13 @@ class OnsetToPath:
         X['direction'] = self.pluck_table['pre_y'].map(lambda y: 'inwards' if y < 0.0 else 'outwards')
         X['loudness'] = X['loudness'].fillna(-1.0)
 
+        backend= plt.get_backend()
+        plt.switch_backend('agg')
         fig = plt.figure(dpi= 100)
         ax : plt.Axes = sns.stripplot(x=X['string'], y=X['loudness'], hue= X['direction'], hue_order= ['inwards', 'outwards'], ax = fig.gca())
         ax.set_ylabel('loudness [dBA]')
         publish_figure("loudness_strips", fig)
+        plt.switch_backend(backend)
 
     def fit_GPR(self, features, value):
         GPR= gp.GaussianProcessRegressor(n_restarts_optimizer=10, alpha=0.5**2)
