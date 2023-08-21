@@ -202,38 +202,6 @@ class RuckigPath:
 
         return p
 
-    @classmethod
-    def random(cls, *, string : str, direction : float = 0.0, string_position : float = -1.0, tf = None):
-        '''
-        @param string: string to pluck
-        @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
-        @param string_position: pluck position on string in meters. Random on string if None and tf are given
-        '''
-
-        if string_position < 0.0 and tf is None:
-            raise ValueError("Must provide either string_position or tf")
-
-        assert(direction in [-1.0, 0.0, 1.0])
-
-        if string_position < 0.0:
-            string_position = random.uniform(0.0, string_length(string, tf))
-
-        if direction == 0.0:
-            direction = random.choice((-1.0, 1.0))
-
-        p = cls.prototype(string= string, string_position= string_position, direction= direction)
-
-        pos_limits= np.array([-0.004, 0.005])
-        if direction < 0.0:
-            pos_limits= -1.0*pos_limits[::-1]
-        p.keypoint_pos = [random.uniform(*pos_limits), -0.004]
-        p.keypoint_vel = [direction*0.015, 0.015]
-
-        # p.keypoint_pos = [random.uniform(-0.005, 0.005), random.uniform(-0.005, 0.001)]
-        # p.keypoint_vel = [direction*random.uniform(0.005, 0.06), random.uniform(0.005, 0.03)]
-
-        return p
-
     @property
     def feasible(self):
         df= self.dataframe
