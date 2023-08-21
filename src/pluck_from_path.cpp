@@ -208,9 +208,19 @@ struct PaintArgs {
 sensor_msgs::Image paintLocalPaths(const PaintArgs& args){
 	const int width= 400;
 	const int height= 200;
-	const double pixel_size= 0.0003;
+	const double pixel_size= 0.00025;
 
 	cv::Mat img{ height, width, CV_8UC3, cv::Scalar(128,128,128) };
+
+  // draw the top of the image as a millimeter ruler
+  for(int i= 0; i < width; ++i){
+    if(i % static_cast<int>(0.01 / pixel_size) == 0){
+      cv::line(img, cv::Point{i, 0}, cv::Point{i, 10}, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+    }
+    else if(i % static_cast<int>(0.001 / pixel_size) == 0){
+      cv::line(img, cv::Point{i, 0}, cv::Point{i, 5}, cv::Scalar(0,0,0), 1, cv::LINE_AA);
+    }
+  }
 
 	// indicate string position
 	cv::circle(img, cv::Point{width/2, height*3/4}, 3, cv::Scalar(0,0,0), 1, cv::LINE_AA);
