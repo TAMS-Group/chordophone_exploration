@@ -56,7 +56,7 @@ class RuckigPath:
 
         def copyorsample(limits, sampler):
             if len(limits) == 1:
-                return limits
+                return limits[0]
             else:
                 return stats.qmc.scale(sampler(), *limits)
 
