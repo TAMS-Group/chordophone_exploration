@@ -38,18 +38,6 @@ def undo_normalize(x, params):
 
 
 class OnsetToPath:
-    class ActionSpace(NamedTuple):
-        string_position: np.array
-        keypoint_pos_y: np.array
-
-        def is_valid(self, plucks):
-            return np.logical_and.reduce((
-                plucks['string_position'] >= self.string_position[0],
-                plucks['string_position'] <= self.string_position[1],
-                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) >= self.keypoint_pos_y[0],
-                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) <= self.keypoint_pos_y[1],
-            ))
-
     def __init__(self, *, storage : str = '/tmp/plucks.json'):
         self.pluck_table = pd.DataFrame(
             columns=(*RuckigPath().params_map.keys(), 'finger', 'loudness', 'detected_note', 'onset_cnt', 'onsets')
@@ -67,12 +55,12 @@ class OnsetToPath:
 
     def print_summary(self):
         summary= f"OnsetToPath stores {len(self.pluck_table)} plucks\n"
-        for n in set(self.pluck_table['detected_note']):
-            if n is None:
+        for n in self.pluck_table['detected_note'].unique():
+            if np.isnan(n):
                 continue
             summary+= f"{n}: {len(self.pluck_table[self.pluck_table['detected_note'] == n])} plucks\n"
 
-        summary+= f"None: {len(self.pluck_table[self.pluck_table['detected_note'].isnull()])} plucks\n\n"
+        summary+= f"nan: {len(self.pluck_table[self.pluck_table['detected_note'].isnull()])} plucks\n\n"
 
 
         for n in set(self.pluck_table['string']):
@@ -166,11 +154,7 @@ class OnsetToPath:
         GPR.fit(features, value)
         return GPR
 
-    class ActionParameters(NamedTuple):
-        string_position : float
-        keypoint_pos_y : float
-
-    def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : ActionSpace, direction : float) -> ActionParameters:
+    def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : RuckigPath.ActionSpace, direction : float) -> RuckigPath:
         assert(direction in [-1.0, 1.0])
 
         plucks = self.pluck_table[
@@ -188,7 +172,7 @@ class OnsetToPath:
         # features, features_norm_params = normalize(features)
         # use expected means/std instead:
         features_norm_params = (
-            np.array([actionspace.string_position[1]/2, (actionspace.keypoint_pos_y[0]+ (actionspace.keypoint_pos_y[1]-actionspace.keypoint_pos_y[0])/2) ]),
+            np.array([actionspace.string_position[1]/2, (actionspace.keypoint_pos_y[0] + (actionspace.keypoint_pos_y[1]-actionspace.keypoint_pos_y[0])/2) ]),
             np.array([actionspace.string_position[1]/4, (actionspace.keypoint_pos_y[1] - actionspace.keypoint_pos_y[0])/4])
         )
         features = normalize(features, features_norm_params)
@@ -247,7 +231,10 @@ class OnsetToPath:
         plt.yticks([])
         publish_figure("gp_std_loudness", fig)
 
-        return self.ActionParameters(*features_max_std)
+        p = RuckigPath.prototype(string= string, direction= direction)
+        p.string_position= features_max_std[0]
+        p.keypoint_pos[0]= features_max_std[1]
+        return p
 
     def get_note_min_max(self, note : str):
         '''

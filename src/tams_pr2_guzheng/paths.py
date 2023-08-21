@@ -1,27 +1,21 @@
+import numpy as np
+import pandas as pd
+import random
+import re
 import rospy
-
+import ruckig
+import scipy.stats as stats
 import tf2_ros
 import tf2_geometry_msgs
 
-from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
-from std_msgs.msg import String, Header, ColorRGBA
-from visualization_msgs.msg import Marker
-
-from tams_pr2_guzheng.msg import (
-    ActionParameters
-)
-
-import random
-import re
-
-import numpy as np
 from math import tau
-
-import pandas
-
-import ruckig
+from nav_msgs.msg import Path
 from ruckig import InputParameter, Ruckig, Trajectory
+from std_msgs.msg import String, Header, ColorRGBA
+from tams_pr2_guzheng.msg import ActionParameters
+from typing import NamedTuple
+from visualization_msgs.msg import Marker
 
 from .utils import string_length
 
@@ -33,6 +27,47 @@ __all__ = [
 
 
 class RuckigPath:
+    class ActionSpace(NamedTuple):
+        '''
+        simplified action space definition for parameterization of prototype
+        '''
+
+        string_position: np.array
+        keypoint_pos_y: np.array
+        keypoint_pos_z: np.array
+        keypoint_vel_y: np.array
+        keypoint_vel_z: np.array
+
+        def is_valid(self, plucks : pd.DataFrame):
+            return np.logical_and.reduce((
+                plucks['string_position'] >= self.string_position[0],
+                plucks['string_position'] <= self.string_position[-1],
+                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) >= self.keypoint_pos_y[0],
+                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) <= self.keypoint_pos_y[-1],
+                plucks['keypoint_pos_z'] >= self.keypoint_pos_z[0],
+                plucks['keypoint_pos_z'] <= self.keypoint_pos_z[-1],
+                plucks['keypoint_vel_y']*np.sign(plucks['post_y']) >= self.keypoint_vel_y[0],
+                plucks['keypoint_vel_y']*np.sign(plucks['post_y']) <= self.keypoint_vel_y[-1],
+                plucks['keypoint_vel_z'] >= self.keypoint_vel_z[0],
+                plucks['keypoint_vel_z'] <= self.keypoint_vel_z[-1],
+            ))
+
+    def sample(self, actionspace, sampler):
+
+        def copyorsample(limits, sampler):
+            if len(limits) == 1:
+                return limits
+            else:
+                return stats.qmc.scale(sampler(), *limits)
+
+        y_pos_limits = -1.0*actionspace.keypoint_pos_y[::-1] if self.direction < 0.0 else actionspace.keypoint_pos_y
+        self.keypoint_pos[0] = copyorsample(y_pos_limits, sampler)
+        y_vel_limits = -1.0*actionspace.keypoint_vel_y[::-1] if self.direction < 0.0 else actionspace.keypoint_vel_y
+        self.keypoint_vel[0] = copyorsample(y_vel_limits, sampler)
+        self.string_position = copyorsample(actionspace.string_position, sampler)
+        self.keypoint_pos[1] = copyorsample(actionspace.keypoint_pos_z, sampler)
+        self.keypoint_vel[1] = copyorsample(actionspace.keypoint_vel_z, sampler)
+
     actionspace_type = "ruckig keypoint position/velocity v2"
 
     def __init__(self):
@@ -145,20 +180,19 @@ class RuckigPath:
         return params
 
     @classmethod
-    def prototype(cls, *, string : str, string_position : float, direction : float):
+    def prototype(cls, *, string : str, direction : float):
         '''
         @param string: string to pluck
         @param direction: -1.0 (away from robot) or 1.0 (towards robot). Random if None.
         @param string_position: pluck position on string in meters. Random on string if None and tf are given
         '''
 
-        assert(string_position >= 0.0)
         assert(direction in [-1.0, 1.0])
 
         p = cls()
 
         p.string = string
-        p.string_position = string_position
+        p.string_position = 0.0
 
         p.pre = [direction*(-0.007), 0.01]
         p.post = [direction*0.01, 0.02]
@@ -282,7 +316,7 @@ class RuckigPath:
 
     @property
     def dataframe(self):
-        return pandas.DataFrame([(p.header.stamp.to_sec(), p.pose.position.y, p.pose.position.z) for p in self().poses], columns= ["time", "y", "z"])
+        return pd.DataFrame([(p.header.stamp.to_sec(), p.pose.position.y, p.pose.position.z) for p in self().poses], columns= ["time", "y", "z"])
 
     @property
     def keypoint_marker(self):

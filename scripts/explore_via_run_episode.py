@@ -7,13 +7,13 @@ import random
 import rospkg
 import rospy
 import scipy.stats as stats
-import tams_pr2_guzheng.paths as paths
 import tams_pr2_guzheng.utils as utils
 import tf2_geometry_msgs
 import tf2_ros
 
 from actionlib import SimpleActionClient
 from math import tau
+from tams_pr2_guzheng.paths import RuckigPath
 from tams_pr2_guzheng.onset_to_path import OnsetToPath
 from tams_pr2_guzheng.utils import string_length, publish_figure, say
 from tams_pr2_guzheng.msg import (
@@ -108,13 +108,22 @@ def main():
 
     # uniform sampling of targeted string position
     if position_strategy == "uniform":
-        string_position_sampler = stats.uniform(loc= 0.0, scale= 1.0)
+        uniform_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
     elif position_strategy == "halton":
-        string_position_sampler = stats.qmc.Halton(d= 1, seed= 37)
+        uniform_sampler = lambda d=stats.qmc.Halton(d= 1, seed= 37): d.random()
 
     strings_idx= np.arange(len(strings))
     # keep histogram of onsets per string
     onset_hist= np.ones(len(strings))
+
+    string_len = 0.0
+    actionspace = RuckigPath.ActionSpace(
+        string_position= np.array((0.0, string_len)),
+        keypoint_pos_y= np.array((-0.004, 0.008)),
+        keypoint_pos_z= np.array((-0.004,)),
+        keypoint_vel_y= np.array((0.015,)),
+        keypoint_vel_z= np.array((0.015,)),
+    )
 
     # target string index (sampled in loop)
     i= -1
@@ -123,7 +132,6 @@ def main():
 
     current_run = 0
     while not rospy.is_shutdown() and (runs == 0 or current_run < runs):
-
         # sample new target string
         if current_run % attempts_per_string == 0:
             # shaped string sampling
@@ -138,61 +146,55 @@ def main():
             # we could normalize by string length as well, but geometric coverage turns out to be less important
             p/= p.sum()
             plot_p(strings, p)
+
             i = np.random.choice(strings_idx, 1, p= p)[0]
-
-        current_run+= 1
-        rospy.loginfo(f"run {current_run}{'/'+str(runs) if runs > 0 else ''} targeting string {strings[i]}")
-
-        # decide string position
-
-        trial_string_position = string_position
-        if trial_string_position < 0.0:
-            string_len = 0.0
+            # update actionspace.string_position
             try:
                 string_len = string_length(strings[i], tf)
             except Exception as e:
                 rospy.logwarn(e)
                 break
-            trial_string_position = stats.qmc.scale(string_position_sampler.random(), 0.0, string_len)
+            if string_position < 0.0:
+                actionspace = actionspace._replace(string_position = np.array((0.0, string_len)))
+            else:
+                if string_position > string_len:
+                    rospy.logwarn(f"string_position {string_position} is larger than string length {string_len}, clipping")
+                    new_string_position = string_len
+                else:
+                    new_string_position = string_position
+                actionspace = actionspace._replace(string_position = np.array((new_string_position,)))
+
+        current_run+= 1
+        rospy.loginfo(f"run {current_run}{'/'+str(runs) if runs > 0 else ''} targeting string {strings[i]}")
 
         # prepare path depending on strategy
+        # TODO: consider NBP of either direction in infer_next_best_pluck
+        trial_direction = random.choice((-1.0, 1.0)) if direction == 0.0 else direction
 
-        if strategy == "random":
-            path = paths.RuckigPath.random(
-                string = strings[i],
-                direction= direction,
-                string_position= trial_string_position
-            )
-        else:
-            if direction == 0.0:
-                trial_direction = random.choice((-1.0, 1.0)) # TODO: consider NBP of either direction
-            else:
-                trial_direction = direction
-
-            path = paths.RuckigPath.prototype(
-                string = strings[i],
-                direction= trial_direction,
-                string_position= trial_string_position
-            )
+        path = RuckigPath.prototype(
+            string = strings[i],
+            direction= trial_direction,
+        )
 
         if strategy == "geometry":
             # start with a slightly higher pluck in geometry exploration
             # if the string is missed, the follow-up attempts will be lower
-            path.keypoint_pos[1] = -0.002
-
-        if strategy == "reduce_variance":
+            path.keypoint_pos[1] += 0.002
+            path.string_position = stats.qmc.scale(uniform_sampler(), *actionspace.string_position)
+        elif strategy == "random":
+            path.sample(actionspace, uniform_sampler)
+        elif strategy == "reduce_variance":
             nbp = o2p.infer_next_best_pluck(
                 string= strings[i],
                 finger= finger,
                 direction= path.direction,
-                actionspace= OnsetToPath.ActionSpace(
-                    string_position= np.array((0.0, string_len)),
-                    keypoint_pos_y= np.array((-0.007, 0.008)),
-                ),
+                actionspace= actionspace,
             )
             if nbp is not None:
-                path.string_position = nbp[0]
-                path.keypoint_pos[0] = nbp[1]
+                path = nbp
+        else:
+            rospy.logfatal(f"invalid strategy '{strategy}'")
+            return
 
         for _ in range(attempts_for_good_pluck):
             run_episode.send_goal(RunEpisodeGoal(RunEpisodeRequest(parameters= path.action_parameters, string= path.string, finger= finger)))

@@ -58,7 +58,7 @@ def string_length(string, tf):
         pt.header.frame_id = f"guzheng/{string}/bridge"
         return tf.transform(pt, f"guzheng/{string}/head").point.x
     except tf2_ros.TransformException as e:
-        raise Exception(f"No string position defined and could not find length of target string {string}: {str(e)}")
+        raise Exception(f"Do not know string length of target string {string}: {str(e)}")
 
 def stitch_paths(paths, tf, frame= 'base_footprint'):
     stitched = Path()
