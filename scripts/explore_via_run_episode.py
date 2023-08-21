@@ -108,9 +108,11 @@ def main():
 
     # uniform sampling of targeted string position
     if position_strategy == "uniform":
-        uniform_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
+        string_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
     elif position_strategy == "halton":
-        uniform_sampler = lambda d=stats.qmc.Halton(d= 1, seed= 37): d.random()
+        string_sampler = lambda d=stats.qmc.Halton(d= 1, seed= 37): d.random()
+
+    uniform_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): np.array([[d.rvs()]])
 
     strings_idx= np.arange(len(strings))
     # keep histogram of onsets per string
@@ -180,7 +182,7 @@ def main():
             # start with a slightly higher pluck in geometry exploration
             # if the string is missed, the follow-up attempts will be lower
             path.keypoint_pos[1] += 0.002
-            path.string_position = stats.qmc.scale(uniform_sampler(), *actionspace.string_position)
+            path.string_position = stats.qmc.scale(string_sampler(), *actionspace.string_position)
         elif strategy == "random":
             path.sample(actionspace, uniform_sampler)
         elif strategy == "reduce_variance":
