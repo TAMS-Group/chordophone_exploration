@@ -155,7 +155,7 @@ class OnsetToPath:
         if len(plucks) < 1:
             return None
 
-        features = plucks[['string_position', 'keypoint_pos_y']]
+        features = plucks[['string_position', 'keypoint_pos_y']].to_numpy()
         # features, features_norm_params = normalize(features)
         # use expected means/std instead:
         features_norm_params = (
