@@ -75,7 +75,6 @@ class OnsetToPath:
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
-        self.plot_scores(row)
 
     def score_row(self, row):
         r = copy.deepcopy(row)
@@ -107,34 +106,6 @@ class OnsetToPath:
 
         return scores
 
-    def plot_scores(self, row):
-        '''plot and publish safety scores related to pluck family of row'''
-
-        # find related plucks
-        plucks = self.pluck_table[
-            (self.pluck_table['string'] == row['string']) &
-            (self.pluck_table['finger'] == row['finger']) &
-            (self.pluck_table['post_y']*row['post_y'] >= 0.0)
-        ]
-
-        if len(plucks) < 1:
-            return
-
-        # compute scores
-        scores = self.score(plucks)
-
-        backend= plt.get_backend()
-        plt.switch_backend('agg')
-        fig, ax = plt.subplots(dpi= 100)
-        cmap = sns.color_palette("seismic", as_cmap=True)
-        norm = plt.Normalize(vmin=-1.0, vmax=1.0)
-        sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= scores, palette= cmap, hue_norm= norm, legend= False, s= 100, ax= ax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        fig.colorbar(sm, ax=ax)
-        publish_figure("scores", fig)
-
-        plt.switch_backend(backend)
-
     def plot_loudness_strips(self):
         '''plot cross-string loudness overview'''
 
@@ -153,8 +124,20 @@ class OnsetToPath:
         publish_figure("loudness_strips", fig)
         plt.switch_backend(backend)
 
-    def fit_GPR(self, features, value):
-        GPR= gp.GaussianProcessRegressor(n_restarts_optimizer=10, alpha=0.5**2)
+    def fit_gp(self, features, value, alpha, rbf_length):
+        '''
+        @param features: (n_samples, n_features)
+        @param value: (n_samples,)
+        @param alpha: observation noise level (std)
+        @param rbf_length: length scale of RBF kernel
+
+        @return: fitted GaussianProcessRegressor
+        '''
+        GPR= gp.GaussianProcessRegressor(
+            n_restarts_optimizer=10,
+            alpha=alpha**2,
+            kernel= gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")*gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed"),
+            )
         GPR.fit(features, value)
         return GPR
 
@@ -172,7 +155,7 @@ class OnsetToPath:
         if len(plucks) < 1:
             return None
 
-        features = plucks[['string_position', 'keypoint_pos_y']].to_numpy()
+        features = plucks[['string_position', 'keypoint_pos_y']]
         # features, features_norm_params = normalize(features)
         # use expected means/std instead:
         features_norm_params = (
@@ -181,10 +164,11 @@ class OnsetToPath:
         )
         features = normalize(features, features_norm_params)
 
-        loudness = plucks['loudness'].to_numpy().astype(np.float64)
-        loudness[np.isnan(loudness)] = 0.0
+        plucks['safety_score'] = self.score(plucks)
+        plucks['loudness'].fillna(0.0, inplace= True)
 
-        GPR= self.fit_GPR(features, loudness)
+        gp_loudness= self.fit_gp(features, plucks['loudness'], alpha= 0.5, rbf_length= 1.0)
+        gp_safety= self.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.4)
 
         # limits are always given as lower(closer to pre), higher(closer to post), so invert if needed
         pos_limits= actionspace.keypoint_pos_y
@@ -198,11 +182,30 @@ class OnsetToPath:
         yi = np.random.uniform(pos_limits[0], pos_limits[1], sample_size)
         point_set = np.column_stack((xi, yi))
         point_set = normalize(point_set, features_norm_params)
-        means, std = GPR.predict(point_set, return_std=True)
+        means, std = gp_loudness.predict(point_set, return_std=True)
+        safety_score_predictions = gp_safety.predict(point_set, return_std=True)
+        safety_prob = 1-stats.norm.cdf(0.0, *safety_score_predictions)
+
+        rospy.loginfo(
+            f'out of {sample_size} sampled potential nbp actions\n'
+            f'safety_prob > 0.5: {np.sum(safety_prob > 0.5)}\n'
+            f'safety_prob > 0.9: {np.sum(safety_prob > 0.9)}\n'
+            f'safety_prob > 0.95: {np.sum(safety_prob > 0.95)}\n'
+            f'still ignoring probability for now'
+            )
+
         idx_max_std= np.argmax(std)
         features_max_std= np.array([xi[idx_max_std], yi[idx_max_std]])
 
-        # optional visualization
+        # optional visualizations
+        fig, ax = plt.subplots(dpi= 100)
+        cmap = sns.color_palette("seismic", as_cmap=True)
+        norm = plt.Normalize(vmin=-1.0, vmax=1.0)
+        sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= plucks['safety_score'], palette= cmap, hue_norm= norm, legend= False, s= 100, ax= ax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        fig.colorbar(sm, ax=ax)
+        publish_figure("scores", fig)
+
         grid_size = 50
         grid_string_position = np.linspace(actionspace.string_position[0], actionspace.string_position[1], grid_size)
         grid_keypoint_pos_y = np.linspace(pos_limits[0], pos_limits[1], grid_size)
@@ -215,25 +218,33 @@ class OnsetToPath:
         yi= yi.ravel()
         grid_points = np.column_stack((xi, yi))
         grid_points = normalize(grid_points, features_norm_params)
-        means, std = GPR.predict(grid_points, return_std=True)
-        fig = plt.figure(dpi= 100)
-        means = means.reshape((grid_size, grid_size))
-        plt.imshow(means, origin='lower', cmap=plt.get_cmap("RdPu"))
-        plt.colorbar()
-        plt.grid(False)
-        plt.xticks(range(len(grid_string_position)), labels= [(f"{p:.2F}" if i%10==0 else "") for (i,p) in enumerate(grid_string_position)])
-        plt.yticks(range(len(grid_keypoint_pos_y)), labels= [(f"{p:.4F}" if i%10==0 else "") for (i,p) in enumerate(grid_keypoint_pos_y)])
-        plt.xlabel("string position")
-        plt.ylabel("keypoint pos y")
-        publish_figure("gp_loudness", fig)
+
+        means, std = gp_loudness.predict(grid_points, return_std=True)
+        safety_prob = 1-stats.norm.cdf(0.0, *gp_safety.predict(grid_points, return_std=True))
+        safety_prob = safety_prob.reshape((grid_size, grid_size))
+
+        def grid_plot(fig, values, cmap):
+            values= values.reshape((grid_size, grid_size))
+            ax= fig.gca()
+            im= ax.imshow(values, origin='lower', cmap=cmap)
+            plt.colorbar(im)
+            ax.grid(False)
+            ax.set_xticks(range(len(grid_string_position)), labels= [(f"{p:.2F}" if i%10==0 else "") for (i,p) in enumerate(grid_string_position)])
+            ax.set_yticks(range(len(grid_keypoint_pos_y)), labels= [(f"{p:.4F}" if i%10==0 else "") for (i,p) in enumerate(grid_keypoint_pos_y)])
+            ax.set_xlabel("string position")
+            ax.set_ylabel("keypoint pos y")
+
         fig = plt.figure(dpi= 50)
-        std = std.reshape((grid_size, grid_size))
-        plt.imshow(std, origin='lower', cmap=plt.get_cmap("RdPu"))
-        plt.colorbar()
-        plt.grid(False)
-        plt.xticks([])
-        plt.yticks([])
+        grid_plot(fig, means, plt.get_cmap("RdPu"))
+        publish_figure("gp_loudness", fig)
+
+        fig = plt.figure(dpi= 50)
+        grid_plot(fig, std, plt.get_cmap("RdPu"))
         publish_figure("gp_std_loudness", fig)
+
+        fig = plt.figure(dpi= 100)
+        grid_plot(fig, safety_prob, plt.get_cmap("brg"))
+        publish_figure("p_safety", fig)
 
         p = RuckigPath.prototype(string= string, direction= direction)
         p.string_position= features_max_std[0]
@@ -342,7 +353,7 @@ class OnsetToPath:
         loudnesses = plucks['loudness'].to_numpy()
         loudnesses[np.isnan(loudnesses)] = 0.0
 
-        GPR = self.fit_GPR(features, loudnesses)
+        GPR = self.fit_gp(features, loudnesses, alpha= 0.5, rbf_length= 1.0)
 
         # predict grid of points between min and max features
         grid_size = 100
