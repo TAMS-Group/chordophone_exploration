@@ -94,12 +94,13 @@ class OnsetToPath:
         # distance to saturation of distance safety score
         saturation_threshold  = 0.01 # m
         # loudness cut-off
-        loudness_threshold = 60.0 # dBA
+        loudness_threshold = 65.0 # dBA
 
         a = 1/(saturation_threshold-safe_threshold)
         b = -a*safe_threshold
 
-        scores = (a*df['min_distance']+b).to_numpy()
+        scores = (a*df['min_distance']+b)
+        scores.name = 'safety'
         scores[df['min_distance'] >= saturation_threshold] = 1.0
         scores[df['loudness'] > loudness_threshold] = -0.5
         scores[df['unexpected_onsets'] > 0] = -1.0
@@ -121,6 +122,7 @@ class OnsetToPath:
 
         # compute scores
         scores = self.score(plucks)
+
         backend= plt.get_backend()
         plt.switch_backend('agg')
         fig, ax = plt.subplots(dpi= 100)
@@ -130,6 +132,7 @@ class OnsetToPath:
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         fig.colorbar(sm, ax=ax)
         publish_figure("scores", fig)
+
         plt.switch_backend(backend)
 
     def plot_loudness_strips(self):
