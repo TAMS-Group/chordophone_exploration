@@ -95,6 +95,7 @@ def publish_figure(topic_name, fig):
     fig.canvas.draw()
     w, h = fig.canvas.get_width_height()
     img = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8).reshape(h, w, 3)
+    img = img[:,:, [2, 1, 0]] # RGB -> BGR
     plt.close(fig)
     _image_publisher[topic_name].publish(_cv_bridge.cv2_to_imgmsg(img, encoding="bgr8"))
 
