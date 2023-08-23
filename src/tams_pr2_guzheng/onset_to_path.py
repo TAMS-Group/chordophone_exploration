@@ -86,10 +86,10 @@ class OnsetToPath:
 
     def score(self, df):
         # minimum distance to neighbors to consider as safe
-        safe_threshold = 0.006 # m
+        safe_threshold = 0.0 # m
         # safe_threshold = 0.004 # m
         # distance to saturation of distance safety score
-        saturation_threshold  = 0.01 # m
+        saturation_threshold  = 0.015 # m
         # loudness cut-off
         loudness_threshold = 65.0 # dBA
 
@@ -122,7 +122,7 @@ class OnsetToPath:
         publish_figure("loudness_strips", fig)
         plt.switch_backend(backend)
 
-    def fit_gp(self, features, value, alpha, rbf_length):
+    def fit_gp(self, features, value, alpha, rbf_length= None, normalize= False):
         '''
         @param features: (n_samples, n_features)
         @param value: (n_samples,)
@@ -131,10 +131,19 @@ class OnsetToPath:
 
         @return: fitted GaussianProcessRegressor
         '''
+
+        kernel = gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")
+        if rbf_length is not None:
+            kernel*= gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed")
+        else:
+            kernel*= gp.kernels.RBF()
+        #kernel = gp.kernels.ConstantKernel(1.0)*gp.kernels.RBF()
+
         GPR= gp.GaussianProcessRegressor(
-            n_restarts_optimizer=10,
+            n_restarts_optimizer=50,
             alpha=alpha**2,
-            kernel= gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")*gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed"),
+            kernel= kernel,
+            normalize_y= normalize,
             )
         GPR.fit(features, value)
         return GPR
@@ -167,10 +176,14 @@ class OnsetToPath:
         features = normalize(features, features_norm_params)
 
         plucks['safety_score'] = self.score(plucks)
-        plucks['loudness'].fillna(0.0, inplace= True)
 
-        gp_loudness= self.fit_gp(features, plucks['loudness'], alpha= 0.5, rbf_length= 1.0)
-        gp_safety= self.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.6)
+        # account for huge value span between successful and failed plucks with a low cutoff
+        loudness_low_cutoff = 27.0 # dBA
+        plucks['loudness'].fillna(loudness_low_cutoff, inplace= True)
+        plucks[plucks['loudness'] < loudness_low_cutoff] = loudness_low_cutoff
+
+        gp_loudness= self.fit_gp(features, plucks['loudness'], normalize= True, alpha= 2.0, rbf_length= 0.6)
+        gp_safety= self.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.4)
 
         # limits are always given as lower(closer to pre), higher(closer to post), so invert if needed
         pos_limits= actionspace.keypoint_pos_y
@@ -237,9 +250,21 @@ class OnsetToPath:
         fig.colorbar(sm, ax=ax)
         ax.set_xlim(actionspace.string_position[0], actionspace.string_position[1])
         ax.set_ylim(pos_limits[0], pos_limits[1])
-        publish_figure("scores", fig)
+        publish_figure("episodes_safety_score", fig)
 
-        # all safe samples evaluated
+        # loudness of all known samples
+        fig, ax = plt.subplots(dpi= 100)
+        cmap = sns.color_palette("RdPu", as_cmap=True)
+        norm = plt.Normalize(vmin=plucks['loudness'].min(), vmax=plucks['loudness'].max())
+        if len(plucks['loudness']) > 1:
+            sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= plucks['loudness'], hue_norm= norm, palette= cmap, legend= False, s= 100, ax= ax)
+        sm = plt.cm.ScalarMappable(norm= norm, cmap=cmap)
+        fig.colorbar(sm, ax=ax)
+        ax.set_xlim(actionspace.string_position[0], actionspace.string_position[1])
+        ax.set_ylim(pos_limits[0], pos_limits[1])
+        publish_figure("episodes_loudness", fig)
+
+        # all safe samples evaluated for nbp
         fig, ax = plt.subplots(dpi= 100)
         cmap = sns.color_palette("RdPu", as_cmap=True)
         norm = plt.Normalize(vmin=sample_H.min(), vmax=sample_H.max())
@@ -260,6 +285,10 @@ class OnsetToPath:
             )
         grid_points = np.column_stack((xi.ravel(), yi.ravel()))
         means, std = gp_loudness.predict(normalize(grid_points, features_norm_params), return_std=True)
+
+        # mask out points that are not safe
+        means[p_safe(grid_points) < 0.95] = np.nan
+
         sample_psafe = p_safe(grid_points).reshape((grid_size, grid_size))
 
         def grid_plot(fig, values, cmap):
