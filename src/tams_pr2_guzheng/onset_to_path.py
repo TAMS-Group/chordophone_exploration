@@ -54,8 +54,6 @@ class OnsetToPath:
     def print_summary(self):
         summary= f"OnsetToPath stores {len(self.pluck_table)} plucks\n"
         for n in self.pluck_table['detected_note'].unique():
-            if np.isnan(n):
-                continue
             summary+= f"{n}: {len(self.pluck_table[self.pluck_table['detected_note'] == n])} plucks\n"
 
         summary+= f"nan: {len(self.pluck_table[self.pluck_table['detected_note'].isnull()])} plucks\n\n"
