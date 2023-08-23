@@ -121,7 +121,7 @@ def main():
     string_len = 0.0
     actionspace = RuckigPath.ActionSpace(
         string_position= np.array((0.0, string_len)),
-        keypoint_pos_y= np.array((-0.004, 0.008)),
+        keypoint_pos_y= np.array((-0.007, 0.015)),
         keypoint_pos_z= np.array((-0.004,)),
         keypoint_vel_y= np.array((0.015,)),
         keypoint_vel_z= np.array((0.015,)),
@@ -186,14 +186,12 @@ def main():
         elif strategy == "random":
             path.sample(actionspace, uniform_sampler)
         elif strategy == "reduce_variance":
-            nbp = o2p.infer_next_best_pluck(
+            path = o2p.infer_next_best_pluck(
                 string= strings[i],
                 finger= finger,
                 direction= path.direction,
                 actionspace= actionspace,
             )
-            if nbp is not None:
-                path = nbp
         else:
             rospy.logfatal(f"invalid strategy '{strategy}'")
             return

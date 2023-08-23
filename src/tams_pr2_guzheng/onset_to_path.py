@@ -152,8 +152,12 @@ class OnsetToPath:
 
         plucks = plucks[actionspace.is_valid(plucks)]
 
+        nbp = RuckigPath.prototype(string= string, direction= direction)
+
         if len(plucks) < 1:
-            return None
+            rospy.logwarn(f"no plucks found for string {string} and finger {finger} in direction {direction}. returning default nbp as seed")
+            nbp.string_position = actionspace.string_position[1]/2
+            return nbp
 
         features = plucks[['string_position', 'keypoint_pos_y']].to_numpy()
         # features, features_norm_params = normalize(features)
@@ -168,60 +172,97 @@ class OnsetToPath:
         plucks['loudness'].fillna(0.0, inplace= True)
 
         gp_loudness= self.fit_gp(features, plucks['loudness'], alpha= 0.5, rbf_length= 1.0)
-        gp_safety= self.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.4)
+        gp_safety= self.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.6)
 
         # limits are always given as lower(closer to pre), higher(closer to post), so invert if needed
         pos_limits= actionspace.keypoint_pos_y
         if direction < 0.0:
             pos_limits= -1.0*pos_limits[::-1]
 
-        # TODO: CEM? Second-Order Optimization?
-        sample_size= 100
+        # maximize entropy
+        def H(X):
+            # X.reshape(1, -1)
+            X= normalize(X, features_norm_params)
+            return gp_loudness.predict(X, return_std=True)[1]
 
-        xi = np.random.uniform(actionspace.string_position[0], actionspace.string_position[1], sample_size)
-        yi = np.random.uniform(pos_limits[0], pos_limits[1], sample_size)
-        point_set = np.column_stack((xi, yi))
-        point_set = normalize(point_set, features_norm_params)
-        means, std = gp_loudness.predict(point_set, return_std=True)
-        safety_score_predictions = gp_safety.predict(point_set, return_std=True)
-        safety_prob = 1-stats.norm.cdf(0.0, *safety_score_predictions)
+        # Probability of sample being safe w.r.t. Gaussian prediction
+        def p_safe(X):
+            # x= x.reshape(1, -1)
+            X= normalize(X, features_norm_params)
+            safety_score_predictions = gp_safety.predict(X , return_std=True)
+            safety_prob = 1-stats.norm.cdf(0.0, *safety_score_predictions)
+            return safety_prob
 
-        rospy.loginfo(
-            f'out of {sample_size} sampled potential nbp actions\n'
-            f'safety_prob > 0.5: {np.sum(safety_prob > 0.5)}\n'
-            f'safety_prob > 0.9: {np.sum(safety_prob > 0.9)}\n'
-            f'safety_prob > 0.95: {np.sum(safety_prob > 0.95)}\n'
-            f'still ignoring probability for now'
-            )
+        domains = (
+            (actionspace.string_position[0], actionspace.string_position[1]),
+            (pos_limits[0], pos_limits[1]),
+        )
 
-        idx_max_std= np.argmax(std)
-        features_max_std= np.array([xi[idx_max_std], yi[idx_max_std]])
+        # optuna? In practice the sampling suffices and provides useful visualizations
+        sample_size= 1000
+        while True:
+            # draw safe samples in F_domains
 
-        # optional visualizations
+            # deterministic sampling, but different for each attempt
+            rnd = np.random.default_rng(37+sample_size+len(plucks))
+            samples = rnd.uniform(0, 1, size=(sample_size, len(domains)))
+            samples = np.array([p*(d[1]-d[0])+d[0] for (p,d) in zip(samples.T, domains)]).T
+
+            sample_H = H(samples)
+            sample_psafe = p_safe(samples)
+
+            safe_sample_cnt = np.sum(sample_psafe >= 0.95)
+            if safe_sample_cnt > 20:
+                break
+
+            sample_size*= 2
+            rospy.logerr(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
+            rospy.loginfo(f"knows {np.sum(plucks['safety_score'] > 0.0)} samples with safety_score > 0.0 and {np.sum(plucks['safety_score'] < 0.0)} samples with safety_score < 0.0")
+
+        # limit to safe samples
+        samples = samples[sample_psafe >= 0.95]
+        sample_H = sample_H[sample_psafe >= 0.95]
+
+        sample_max_H = samples[np.argmax(sample_H)]
+        nbp.string_position= sample_max_H[0]
+        nbp.keypoint_pos[0]= sample_max_H[1]
+        rospy.loginfo(f"selected nbp: {nbp}")
+
+        ## optional visualizations
+
+        # safety scores of all considered samples
         fig, ax = plt.subplots(dpi= 100)
         cmap = sns.color_palette("seismic", as_cmap=True)
         norm = plt.Normalize(vmin=-1.0, vmax=1.0)
         sns.scatterplot(x= plucks['string_position'], y= plucks['keypoint_pos_y'], hue= plucks['safety_score'], palette= cmap, hue_norm= norm, legend= False, s= 100, ax= ax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         fig.colorbar(sm, ax=ax)
+        ax.set_xlim(actionspace.string_position[0], actionspace.string_position[1])
+        ax.set_ylim(pos_limits[0], pos_limits[1])
         publish_figure("scores", fig)
 
+        # all safe samples evaluated
+        fig, ax = plt.subplots(dpi= 100)
+        cmap = sns.color_palette("RdPu", as_cmap=True)
+        norm = plt.Normalize(vmin=sample_H.min(), vmax=sample_H.max())
+        sns.scatterplot(x= samples[:,0], y= samples[:,1], hue= sample_H, hue_norm= norm, palette= cmap, legend= False, s= 100, ax= ax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm= norm)
+        fig.colorbar(sm, ax=ax)
+        ax.set_xlim(actionspace.string_position[0], actionspace.string_position[1])
+        ax.set_ylim(pos_limits[0], pos_limits[1])
+        publish_figure("sample_H", fig)
+
+        # evaluate GP_loudness and p(safe|X) on a grid
         grid_size = 50
         grid_string_position = np.linspace(actionspace.string_position[0], actionspace.string_position[1], grid_size)
         grid_keypoint_pos_y = np.linspace(pos_limits[0], pos_limits[1], grid_size)
-
         xi, yi = np.meshgrid(
             grid_string_position,
             grid_keypoint_pos_y
             )
-        xi= xi.ravel()
-        yi= yi.ravel()
-        grid_points = np.column_stack((xi, yi))
-        grid_points = normalize(grid_points, features_norm_params)
-
-        means, std = gp_loudness.predict(grid_points, return_std=True)
-        safety_prob = 1-stats.norm.cdf(0.0, *gp_safety.predict(grid_points, return_std=True))
-        safety_prob = safety_prob.reshape((grid_size, grid_size))
+        grid_points = np.column_stack((xi.ravel(), yi.ravel()))
+        means, std = gp_loudness.predict(normalize(grid_points, features_norm_params), return_std=True)
+        sample_psafe = p_safe(grid_points).reshape((grid_size, grid_size))
 
         def grid_plot(fig, values, cmap):
             values= values.reshape((grid_size, grid_size))
@@ -243,13 +284,10 @@ class OnsetToPath:
         publish_figure("gp_std_loudness", fig)
 
         fig = plt.figure(dpi= 100)
-        grid_plot(fig, safety_prob, plt.get_cmap("brg"))
+        grid_plot(fig, sample_psafe, plt.get_cmap("brg"))
         publish_figure("p_safety", fig)
 
-        p = RuckigPath.prototype(string= string, direction= direction)
-        p.string_position= features_max_std[0]
-        p.keypoint_pos[0]= features_max_std[1]
-        return p
+        return nbp
 
     def get_note_min_max(self, note : str):
         '''
