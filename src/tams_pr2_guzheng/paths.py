@@ -17,8 +17,6 @@ from tams_pr2_guzheng.msg import ActionParameters
 from typing import NamedTuple
 from visualization_msgs.msg import Marker
 
-from .utils import string_length
-
 __all__ = [
     "get_path_yz_offsets_yz_start",
     "get_path_yz_start_y_offset_lift_angle",
@@ -37,6 +35,7 @@ class RuckigPath:
         keypoint_pos_z: np.array
         keypoint_vel_y: np.array
         keypoint_vel_z: np.array
+        directed: bool = False
 
         def is_valid(self, plucks : pd.DataFrame):
             return np.logical_and.reduce((
@@ -52,18 +51,29 @@ class RuckigPath:
                 plucks['keypoint_vel_z'] <= self.keypoint_vel_z[-1],
             ))
 
-    def sample(self, actionspace, sampler):
+        def with_direction(self, dir):
+            assert(not self.directed)  # otherwise we might have already flipped the direction before
+            dir = np.sign(dir)
+            return self.__class__(
+                self.string_position,
+                dir*self.keypoint_pos_y[::int(dir)],
+                self.keypoint_pos_z,
+                dir*self.keypoint_vel_y[::int(dir)],
+                self.keypoint_vel_z,
+                directed=True
+            )
 
+    def sample(self, actionspace, sampler):
         def copyorsample(limits, sampler):
             if len(limits) == 1:
                 return limits[0]
             else:
                 return stats.qmc.scale(sampler(), *limits)
 
-        y_pos_limits = -1.0*actionspace.keypoint_pos_y[::-1] if self.direction < 0.0 else actionspace.keypoint_pos_y
-        self.keypoint_pos[0] = copyorsample(y_pos_limits, sampler)
-        y_vel_limits = -1.0*actionspace.keypoint_vel_y[::-1] if self.direction < 0.0 else actionspace.keypoint_vel_y
-        self.keypoint_vel[0] = copyorsample(y_vel_limits, sampler)
+        actionspace = actionspace.with_direction(self.direction)
+
+        self.keypoint_pos[0] = copyorsample(actionspace.keypoint_pos_y, sampler)
+        self.keypoint_vel[0] = copyorsample(actionspace.keypoint_vel_y, sampler)
         self.string_position = copyorsample(actionspace.string_position, sampler)
         self.keypoint_pos[1] = copyorsample(actionspace.keypoint_pos_z, sampler)
         self.keypoint_vel[1] = copyorsample(actionspace.keypoint_vel_z, sampler)
@@ -280,7 +290,7 @@ class RuckigPath:
 
     @property
     def direction(self) -> float:
-        return self.post[0]/abs(self.post[0])
+        return np.sign(self.post[0])
 
     @property
     def dataframe(self):

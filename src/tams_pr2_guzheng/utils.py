@@ -1,18 +1,23 @@
 import rospy
 
+import matplotlib as mpl
 import numpy as np
+import pandas as pd
+import scipy.stats as stats
+import seaborn as sns
+import sklearn.gaussian_process as gp
 import tf2_ros
 import tf2_geometry_msgs
 import tams_pr2_guzheng.utils as utils
 
-from nav_msgs.msg import Path
 from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
+from matplotlib import pyplot as plt
+from matplotlib import cm
+from nav_msgs.msg import Path
 from sensor_msgs.msg import Image
 
-from tams_pr2_guzheng.msg import (
-    RunEpisodeRequest,
-    RunEpisodeGoal
-)
+from tams_pr2_guzheng.msg import RunEpisodeRequest, RunEpisodeGoal
+from tams_pr2_guzheng.paths import RuckigPath
 
 def note_to_string(note):
     return note.replace("♯", "is").lower()
@@ -27,7 +32,6 @@ def run_params(run_episode, params, finger='ff'):
     return run_episode.get_result()
 
 def row_from_result(result):
-    from .paths import RuckigPath
     row = RuckigPath.from_action_parameters(result.parameters).params_map
     row['finger'] = result.finger
 
@@ -105,3 +109,135 @@ def say(txt):
     from std_msgs.msg import String as StringMsg
     _say_pub = rospy.Publisher("/say", StringMsg, queue_size= 1, tcp_nodelay= True, latch= True)
     _say_pub.publish(txt)
+
+def normalize(x, params = None):
+    if params is None:
+        mean = x.mean(axis=0)
+        std = x.std(axis=0)
+        std[std == 0] = 1.0
+        params = (mean, std)
+        return (x - mean) / std, params
+    else:
+        (mean, std) = params
+        return (x - mean) / std
+
+def undo_normalize(x, params):
+    (mean, std) = params
+    return x * std + mean
+
+def score_safety(df):
+    # minimum distance to neighbors to consider safe
+    # empirically determined accuracy of string fitting
+    safe_threshold = 0.002 # m
+
+    # distance to saturation of distance safety score
+    saturation_threshold  = 0.015 # m
+
+    # loudness cut-off
+    loudness_threshold = 65.0 # dBA
+
+    a = 1/(saturation_threshold-safe_threshold)
+    b = -a*safe_threshold
+
+    scores = (a*df['min_distance']+b)
+    scores.name = 'safety'
+    scores[df['min_distance'] >= saturation_threshold] = 1.0
+    scores[df['loudness'] > loudness_threshold] = -0.5
+    scores[df['unexpected_onsets'] > 0] = -1.0
+    scores[df['loudness'].isna()] = -1.0
+
+    return scores
+
+def fit_gp(features, value, alpha, rbf_length= None, normalize= False):
+    '''
+    @param features: (n_samples, n_features)
+    @param value: (n_samples,)
+    @param alpha: observation noise level (std)
+    @param rbf_length: length scale of RBF kernel
+
+    @return: fitted GaussianProcessRegressor
+    '''
+
+    kernel = gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")
+    if rbf_length is not None:
+        kernel*= gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed")
+    else:
+        kernel*= gp.kernels.RBF()
+
+    GPR= gp.GaussianProcessRegressor(
+        n_restarts_optimizer=50,
+        alpha=alpha**2,
+        kernel= kernel,
+        normalize_y= normalize,
+        )
+    GPR.fit(features.values, value)
+    return GPR
+
+def prob_gt_zero(distributions : np.array):
+    '''
+    @param distributions: stack of (mean, std) of a normal distribution with shape (n_samples, 2)
+
+    @return: p(x >= 0;N(mu,std)) for each sample (n_samples,)
+    '''
+    return 1-stats.norm.cdf(0.0, *distributions)
+
+def make_grid_points(actionspace, grid_size):
+    '''
+    generate a set of grid points for plotting parameters in 2D
+    '''
+    xi, yi = np.meshgrid(
+        np.linspace(*actionspace.string_position, grid_size),
+        np.linspace(*actionspace.keypoint_pos_y, grid_size)
+        )
+    return pd.DataFrame({ 'string_position': xi.ravel(), 'keypoint_pos_y': yi.ravel() })
+
+def grid_plot(values, actionspace, cmap, ax = None):
+    '''
+    plot function matching @make_grid_points above
+    '''
+    if ax is None:
+        ax = plt.gca()
+    values= values.ravel().reshape( (int(np.sqrt(values.size)),)*2 )
+    im= ax.imshow(values, origin='lower', cmap=cmap, extent=(*actionspace.string_position, *actionspace.keypoint_pos_y), aspect='auto')
+    plt.colorbar(im)
+    ax.grid(False)
+    ax.set_xlabel("string position")
+    ax.set_ylabel("keypoint pos y")
+
+def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN'):
+    '''
+    plot a colorbar and a standalone entry below for a special value (e.g. NaN)
+
+    @param sm: ScalarMappable used for the colorbar
+    @param ax: Axes to plot the colorbar on
+    @param nan: color for the special value, e.g., cmap.get_bad()
+    @param label: label for the special value (default 'NaN')
+    '''
+
+    cbar = ax.figure.colorbar(sm, ax= ax)
+    sm = cm.ScalarMappable(cmap= mpl.colors.ListedColormap([nan]))
+    nan_ax, _ = mpl.colorbar.make_axes(cbar.ax, location='bottom', aspect= 1, fraction= 0.05, pad= 0.03)
+    nan_ax.grid(visible=False, which='both', axis='both')  # required for Colorbar constructor below
+    nan_cbar = mpl.colorbar.Colorbar(ax=nan_ax, mappable=sm, orientation='vertical')
+    nan_cbar.set_ticks([0.5], labels=[label])
+    nan_cbar.ax.tick_params(length= 0)
+
+def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None):
+    if cmap is None:
+        cmap= sns.cubehelix_palette(as_cmap=True)
+    cmap.set_under(nan) # TODO: shouldn't modify given cmap
+    if norm is None:
+        norm = plt.Normalize(col.min(), col.max())
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+
+    art = sns.scatterplot(x='string_position', y='keypoint_pos_y', data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax)
+    art.set_title(col.name)
+
+    if actionspace is not None:
+        ax.set_xlim(*actionspace.string_position)
+        ax.set_ylim(*actionspace.keypoint_pos_y)
+
+    if col.hasnans:
+        nanbar(sm, art, nan= cmap.get_under(), label=nan_label)
+    else:
+        art.figure.colorbar(sm, ax=art)

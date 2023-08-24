@@ -190,7 +190,7 @@ def main():
                 string= strings[i],
                 finger= finger,
                 direction= path.direction,
-                actionspace= actionspace,
+                actionspace= actionspace.with_direction(path.direction),
             )
         else:
             rospy.logfatal(f"invalid strategy '{strategy}'")
