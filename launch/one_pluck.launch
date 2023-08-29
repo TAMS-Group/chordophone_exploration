@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="string" />
+  <arg name="finger" default="ff" />
+  <arg name="direction" />
+  <arg name="string_position" />
+  <arg name="keypoint_pos" />
+
+  <node name="explore" pkg="tams_pr2_guzheng" type="one_pluck.py" output="screen">
+    <param name="string" value="$(arg string)" />
+    <param name="finger" value="$(arg finger)" />
+    <param name="direction" value="$(arg direction)" />
+    <param name="string_position" value="$(arg string_position)" />
+    <param name="keypoint_pos" value="$(arg keypoint_pos)" />
+  </node>
+</launch>
