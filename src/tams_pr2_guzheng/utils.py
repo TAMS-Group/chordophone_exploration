@@ -148,7 +148,7 @@ def score_safety(df):
 
     return scores
 
-def fit_gp(features, value, alpha, rbf_length= None, normalize= False):
+def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= False):
     '''
     @param features: (n_samples, n_features)
     @param value: (n_samples,)
@@ -159,10 +159,10 @@ def fit_gp(features, value, alpha, rbf_length= None, normalize= False):
     '''
 
     kernel = gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")
-    if rbf_length is not None:
+    if train:
+        kernel*= gp.kernels.RBF(length_scale= rbf_length)
+    elif rbf_length is not None:
         kernel*= gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed")
-    else:
-        kernel*= gp.kernels.RBF()
 
     GPR= gp.GaussianProcessRegressor(
         n_restarts_optimizer=50,
