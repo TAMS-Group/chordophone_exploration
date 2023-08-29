@@ -241,3 +241,10 @@ def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', n
         nanbar(sm, art, nan= cmap.get_under(), label=nan_label)
     else:
         art.figure.colorbar(sm, ax=art)
+
+def plot_mean_std(x, mean, std, ax= None):
+    if ax is None:
+        ax = plt.gca()
+    sns.lineplot(x=x, y= mean, estimator= None, ax= ax)
+    ax.fill_between(x, mean-std, mean+std, alpha= 0.5)
+    ax.fill_between(x, mean-1.96*std, mean+1.96*std, alpha= 0.25)
