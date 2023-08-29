@@ -120,8 +120,22 @@ class OnsetToPath:
         plucks['loudness'].fillna(loudness_low_cutoff, inplace= True)
         plucks[plucks['loudness'] < loudness_low_cutoff] = loudness_low_cutoff
 
-        gp_loudness= utils.fit_gp(features, plucks['loudness'], normalize= True, alpha= 2.0, rbf_length= 0.6)
-        gp_safety= utils.fit_gp(features, plucks['safety_score'], alpha= 0.05, rbf_length= 0.4)
+        gp_loudness= utils.fit_gp(
+            features,
+            plucks['loudness'].values,
+            normalize= True,
+            alpha= 1.0,
+            rbf_length= (0.3, 0.3),
+            train= True
+        )
+        gp_safety = utils.fit_gp(
+            features,
+            plucks['safety_score'].values,
+            normalize= False,
+            alpha= 1.0,
+            rbf_length= 0.8
+        )
+
 
         # maximize entropy
         def H(X):

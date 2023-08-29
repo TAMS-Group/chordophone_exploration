@@ -128,7 +128,7 @@ def undo_normalize(x, params):
 def score_safety(df):
     # minimum distance to neighbors to consider safe
     # empirically determined accuracy of string fitting
-    safe_threshold = 0.002 # m
+    safe_threshold = 0.001 # m
 
     # distance to saturation of distance safety score
     saturation_threshold  = 0.015 # m
@@ -139,12 +139,15 @@ def score_safety(df):
     a = 1/(saturation_threshold-safe_threshold)
     b = -a*safe_threshold
 
-    scores = (a*df['min_distance']+b)
-    scores.name = 'safety'
-    scores[df['min_distance'] >= saturation_threshold] = 1.0
+    # create new pandas series with same index as df
+    scores = pd.Series(np.zeros(len(df)), index= df.index, name='safety')
+
+    #scores = (a*df['min_distance']+b)
+    #scores[df['min_distance'] >= saturation_threshold] = 1.0
+    scores.iloc[:] = 0.5
+    scores[df['loudness'].isna()] = -0.5
     scores[df['loudness'] > loudness_threshold] = -0.5
-    scores[df['unexpected_onsets'] > 0] = -1.0
-    scores[df['loudness'].isna()] = -1.0
+    scores[df['unexpected_onsets'] > 0] = -0.5
 
     return scores
 
