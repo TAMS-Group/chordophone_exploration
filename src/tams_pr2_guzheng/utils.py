@@ -129,23 +129,22 @@ def undo_normalize(x, params):
 def score_safety(df):
     # minimum distance to neighbors to consider safe
     # empirically determined accuracy of string fitting
-    safe_threshold = 0.001 # m
+    # safe_threshold = 0.001 # m
 
     # distance to saturation of distance safety score
-    saturation_threshold  = 0.015 # m
+    # saturation_threshold  = 0.015 # m
 
     # loudness cut-off
     loudness_threshold = 65.0 # dBA
 
-    a = 1/(saturation_threshold-safe_threshold)
-    b = -a*safe_threshold
+    # a = 1/(saturation_threshold-safe_threshold)
+    # b = -a*safe_threshold
 
     # create new pandas series with same index as df
-    scores = pd.Series(np.zeros(len(df)), index= df.index, name='safety')
+    scores = pd.Series(np.full(len(df), 0.5), index= df.index, name='safety')
 
     #scores = (a*df['min_distance']+b)
     #scores[df['min_distance'] >= saturation_threshold] = 1.0
-    scores.iloc[:] = 0.5
     scores[df['loudness'].isna()] = -0.5
     scores[df['loudness'] > loudness_threshold] = -0.5
     scores[df['unexpected_onsets'] > 0] = -0.5
@@ -169,20 +168,26 @@ def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= Fa
         kernel*= gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed")
 
     GPR= gp.GaussianProcessRegressor(
-        n_restarts_optimizer=50,
+        n_restarts_optimizer=100,
         alpha=alpha**2,
         kernel= kernel,
         normalize_y= normalize,
         )
-    GPR.fit(features.values, value)
+    GPR.fit(
+        features.values if hasattr(features, 'values') else features,
+        value.values if hasattr(value, 'values') else value
+    )
     return GPR
 
-def prob_gt_zero(distributions : np.array):
+def prob_gt_zero(distributions : Tuple[np.ndarray, np.ndarray]):
     '''
     @param distributions: stack of (mean, std) of a normal distribution with shape (n_samples, 2)
 
     @return: p(x >= 0;N(mu,std)) for each sample (n_samples,)
     '''
+    assert(len(distributions) == 2)
+    assert(distributions[0].size == distributions[1].size)
+
     return 1-stats.norm.cdf(0.0, *distributions)
 
 def make_grid_points(actionspace, grid_size):

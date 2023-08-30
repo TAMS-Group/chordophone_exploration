@@ -36,7 +36,7 @@ class OnsetToPath:
     def print_summary(self):
         summary= f"OnsetToPath stores {len(self.pluck_table)} plucks\n"
         for n in self.pluck_table['detected_note'].unique():
-            if np.isnan(n):
+            if isinstance(n, float) and np.isnan(n):
                 l= len(self.pluck_table[self.pluck_table['detected_note'].isna()])
             else:
                 l= len(self.pluck_table[self.pluck_table['detected_note'] == n])
@@ -89,53 +89,60 @@ class OnsetToPath:
     def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : RuckigPath.ActionSpace, direction : float) -> RuckigPath:
         assert(direction in [-1.0, 1.0])
 
-        plucks = self.pluck_table[
+        relevant_plucks = self.pluck_table[
             (self.pluck_table['string'] == string) &
             (self.pluck_table['finger'] == finger) &
             (self.pluck_table['post_y']*direction >= 0.0)
         ]
 
-        plucks = plucks[actionspace.is_valid(plucks)]
+        plucks = relevant_plucks[actionspace.is_valid(relevant_plucks)].copy()
+
+        if relevant_plucks.size != plucks.size:
+            rospy.logwarn(f'dropped {relevant_plucks.size - plucks.size} plucks invalid w.r.t. passed actionspace')
 
         nbp = RuckigPath.prototype(string= string, direction= direction)
+        nbp.string_position = actionspace.string_position[1]/2
 
         if len(plucks) < 1:
             rospy.logwarn(f"no plucks found for string {string} and finger {finger} in direction {direction}. returning default nbp as seed")
-            nbp.string_position = actionspace.string_position[1]/2
             return nbp
 
-        features = plucks[['string_position', 'keypoint_pos_y']].to_numpy()
+        features = plucks[['string_position', 'keypoint_pos_y']]
         # features, features_norm_params = normalize(features)
         # use expected means/std instead:
         features_norm_params = (
             np.array([actionspace.string_position[1]/2, (actionspace.keypoint_pos_y[0] + (actionspace.keypoint_pos_y[1]-actionspace.keypoint_pos_y[0])/2) ]),
             np.array([actionspace.string_position[1]/4, (actionspace.keypoint_pos_y[1] - actionspace.keypoint_pos_y[0])/4])
         )
-        features = normalize(features, features_norm_params)
+        features = normalize(features, features_norm_params).values
 
         plucks['safety_score'] = utils.score_safety(plucks)
+        if len(plucks['safety_score'] > 0) < 1:
+            rospy.logwarn(f"no safe plucks found for string {string} and finger {finger} in direction {direction}. dropping unsafe plucks and return default nbp as seed")
+            self.pluck_table.drop(plucks.index, inplace= True)
+            return nbp
 
         # account for huge value span between successful and failed plucks with a low cutoff
-        loudness_low_cutoff = 27.0 # dBA
+        loudness_low_cutoff = 15.0 # dBA
         plucks['loudness'].fillna(loudness_low_cutoff, inplace= True)
-        plucks[plucks['loudness'] < loudness_low_cutoff] = loudness_low_cutoff
+        plucks.loc[plucks['loudness'] < loudness_low_cutoff, 'loudness'] = loudness_low_cutoff
 
         gp_loudness= utils.fit_gp(
             features,
             plucks['loudness'].values,
             normalize= True,
             alpha= 1.0,
-            rbf_length= (0.3, 0.3),
-            train= True
+            rbf_length= (0.5, 0.25),
+            train= False # True if plucks['loudness'].dropna().size > 50 else False
         )
         gp_safety = utils.fit_gp(
             features,
             plucks['safety_score'].values,
             normalize= False,
-            alpha= 1.0,
-            rbf_length= 0.8
+            alpha= .5,
+            rbf_length= (0.5, 0.25),
+            train= False
         )
-
 
         # maximize entropy
         def H(X):
@@ -145,9 +152,7 @@ class OnsetToPath:
 
         # Probability of sample being safe w.r.t. Gaussian prediction
         def p_safe(X):
-            # x= x.reshape(1, -1)
-            X= normalize(X, features_norm_params)
-            safety_score_predictions = gp_safety.predict(X , return_std=True)
+            safety_score_predictions = gp_safety.predict(normalize(X, features_norm_params), return_std=True)
             return utils.prob_gt_zero(safety_score_predictions)
 
         domains = (
@@ -155,9 +160,15 @@ class OnsetToPath:
             actionspace.keypoint_pos_y,
         )
 
+        psafe_threshold = 0.7
+
         # optuna? In practice the sampling suffices and provides useful visualizations
         sample_size= 1000
-        while (not rospy.is_shutdown()) and (sample_size < 1e6):
+        while (not rospy.is_shutdown()):
+            if sample_size > 1e6:
+                # pull the plug
+                raise RuntimeError(f"could not find a safe sample after {float(sample_size):.0e} attempts")
+                return nbp
 
             # deterministic sampling, but different for each attempt
             rnd = np.random.default_rng(37+sample_size+len(plucks))
@@ -167,24 +178,24 @@ class OnsetToPath:
             samples = np.array([p*(d[1]-d[0])+d[0] for (p,d) in zip(samples.T, domains)]).T
 
             samples_H = H(samples)
-            sample_psafe = p_safe(samples)
+            samples_psafe = p_safe(samples)
 
-            safe_sample_cnt = np.sum(sample_psafe >= 0.95)
+            safe_sample_cnt = np.sum(samples_psafe >= psafe_threshold)
             if safe_sample_cnt > 20:
                 break
             sample_size*= 2
-            rospy.logerr(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
-            rospy.loginfo(f"knows {np.sum(plucks['safety_score'] > 0.0)} samples with safety_score > 0.0 and {np.sum(plucks['safety_score'] < 0.0)} samples with safety_score < 0.0")
+            rospy.logwarn(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
+            rospy.loginfo_throttle(10, f"knows {np.sum(plucks['safety_score'] > 0.0)} samples with safety_score > 0.0 and {np.sum(plucks['safety_score'] < 0.0)} samples with safety_score < 0.0")
 
         # limit to sufficiently safe samples
-        # indices = sample_psafe >= 0.6
-        # samples = samples[indices]
-        # sample_H = sample_H[indices]
+        indices = samples_psafe >= psafe_threshold
+        samples = samples[indices]
+        samples_H = samples_H[indices]
 
         sample_max_H = samples[np.argmax(samples_H)]
         nbp.string_position= sample_max_H[0]
         nbp.keypoint_pos[0]= sample_max_H[1]
-        rospy.loginfo(f"selected nbp: {nbp}")
+        rospy.loginfo(f"selected nbp: {nbp} with H= {np.max(samples_H)} out of {len(samples)} sufficiently safe samples")
 
         ## optional visualizations
 
@@ -223,17 +234,18 @@ class OnsetToPath:
             actionspace= actionspace,
             ax= ax,
         )
+        ax.scatter(sample_max_H[0], sample_max_H[1], marker= 'x', color= 'blue', s= 150, linewidths= 5)
         utils.publish_figure("sample_H", fig)
 
         # evaluate GP_loudness and p(safe|X) on a grid
         grid_size= 50
-        grid_points = utils.make_grid_points(actionspace, 50)
+        grid_points = utils.make_grid_points(actionspace, 50).values
         means, std = gp_loudness.predict(normalize(grid_points, features_norm_params), return_std=True)
 
         # mask out points that are not safe
-        means[p_safe(grid_points) < 0.95] = np.nan
+        means[p_safe(grid_points) < psafe_threshold] = np.nan
 
-        sample_psafe = p_safe(grid_points).reshape((grid_size, grid_size))
+        p_safe = p_safe(grid_points).reshape((grid_size, grid_size))
 
         fig = plt.figure(dpi= 50)
         utils.grid_plot(means, actionspace, plt.get_cmap("RdPu"))
@@ -244,7 +256,7 @@ class OnsetToPath:
         utils.publish_figure("gp_std_loudness", fig)
 
         fig = plt.figure(dpi= 100)
-        utils.grid_plot(sample_psafe, actionspace, plt.get_cmap("brg"))
+        utils.grid_plot(p_safe, actionspace, plt.get_cmap("brg"))
         utils.publish_figure("p_safety", fig)
 
         return nbp

@@ -41,12 +41,12 @@ class RuckigPath:
             return np.logical_and.reduce((
                 plucks['string_position'] >= self.string_position[0],
                 plucks['string_position'] <= self.string_position[-1],
-                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) >= self.keypoint_pos_y[0],
-                plucks['keypoint_pos_y']*np.sign(plucks['post_y']) <= self.keypoint_pos_y[-1],
+                plucks['keypoint_pos_y'] >= self.keypoint_pos_y[0],
+                plucks['keypoint_pos_y'] <= self.keypoint_pos_y[-1],
                 plucks['keypoint_pos_z'] >= self.keypoint_pos_z[0],
                 plucks['keypoint_pos_z'] <= self.keypoint_pos_z[-1],
-                plucks['keypoint_vel_y']*np.sign(plucks['post_y']) >= self.keypoint_vel_y[0],
-                plucks['keypoint_vel_y']*np.sign(plucks['post_y']) <= self.keypoint_vel_y[-1],
+                plucks['keypoint_vel_y'] >= self.keypoint_vel_y[0],
+                plucks['keypoint_vel_y'] <= self.keypoint_vel_y[-1],
                 plucks['keypoint_vel_z'] >= self.keypoint_vel_z[0],
                 plucks['keypoint_vel_z'] <= self.keypoint_vel_z[-1],
             ))
@@ -204,7 +204,7 @@ class RuckigPath:
         p.string = string
         p.string_position = 0.0
 
-        p.pre = [direction*(-0.007), 0.01]
+        p.pre = [direction*(-0.01), 0.013]
         p.post = [direction*0.01, 0.02]
 
         p.keypoint_pos = [0.0, -0.004]

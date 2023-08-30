@@ -214,6 +214,7 @@ def main():
             if strategy != "geometry":
                 # compute minimum distance to other strings during execution (used in safety score)
                 minimum_distance = np.inf
+                closest_neighbor = "none"
                 known_strings_cp = known_strings[:]
                 for string in known_strings_cp:
                     string_frame = f"guzheng/{string}/head"
