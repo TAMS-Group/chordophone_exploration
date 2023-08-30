@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 from matplotlib import cm
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image
+from typing import Tuple
 
 from tams_pr2_guzheng.msg import RunEpisodeRequest, RunEpisodeGoal
 from tams_pr2_guzheng.paths import RuckigPath
@@ -219,18 +220,21 @@ def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN'):
 
     cbar = ax.figure.colorbar(sm, ax= ax)
     sm = cm.ScalarMappable(cmap= mpl.colors.ListedColormap([nan]))
-    nan_ax, _ = mpl.colorbar.make_axes(cbar.ax, location='bottom', aspect= 1, fraction= 0.05, pad= 0.03)
+
+    from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
+    divider = make_axes_locatable(cbar.ax)
+    nan_ax = divider.append_axes("bottom", size= "5%", pad= "3%", aspect= 1, anchor= cbar.ax.get_anchor())
     nan_ax.grid(visible=False, which='both', axis='both')  # required for Colorbar constructor below
     nan_cbar = mpl.colorbar.Colorbar(ax=nan_ax, mappable=sm, orientation='vertical')
     nan_cbar.set_ticks([0.5], labels=[label])
     nan_cbar.ax.tick_params(length= 0)
 
 def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None):
-    if cmap is None:
-        cmap= sns.cubehelix_palette(as_cmap=True)
+    ax = plt.gca() if ax is None else ax
+    cmap= sns.cubehelix_palette(as_cmap=True) if cmap is None else cmap
     cmap.set_under(nan) # TODO: shouldn't modify given cmap
-    if norm is None:
-        norm = plt.Normalize(col.min(), col.max())
+    norm = plt.Normalize(col.min(), col.max()) if norm is None else norm
+
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 
     art = sns.scatterplot(x='string_position', y='keypoint_pos_y', data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax)

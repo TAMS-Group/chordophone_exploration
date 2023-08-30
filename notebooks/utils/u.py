@@ -1,6 +1,9 @@
 import rospy
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+import os
+
+from IPython.display import HTML
 
 try:
     mpl.style.use('seaborn-v0_8')
@@ -51,10 +54,15 @@ def tip_path(path):
 # plotting
 
 def save_plot(s):
+    if not os.path.exists('plots'):
+        os.makedirs('plots')
     plt.savefig(f'plots/{s}.png', dpi= 150)
 
 def save_anim(a, s):
+    if not os.path.exists('plots'):
+        os.makedirs('plots')
     a.save(f'plots/{s}.mp4', dpi= 150)
+    return HTML(a.to_html5_video())
 
 def big_plot():
     plt.figure(figsize=(15,8), dpi=100)
