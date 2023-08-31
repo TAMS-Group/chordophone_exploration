@@ -117,7 +117,7 @@ class OnsetToPath:
         features = normalize(features, features_norm_params).values
 
         plucks['safety_score'] = utils.score_safety(plucks)
-        if len(plucks['safety_score'] > 0) < 1:
+        if not (plucks['safety_score'] > 0).any():
             rospy.logwarn(f"no safe plucks found for string {string} and finger {finger} in direction {direction}. dropping unsafe plucks and return default nbp as seed")
             self.pluck_table.drop(plucks.index, inplace= True)
             return nbp
@@ -249,6 +249,8 @@ class OnsetToPath:
 
         fig = plt.figure(dpi= 50)
         utils.grid_plot(means, actionspace, plt.get_cmap("RdPu"))
+        plt.title("GP safe loudness mean")
+
         utils.publish_figure("gp_loudness", fig)
 
         fig = plt.figure(dpi= 50)

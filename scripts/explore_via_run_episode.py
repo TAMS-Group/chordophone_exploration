@@ -122,7 +122,7 @@ def main():
     string_len = 0.0
     actionspace = RuckigPath.ActionSpace(
         string_position= np.array((0.0, string_len)),
-        keypoint_pos_y= np.array((-0.007, 0.015)),
+        keypoint_pos_y= np.array((-0.01, 0.018)),
         keypoint_pos_z= np.array((-0.004,)),
         keypoint_vel_y= np.array((0.015,)),
         keypoint_vel_z= np.array((0.015,)),
@@ -242,6 +242,7 @@ def main():
                 else:
                     log+= "without onset "
                 log+= f"and score {score:.3F} (dist {minimum_distance:.4F}m to {closest_neighbor}) "
+                log+= f"and neighborhood_context {row['neighborhood_context']:.3F} "
                 log+= "to table"
 
                 if score < 0.0:

@@ -44,9 +44,12 @@ def row_from_result(result):
 
     row['onsets'] = result.onsets[:]
 
+    row['neighborhood_context'] = 0.0
     if len(expected_onsets) > 0:
-        row['loudness'] = max([o.loudness for o in expected_onsets])
-        row['detected_note'] = result.onsets[-1].note
+        loudest = max(expected_onsets, key= lambda o: o.loudness)
+        row['loudness'] = loudest.loudness
+        row['detected_note'] = loudest.note
+        row['neighborhood_context'] = loudest.neighborhood_context
     elif len(unexpected_onsets) > 0:
         loudest = max(unexpected_onsets, key= lambda o: o.loudness)
         row['loudness'] = loudest.loudness
@@ -148,6 +151,9 @@ def score_safety(df):
     scores[df['loudness'].isna()] = -0.5
     scores[df['loudness'] > loudness_threshold] = -0.5
     scores[df['unexpected_onsets'] > 0] = -0.5
+
+    if 'neighborhood_context' in df.columns:
+        scores[df['neighborhood_context'] < 100] = -0.5
 
     return scores
 
