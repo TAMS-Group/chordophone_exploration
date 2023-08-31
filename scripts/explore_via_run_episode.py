@@ -110,6 +110,7 @@ def main():
     if position_strategy == "uniform":
         string_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
     elif position_strategy == "halton":
+        # TODO: separate sampler for each string is essential
         string_sampler = lambda d=stats.qmc.Halton(d= 1, seed= 37): d.random()
 
     uniform_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): np.array([[d.rvs()]])
