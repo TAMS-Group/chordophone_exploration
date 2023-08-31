@@ -163,7 +163,7 @@ class OnsetToPath:
         psafe_threshold = 0.7
 
         # optuna? In practice the sampling suffices and provides useful visualizations
-        sample_size= 1000
+        sample_size= 2000
         while (not rospy.is_shutdown()):
             if sample_size > 1e6:
                 # pull the plug
