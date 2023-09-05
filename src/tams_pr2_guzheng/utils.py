@@ -157,7 +157,7 @@ def score_safety(df):
 
     return scores
 
-def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= False):
+def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= False, type= "RBF"):
     '''
     @param features: (n_samples, n_features)
     @param value: (n_samples,)
@@ -168,10 +168,17 @@ def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= Fa
     '''
 
     kernel = gp.kernels.ConstantKernel(1.0, constant_value_bounds="fixed")
+    if type == "RBF":
+        K = gp.kernels.RBF
+    elif type == "Matern":
+        K = gp.kernels.Matern
+    else:
+        raise ValueError(f"unknown kernel type '{type}'")
+
     if train:
-        kernel*= gp.kernels.RBF(length_scale= rbf_length)
+        kernel*= K(length_scale= rbf_length)
     elif rbf_length is not None:
-        kernel*= gp.kernels.RBF(length_scale= rbf_length, length_scale_bounds="fixed")
+        kernel*= K(length_scale= rbf_length, length_scale_bounds="fixed")
 
     GPR= gp.GaussianProcessRegressor(
         n_restarts_optimizer=100,
