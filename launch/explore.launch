@@ -14,6 +14,8 @@
   <arg name="position_strategy" default="halton" />
   <!-- <arg name="attempts_for_good_pluck" default="4" /> -->
 
+  <arg name="storage" default="" />
+
   <node name="explore" pkg="tams_pr2_guzheng" type="explore_via_run_episode.py" output="screen">
     <param name="string" value="$(arg string)" />
     <param name="finger" value="$(arg finger)" />
@@ -25,5 +27,7 @@
 
     <param name="strategy" value="$(arg strategy)" />
     <param name="position_strategy" value="$(arg position_strategy)" />
+
+    <param name="storage" value="$(arg storage)" />
   </node>
 </launch>

@@ -51,7 +51,10 @@ def main():
     # max number of attempts to pluck string with one onset with strategy=="geometry"
     attempts_for_good_pluck = rospy.get_param("~attempts_for_good_pluck", 4)
     # storage path for explored plucks
-    storage_path = rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json")
+    storage = rospy.get_param("~storage", "")
+    if storage != "":
+        storage = "_"+str(storage)
+    storage_path = rospkg.RosPack().get_path("tams_pr2_guzheng") + f"/data/plucks_explore{storage}.json"
 
     # validate parameters
 
