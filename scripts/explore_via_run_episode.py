@@ -28,12 +28,6 @@ def plot_p(strings, p):
     fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
     publish_figure("p", fig)
 
-known_strings = []
-def known_strings_cb(strings):
-    '''collect names of all fitted instrument strings'''
-    global known_strings
-    known_strings = [s.ns for s in strings.markers if len(s.ns) > 0 and ' ' not in s.ns]
-
 def main():
     rospy.init_node('explore')
 
@@ -88,21 +82,16 @@ def main():
     tf = tf2_ros.Buffer()
     tf_listener = tf2_ros.TransformListener(tf)
 
-    known_strings_sub = rospy.Subscriber(
-        'guzheng/fitted_strings',
-        MarkerArray,
-        known_strings_cb,
-        queue_size=1)
-
     run_episode = SimpleActionClient("run_episode", RunEpisodeAction)
     run_episode.wait_for_server()
 
     # strings to explore
     # guzheng:
     # # strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
+    fitted_strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
+    known_strings = sorted([m.ns for m in fitted_strings.markers if " " not in m.ns and len(m.ns) > 0], key = lambda s: librosa.note_to_midi((utils.string_to_note(s))))
     if string == "all":
-        strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
-        strings = sorted([m.ns for m in strings.markers if " " not in m.ns and len(m.ns) > 0], key = lambda s: librosa.note_to_midi((utils.string_to_note(s))))
+        strings = known_strings
     else:
         strings= string.split(" ")
 
