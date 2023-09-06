@@ -100,10 +100,11 @@ def main():
 
     # uniform sampling of targeted string position
     if position_strategy == "uniform":
-        string_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
+        string_sampler = lambda i, d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
     elif position_strategy == "halton":
         # TODO: separate sampler for each string is essential
-        string_sampler = lambda d=stats.qmc.Halton(d= 1, seed= 37): d.random()
+        halton_sequences = [stats.qmc.Halton(d= len(strings), seed= 37) for _ in range(len(strings))]
+        string_sampler = lambda i, sequences = halton_sequences: sequences[i].random()[:, i:i+1]  # retain 2d shape (for scale) with dimensions 1x1
 
     uniform_sampler = lambda d=stats.uniform(loc= 0.0, scale= 1.0): np.array([[d.rvs()]])
 
@@ -175,7 +176,7 @@ def main():
             # start with a slightly higher pluck in geometry exploration
             # if the string is missed, the follow-up attempts will be lower
             path.keypoint_pos[1] += 0.002
-            path.string_position = stats.qmc.scale(string_sampler(), *actionspace.string_position)
+            path.string_position = stats.qmc.scale(string_sampler(i), *actionspace.string_position)
         elif strategy == "random":
             path.sample(actionspace, uniform_sampler)
         elif strategy == "reduce_variance":
