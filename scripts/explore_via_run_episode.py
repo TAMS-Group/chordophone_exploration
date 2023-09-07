@@ -21,6 +21,7 @@ from tams_pr2_guzheng.msg import (
     RunEpisodeGoal,
     RunEpisodeRequest)
 from visualization_msgs.msg import MarkerArray
+from std_msgs.msg import Bool as BoolMsg
 
 def plot_p(strings, p):
     fig = plt.figure(dpi= 150)
@@ -75,6 +76,11 @@ def main():
     valid_strategies = ("random", "reduce_variance", "geometry")
     if strategy not in valid_strategies:
         rospy.logfatal(f"invalid strategy '{strategy}', use one of {valid_strategies}")
+        return
+
+    # only continue if mannequin mode is inactive (state is published on topic)
+    if rospy.wait_for_message("mannequin_mode_active", BoolMsg).data:
+        rospy.logfatal("mannequin mode is active, aborting")
         return
 
     # prepare exploration
