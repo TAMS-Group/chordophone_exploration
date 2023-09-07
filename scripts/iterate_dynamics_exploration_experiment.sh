@@ -7,7 +7,7 @@
 rostopic pub -1 /moveit_by_name moveit_by_name/Command "group: 'manipulation'
 target: 'guzheng_initial'" >&-
 
-TRIALS=250
+TRIALS=300
 
 F=`mktemp`
 
