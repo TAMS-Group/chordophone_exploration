@@ -378,40 +378,64 @@ class OnsetToPath:
             plucks['keypoint_pos_y']
         ))
         features, features_norm_params = normalize(features)
-        loudnesses = plucks['loudness'].to_numpy()
-        loudnesses[np.isnan(loudnesses)] = 0.0
 
-        GPR = utils.fit_gp(features, loudnesses, alpha= 0.5, rbf_length= 1.0)
+        gp_loudness= utils.fit_gp(
+            features[plucks['safety_score'] > 0],
+            plucks.loc[plucks['safety_score'] > 0, 'loudness'].values,
+            normalize= True,
+            alpha= 1.0,
+            rbf_length= (0.5, 0.25),
+            train= False # True if plucks['loudness'].dropna().size > 50 else False
+        )
+        gp_safety = utils.fit_gp(
+            features,
+            plucks['safety_score'].values,
+            normalize= False,
+            alpha= .5,
+            rbf_length= (0.5, 0.25),
+            train= False
+        )
 
-        # predict grid of points between min and max features
-        grid_size = 100
-        string_limits = (np.min(plucks['string_position']), np.max(plucks['string_position']))
-        keypoint_pos_y_limits = (np.min(plucks['keypoint_pos_y']), np.max(plucks['keypoint_pos_y']))
+        def DistanceToTargetLoudness(X):
+            # X.reshape(1, -1)
+            X= normalize(X, features_norm_params)
+            return np.abs(gp_loudness.predict(X, return_std=False)-loudness)
 
-        if string_position is not None:
-            context = 0.07 # m around string_position
-            string_positions = np.linspace(np.max((0.0, string_position-context)), np.min((string_position+context, string_limits[1])), 10)
-        else:
-            string_positions = np.linspace(*string_limits, grid_size)
+        # Probability of sample being safe w.r.t. Gaussian prediction
+        def p_safe(X):
+            safety_score_predictions = gp_safety.predict(normalize(X, features_norm_params), return_std=True)
+            return utils.prob_gt_zero(safety_score_predictions)
 
-        keypoint_pos_ys = np.linspace(*keypoint_pos_y_limits, grid_size)
-        xi, yi = np.meshgrid(string_positions, keypoint_pos_ys)
-        xi= xi.ravel()
-        yi= yi.ravel()
-        grid_features = np.column_stack((xi, yi))
-        grid_features_normalized = normalize(grid_features, features_norm_params)
+        domains = (
+            (plucks['string_position'].min(), plucks['string_position'].max()) if string_position is None else (max((0.0, string_position-.05)), min((plucks['string_position'].max(), string_position+.05))),
+            (plucks['keypoint_pos_y'].min(), plucks['keypoint_pos_y'].max()),
+        )
 
-        # pick point with highest pdf for target loudness
-        means, stds = GPR.predict(grid_features_normalized, return_std=True)
-        probs = stats.norm(means, stds).pdf(loudness)
-        # TODO: trade-off pdf and distance to target
-        features_idx = np.argmax(probs)
-        #features_idx = np.argmin(np.abs(means-loudness))
+        psafe_threshold = 0.9
 
-        string_position= xi[features_idx]
-        keypoint_pos_y= yi[features_idx]
+        # optuna?
+        sample_size= 5000
 
-        p = RuckigPath.prototype(string= string, direction= direction, string_position= string_position)
-        p.keypoint_pos[0] = keypoint_pos_y
+        # deterministic sampling, but different for each attempt
+        rnd = np.random.default_rng(37+int(loudness*10)+int((0 if string_position is None else string_position)*1000)+len(plucks))
 
-        return p, finger, probs[features_idx]
+        # sample in domains
+        samples = rnd.uniform(0, 1, size=(sample_size, len(domains)))
+        samples = np.array([p*(d[1]-d[0])+d[0] for (p,d) in zip(samples.T, domains)]).T
+
+        samples_distance = DistanceToTargetLoudness(samples)
+        samples_psafe = p_safe(samples)
+
+        # limit to sufficiently safe samples
+        indices = samples_psafe >= psafe_threshold
+        samples = samples[indices]
+        samples_distance = samples_distance[indices]
+
+        sample_closest = samples[np.argmin(samples_distance)]
+        p = RuckigPath.prototype(string= string, direction= direction)
+        p.string_position= sample_closest[0]
+        p.keypoint_pos[0]= sample_closest[1]
+
+        # TODO: maximize pdf between all samples around 1dB distance
+        
+        return p, finger, 1.0
