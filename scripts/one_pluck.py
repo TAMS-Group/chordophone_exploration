@@ -37,7 +37,10 @@ def main():
     direction = rospy.get_param("~direction") # direction to pluck in (>0 towards the robot, <0 away from the robot), 0.0 for random
     string_position = rospy.get_param("~string_position") # position on the string to pluck, <0 for random
     keypoint_pos = rospy.get_param("~keypoint_pos") # y position of the key point
-    storage_path = rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks_explore.json")
+    storage = rospy.get_param("~storage", "")
+    if storage != "":
+        storage = "_"+str(storage)
+    storage_path = rospkg.RosPack().get_path("tams_pr2_guzheng") + f"/data/plucks_explore{storage}.json"
 
     # validate parameters
     valid_fingers = ("ff", "mf", "rf", "th")
