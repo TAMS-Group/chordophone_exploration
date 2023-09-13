@@ -83,7 +83,7 @@ class Projector:
         self.publish()
 
     def delete_events(self, req):
-        if req.name == 'ALL':
+        if req.name.upper() == 'ALL':
             self.events= []
         else:
             self.events= [e for e in self.events if e[0].ns != req.name]

@@ -61,7 +61,6 @@ rosbag record \
   /guzheng/cqt \
   /guzheng/onset_detector/drift \
   /guzheng/onset_detector/compute_time \
-  /guzheng/spectrogram \
   /guzheng/onset_projector/parameter_descriptions \
   /guzheng/onset_projector/parameter_updates \
   /guzheng/validate_onsets/audio_tactile_delay \
