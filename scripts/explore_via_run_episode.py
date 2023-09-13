@@ -132,6 +132,7 @@ def main():
 
     say("starting exploration")
 
+    trial_direction = 1.0
     current_run = 0
     while not rospy.is_shutdown() and (runs == 0 or current_run < runs):
         # sample new target string
@@ -166,12 +167,15 @@ def main():
                     new_string_position = string_position
                 actionspace = actionspace._replace(string_position = np.array((new_string_position,)))
 
+            # TODO: consider NBP of either direction in infer_next_best_pluck
+            trial_direction = random.choice((-1.0, 1.0)) if direction == 0.0 else direction
+
+
         current_run+= 1
         rospy.loginfo(f"run {current_run}{'/'+str(runs) if runs > 0 else ''} targeting string {strings[i]}")
 
         # prepare path depending on strategy
-        # TODO: consider NBP of either direction in infer_next_best_pluck
-        trial_direction = random.choice((-1.0, 1.0)) if direction == 0.0 else direction
+
 
         path = RuckigPath.prototype(
             string = strings[i],
