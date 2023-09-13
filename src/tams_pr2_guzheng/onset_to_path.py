@@ -25,6 +25,7 @@ class OnsetToPath:
         self.storage = storage
         if os.path.exists(self.storage):
             self.pluck_table = pd.read_json(self.storage)
+            self.pluck_table['safety_score'] = utils.score_safety(self.pluck_table)
         self.print_summary()
 
         rospy.on_shutdown(self.store_plucks)
@@ -49,11 +50,13 @@ class OnsetToPath:
         rospy.loginfo(summary)
 
     def store_to_file(self):
-        self.pluck_table.to_json(self.storage)
+        # exclude safety_score from storage, we compute it on load
+        self.pluck_table.drop(columns= ['safety_score']).to_json(self.storage)
 
     def add_sample(self, row):
         row['onsets'] = str(row['onsets']) # convert to string for eventual json serialization
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
+        row_df['safety_score'] = utils.score_safety(row_df)
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
@@ -73,10 +76,11 @@ class OnsetToPath:
 
         # we want to keep the original order in pluck_table to notice temporal effects
         # so we prepare a copy for plotting
-        X = self.pluck_table.copy()
+        X = self.pluck_table[self.pluck_table['safety_score'] > 0].copy()
         X= X.sort_values('string', key= lambda x: x.map(lambda a: librosa.note_to_midi(utils.string_to_note(a))))
         X['direction'] = self.pluck_table['pre_y'].map(lambda y: 'inwards' if y < 0.0 else 'outwards')
-        X['loudness'] = X['loudness'].fillna(-1.0)
+        
+        X['loudness'] = X['loudness'].fillna(-5.0)
 
         backend= plt.get_backend()
         plt.switch_backend('agg')
@@ -116,7 +120,6 @@ class OnsetToPath:
         )
         features = normalize(features, features_norm_params).values
 
-        plucks['safety_score'] = utils.score_safety(plucks)
         if not (plucks['safety_score'] > 0).any():
             rospy.logwarn(f"no safe plucks found for string {string} and finger {finger} in direction {direction}. dropping unsafe plucks and return default nbp as seed")
             self.pluck_table.drop(plucks.index, inplace= True)
@@ -166,8 +169,8 @@ class OnsetToPath:
         sample_size= 2000
         while (not rospy.is_shutdown()):
             if sample_size > 1e6:
-                # pull the plug
-                raise RuntimeError(f"could not find a safe sample after {float(sample_size):.0e} attempts")
+                rospy.logerr(f"could not find a safe sample for {string} in direction {direction} after {float(sample_size):.0e} attempts. restarting with default nbp as seed")
+                self.pluck_table.drop(plucks.index, inplace= True)
                 return nbp
 
             # deterministic sampling, but different for each attempt
@@ -184,7 +187,7 @@ class OnsetToPath:
             if safe_sample_cnt > 20:
                 break
             sample_size*= 2
-            rospy.logwarn(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
+            rospy.loginfo(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
             rospy.loginfo_throttle(10, f"knows {np.sum(plucks['safety_score'] > 0.0)} samples with safety_score > 0.0 and {np.sum(plucks['safety_score'] < 0.0)} samples with safety_score < 0.0")
 
         # limit to sufficiently safe samples
@@ -224,6 +227,17 @@ class OnsetToPath:
         )
         utils.publish_figure("episodes_loudness", fig)
 
+        fig, ax = plt.subplots(dpi= 100)
+        cmap= sns.color_palette('icefire', as_cmap= True)
+        spread = max((abs(plucks['keypoint_pos_y'].min()), abs(plucks['keypoint_pos_y'].max())))
+        norm = plt.Normalize(-spread, spread)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        art = sns.scatterplot(x='string_position', y='loudness', data=plucks, hue='keypoint_pos_y', hue_norm=norm, palette=cmap, legend=False, ax= ax)
+        art.set_title('loudness along string')
+        ax.set_xlim(*actionspace.string_position)
+        art.figure.colorbar(sm, ax=art)
+        utils.publish_figure("episodes_loudness_along_string", fig)
+
         df_samples = pd.DataFrame({'string_position' : samples[:,0], 'keypoint_pos_y' : samples[:,1], 'H': samples_H})
         # all safe samples evaluated for nbp
         fig, ax = plt.subplots(dpi= 100)
@@ -249,7 +263,7 @@ class OnsetToPath:
 
         fig = plt.figure(dpi= 50)
         utils.grid_plot(means, actionspace, plt.get_cmap("RdPu"))
-        plt.title("GP safe loudness mean")
+        plt.title(f"GP safe loudness mean for {string} in direction {direction} with finger {finger}")
 
         utils.publish_figure("gp_loudness", fig)
 
@@ -270,7 +284,9 @@ class OnsetToPath:
         plucks = self.pluck_table[
             (self.pluck_table['string'] == utils.note_to_string(note)) &
             (self.pluck_table['detected_note'] == note) &
-            (self.pluck_table['onset_cnt'] == 1)]
+            (self.pluck_table['onset_cnt'] == 1) &
+            (self.pluck_table['safety_score'] > 0.0)
+        ]
         if len(plucks) == 0:
             raise ValueError(f"No plucks found for note {note}")
 
