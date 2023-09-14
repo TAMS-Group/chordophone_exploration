@@ -192,6 +192,29 @@ def fit_gp(features, value, alpha, rbf_length= None, normalize= False, train= Fa
     )
     return GPR
 
+def fit_gp_loudness(features, values):
+    return utils.fit_gp(
+        features,
+        values,
+        normalize= True,
+        alpha= 0.1,
+        # rbf_length= (0.3, 0.3),
+        rbf_length= (2.1, 1.0),
+        train= False,
+        # train = False,
+        # type= "Matern"
+    )
+
+def fit_gp_safety(features, values):
+    return utils.fit_gp(
+        features,
+        values,
+        normalize= False,
+        alpha= 1.3,
+        rbf_length= 0.5
+    )
+
+
 def prob_gt_zero(distributions : Tuple[np.ndarray, np.ndarray]):
     '''
     @param distributions: stack of (mean, std) of a normal distribution with shape (n_samples, 2)
@@ -213,20 +236,21 @@ def make_grid_points(actionspace, grid_size):
         )
     return pd.DataFrame({ 'string_position': xi.ravel(), 'keypoint_pos_y': yi.ravel() })
 
-def grid_plot(values, actionspace, cmap, ax = None):
+def grid_plot(values, actionspace, cmap, ax = None, cbar= True, **kwargs):
     '''
     plot function matching @make_grid_points above
     '''
     if ax is None:
         ax = plt.gca()
     values= values.ravel().reshape( (int(np.sqrt(values.size)),)*2 )
-    im= ax.imshow(values, origin='lower', cmap=cmap, extent=(*actionspace.string_position, *actionspace.keypoint_pos_y), aspect='auto')
-    plt.colorbar(im)
+    im= ax.imshow(values, origin='lower', cmap=cmap, extent=(*actionspace.string_position, *actionspace.keypoint_pos_y), aspect='auto', **kwargs)
+    if cbar:
+        plt.colorbar(im)
     ax.grid(False)
     ax.set_xlabel("string position")
     ax.set_ylabel("keypoint pos y")
 
-def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN'):
+def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN', color_label= None):
     '''
     plot a colorbar and a standalone entry below for a special value (e.g. NaN)
 
@@ -235,8 +259,11 @@ def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN'):
     @param nan: color for the special value, e.g., cmap.get_bad()
     @param label: label for the special value (default 'NaN')
     '''
+    cax = plt.gca()
 
     cbar = ax.figure.colorbar(sm, ax= ax)
+    if color_label is not None:
+        cbar.set_label(color_label)
     sm = cm.ScalarMappable(cmap= mpl.colors.ListedColormap([nan]))
 
     from mpl_toolkits.axes_grid1.axes_divider import make_axes_locatable
@@ -247,7 +274,9 @@ def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN'):
     nan_cbar.set_ticks([0.5], labels=[label])
     nan_cbar.ax.tick_params(length= 0)
 
-def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None):
+    plt.sca(cax)
+
+def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None, x= 'string_position', y='keypoint_pos_y'):
     ax = plt.gca() if ax is None else ax
     cmap= sns.cubehelix_palette(as_cmap=True) if cmap is None else cmap
     cmap.set_under(nan) # TODO: shouldn't modify given cmap
@@ -255,15 +284,15 @@ def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', n
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 
-    art = sns.scatterplot(x='string_position', y='keypoint_pos_y', data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax)
-    art.set_title(col.name)
+    art = sns.scatterplot(x= x, y= y, data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax)
+    #art.set_title(col.name)
 
     if actionspace is not None:
         ax.set_xlim(*actionspace.string_position)
         ax.set_ylim(*actionspace.keypoint_pos_y)
 
     if col.hasnans:
-        nanbar(sm, art, nan= cmap.get_under(), label=nan_label)
+        nanbar(sm, art, nan= cmap.get_under(), label=nan_label, color_label= "" if col.name is None else col.name)
     else:
         art.figure.colorbar(sm, ax=art)
 
