@@ -94,6 +94,7 @@ def main():
         r['target_loudness'] = target_loudness
         r['string_position'] = string_position
         r['shuffle'] = shuffle
+        r['direction'] = direction
         results.append(r)
         rospy.loginfo(f'      yielded {"safe" if r["safety_score"] > 0.0 else "unsafe"} / {r["loudness"]:.2F}dBA')
 
