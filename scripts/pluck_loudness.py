@@ -70,6 +70,8 @@ def main():
         run_episode.wait_for_result()
 
         r = utils.row_from_result(run_episode.get_result())
+        if r["loudness"] is None:
+            r["loudness"] = -1.0
         rospy.loginfo(f'      yielded {r["loudness"]:.2F}dBA')
 
 if __name__ == "__main__":
