@@ -167,7 +167,8 @@ def main():
                     new_string_position = string_position
                 actionspace = actionspace._replace(string_position = np.array((new_string_position,)))
 
-            # TODO: consider NBP of either direction in infer_next_best_pluck
+        # TODO: consider NBP of either direction in infer_next_best_pluck
+        if strategy == "geometry" or current_run % attempts_per_string == 0:
             trial_direction = random.choice((-1.0, 1.0)) if direction == 0.0 else direction
 
 
