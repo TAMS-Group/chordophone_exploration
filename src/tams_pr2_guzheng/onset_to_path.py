@@ -277,7 +277,7 @@ class OnsetToPath:
 
         return nbp
 
-    def get_note_min_max(self, note : str):
+    def get_note_min_max(self, note : str, direction : float = 0.0):
         '''
         Returns the minimum and maximum loudness for the given note.
         '''
@@ -285,7 +285,8 @@ class OnsetToPath:
             (self.pluck_table['string'] == utils.note_to_string(note)) &
             (self.pluck_table['detected_note'] == note) &
             (self.pluck_table['onset_cnt'] == 1) &
-            (self.pluck_table['safety_score'] > 0.0)
+            (self.pluck_table['safety_score'] > 0.0) &
+            (self.pluck_table['post_y']*direction >= 0.0)
         ]
         if len(plucks) == 0:
             raise ValueError(f"No plucks found for note {note}")
