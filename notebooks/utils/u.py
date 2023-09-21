@@ -56,7 +56,7 @@ def tip_path(path):
 def save_plot(s):
     if not os.path.exists('plots'):
         os.makedirs('plots')
-    plt.savefig(f'plots/{s}.png', dpi= 150)
+    plt.savefig(f'plots/{s}.png', dpi= 300)
 
 def save_anim(a, s):
     if not os.path.exists('plots'):
