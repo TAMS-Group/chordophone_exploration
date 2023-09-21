@@ -79,7 +79,7 @@ class OnsetToPath:
         X = self.pluck_table[self.pluck_table['safety_score'] > 0].copy()
         X= X.sort_values('string', key= lambda x: x.map(lambda a: librosa.note_to_midi(utils.string_to_note(a))))
         X['direction'] = self.pluck_table['pre_y'].map(lambda y: 'inwards' if y < 0.0 else 'outwards')
-        
+
         X['loudness'] = X['loudness'].fillna(-5.0)
 
         backend= plt.get_backend()
@@ -438,5 +438,5 @@ class OnsetToPath:
         p.keypoint_pos[0]= sample_closest[1]
 
         # TODO: maximize pdf between all samples around 1dB distance
-        
+
         return p, finger, 1.0

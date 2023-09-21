@@ -276,7 +276,7 @@ def nanbar(sm : cm.ScalarMappable, ax : plt.Axes, *, nan, label= 'NaN', color_la
 
     plt.sca(cax)
 
-def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None, x= 'string_position', y='keypoint_pos_y'):
+def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', nan_label : str = 'miss', ax : plt.Axes= None, norm= None, actionspace : RuckigPath.ActionSpace = None, x= 'string_position', y='keypoint_pos_y', s= None):
     ax = plt.gca() if ax is None else ax
     cmap= sns.cubehelix_palette(as_cmap=True) if cmap is None else cmap
     cmap.set_under(nan) # TODO: shouldn't modify given cmap
@@ -284,7 +284,7 @@ def plot_trials(df : pd.DataFrame, col : pd.Series, cmap = None, nan= 'green', n
 
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
 
-    art = sns.scatterplot(x= x, y= y, data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax)
+    art = sns.scatterplot(x= x, y= y, data=df, hue=col.fillna(norm.vmin-1), hue_norm=norm, palette=cmap, legend=False, ax= ax, size=s)
     #art.set_title(col.name)
 
     if actionspace is not None:
