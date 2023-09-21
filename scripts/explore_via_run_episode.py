@@ -271,10 +271,9 @@ def main():
             else: # len(onsets) > 1
                 rospy.logwarn(f"multiple onsets detected, but one expected (got {len(result.onsets)}), retry with adapted parameters")
                 # higher
-                path.keypoint_pos[0] *= 0.5
-                path.keypoint_pos[1] += 0.005
+                path.keypoint_pos[0] -= 0.002 * path.direction
                 # move velocity vector (12/13) up by a bit and clip to avoid changing direction
-                theta = tau/4/2 * path.direction
+                theta = tau/4 / 2 * path.direction
                 rot = np.array([[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]])
                 vec = np.array(path.keypoint_vel)
                 vec_rotated = np.dot(rot, vec)
