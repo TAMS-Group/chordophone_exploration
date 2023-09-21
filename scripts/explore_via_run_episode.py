@@ -260,12 +260,14 @@ def main():
 
             if strategy != "geometry" or (len(expected_onset) > 0 and len(unexpected_onsets) == 0):
                 break
-
+            if len(unexpected_onsets) > 0 and len(expected_onset) == 0:
+                rospy.logwarn(f"unexpected onsets detected: {', '.join([o.note for o in unexpected_onsets])}. Skipping retry")
+                break
             if len(result.onsets) == 0:
                 rospy.logwarn("no onset detected, retry with adapted parameters")
                 # lower and further in the pluck direction
                 path.keypoint_pos[0] += 0.003 * path.direction
-                path.keypoint_pos[1] -= 0.002
+                path.keypoint_pos[1] -= 0.001
             else: # len(onsets) > 1
                 rospy.logwarn(f"multiple onsets detected, but one expected (got {len(result.onsets)}), retry with adapted parameters")
                 # higher
