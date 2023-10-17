@@ -1,6 +1,6 @@
 # Chordophone Exploration
 
-![Robot Setup and Geometric Model](doc/first-impression.png)
+
 
 ## Contents
 
