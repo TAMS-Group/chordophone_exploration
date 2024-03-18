@@ -64,7 +64,7 @@ class StringFitter:
             rospy.loginfo("set fitter inactive after final fit")
         return {'success': True, 'message' : '' }
 
-    def load_from_file(self, req):
+    def load_from_file(self, _req):
         with open(self.storage_path, 'r') as f:
             self.active = False
             plain_strings = yaml.safe_load(f)
