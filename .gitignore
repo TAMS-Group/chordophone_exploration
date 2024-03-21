@@ -1,6 +1,8 @@
 *.png
 *.ipynb_checkpoints/
 *.midi
+*.mp4
+*.pdf
 data/
 ly/*.pdf
 __pycache__
