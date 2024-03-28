@@ -148,7 +148,7 @@ class Projector:
             try:
                 buffer.set_transform(self.tf_buffer.lookup_transform(self.base_frame, buffer_target_frame, marker.header.stamp+rospy.Duration(dt)), '')
             except Exception as e:
-                rospy.logwarn('throw away event because transform in temporal vicinity is not available (delta "{}")'.format(dt))
+                rospy.logwarn(f'throw away event because transform in temporal vicinity is not available (delta {dt}s)')
                 rospy.logwarn(e)
                 return
 

@@ -114,7 +114,6 @@ class StringFitter:
             self.align_heads = req.data
             rospy.loginfo(f"set align_heads to {self.align_heads}")
             self.publish_strings()
-            rospy.loginfo("set fitter inactive after final fit")
         return {'success': True, 'message' : '' }
 
     def load_from_file(self, _req = None):
@@ -137,6 +136,7 @@ class StringFitter:
         return {}
 
     def onsets_cb(self, msg):
+        rospy.loginfo(f"got {len(msg.markers)} onsets to fit")
         if not self.active:
             return
 

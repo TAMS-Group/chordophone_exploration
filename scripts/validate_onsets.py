@@ -27,8 +27,6 @@ class ValidateOnsets:
 
     def onset_cb(self, msg):
         for i, p in reversed(list(enumerate(self.recent_plucks))):
-            # this should actually require the pluck *before* the onset, but signal alignment is not perfect
-            # Also, onsets come in only every 1.5s, so the later plucks will still be here already
             delay= (msg.header.stamp - p.header.stamp).to_sec()
             if abs(delay) < self.tolerance:
                 # this pluck is accounted for now / don't explain other onsets through it as well
@@ -45,7 +43,7 @@ class ValidateOnsets:
             self.delay_pub.publish(Float32Msg((msg.header.stamp - self.recent_plucks[-1].header.stamp).to_sec()))
         else:
             self.delay_pub.publish(Float32Msg(msg.header.stamp.to_sec()))
-            
+
 if __name__ == "__main__":
     rospy.init_node("validate_onsets")
     ValidateOnsets()
