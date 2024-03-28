@@ -1,0 +1,1518 @@
+Panels:
+  - Class: rviz/Displays
+    Help Height: 78
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Status1
+        - /RobotModel1
+        - /Latest Plucks1/Namespaces1
+        - /ChordophoneEstimation Debug1/Namespaces1
+      Splitter Ratio: 0.5
+    Tree Height: 893
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Expanded:
+      - /2D Pose Estimate1
+      - /2D Nav Goal1
+      - /Publish Point1
+    Name: Tool Properties
+    Splitter Ratio: 0.5886790156364441
+  - Class: rviz/Views
+    Expanded:
+      - /Current View1
+    Name: Views
+    Splitter Ratio: 0.5
+  - Class: rviz/Time
+    Name: Time
+    SyncMode: 0
+    SyncSource: CQT
+Preferences:
+  PromptSaveOnExit: true
+Toolbars:
+  toolButtonStyle: 2
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Alpha: 0.5
+      Cell Size: 1
+      Class: rviz/Grid
+      Color: 160; 160; 164
+      Enabled: true
+      Line Style:
+        Line Width: 0.029999999329447746
+        Value: Lines
+      Name: Grid
+      Normal Cell Count: 0
+      Offset:
+        X: 0
+        Y: 0
+        Z: 0
+      Plane: XY
+      Plane Cell Count: 10
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Alpha: 1
+      Class: rviz/RobotModel
+      Collision Enabled: false
+      Enabled: true
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        azure_kinect_camera_base:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_camera_body:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_camera_visor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_depth_sensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_holder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_microphone_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_mounting_screw:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        azure_kinect_rgb_camera_link_urdf:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        azure_kinect_rgb_sensor:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_bellow_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_footprint:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        base_laser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bl_caster_l_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bl_caster_r_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        bl_caster_rotation_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        br_caster_l_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        br_caster_r_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        br_caster_rotation_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        double_stereo_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        fl_caster_l_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fl_caster_r_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fl_caster_rotation_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fr_caster_l_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fr_caster_r_wheel_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        fr_caster_rotation_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_mounting:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_nuc_computer:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_pan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_plate_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_tilt_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        high_def_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        high_def_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        imu_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_elbow_flex_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_eye:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_force_torque_adapter_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_force_torque_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_forearm_cam_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_forearm_cam_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_forearm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_forearm_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_l_finger_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_l_finger_tip_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_gripper_l_finger_tip_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_led_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_gripper_motor_accelerometer_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_motor_screw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_gripper_motor_slider_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_gripper_palm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_r_finger_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_r_finger_tip_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_gripper_tool_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_shoulder_lift_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_shoulder_pan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_torso_lift_side_plate_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        l_upper_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_upper_arm_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_wrist_flex_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        l_wrist_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        laser_tilt_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        laser_tilt_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        narrow_stereo_l_stereo_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        narrow_stereo_l_stereo_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        narrow_stereo_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        narrow_stereo_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        narrow_stereo_r_stereo_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        narrow_stereo_r_stereo_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        pixel_6_pro:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro/camera_bar:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro/flash_led:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro/main_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro/tele_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro/ultra_wide_camera:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pixel_6_pro_holder:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        projector_wg6802418_child_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        projector_wg6802418_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_elbow_flex_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_eye:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_forearm_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_shoulder_lift_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_shoulder_pan_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_torso_lift_side_plate_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        r_upper_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        r_upper_arm_roll_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_adapter_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_ff_J1_dummy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_ff_biotac_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_ff_plectrum:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_ffdistal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_ffknuckle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_ffmiddle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_ffproximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_fftip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_forearm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_imu:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_lf_J1_dummy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_lf_biotac_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_lfdistal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_lfknuckle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_lfmetacarpal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_lfmiddle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_lfproximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_lftip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_manipulator:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_mf_J1_dummy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_mf_biotac_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_mf_plectrum:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_mfdistal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_mfknuckle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_mfmiddle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_mfproximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_mftip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_palm:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rf_J1_dummy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_rf_biotac_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_rf_plectrum:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rfdistal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rfknuckle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rfmiddle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rfproximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_rftip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_th_biotac_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_th_plectrum:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thbase:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thdistal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thdistal_J1_dummy:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_thhub:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thmiddle:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thproximal:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        rh_thtip:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        rh_wrist:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        sensor_mount_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso_lift_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        torso_lift_motor_screw_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tray_laser_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tray_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wide_stereo_l_stereo_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_stereo_l_stereo_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_stereo_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_stereo_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_stereo_r_stereo_camera_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wide_stereo_r_stereo_camera_optical_frame:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotModel
+      Robot Description: robot_description
+      TF Prefix: ""
+      Update Interval: 0
+      Value: true
+      Visual Enabled: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /fingertips/plucks_latest
+      Name: Latest Plucks
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: false
+      Marker Topic: /fingertips/plucks_projected
+      Name: Plucks Projected
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: false
+    - Align Bottom: false
+      Background Alpha: 0.800000011920929
+      Background Color: 0; 0; 0
+      Class: jsk_rviz_plugin/OverlayText
+      Enabled: true
+      Foreground Alpha: 0.800000011920929
+      Foreground Color: 25; 255; 240
+      Invert Shadow: false
+      Name: Onset Overlay
+      Overtake BG Color Properties: false
+      Overtake FG Color Properties: false
+      Overtake Position Properties: false
+      Topic: /guzheng/onsets_overlay_text
+      Value: true
+      font: DejaVu Sans Mono
+      height: 128
+      left: 0
+      line width: 2
+      text size: 12
+      top: 0
+      width: 128
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /guzheng/onsets_projected
+      Name: Projected Onsets
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /guzheng/onsets_latest
+      Name: Latest Onsets
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Image
+      Enabled: true
+      Image Topic: /guzheng/spectrogram
+      Max Value: 1
+      Median window: 5
+      Min Value: 0
+      Name: CQT
+      Normalize Range: true
+      Queue Size: 2
+      Transport Hint: raw
+      Unreliable: false
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /guzheng/string_fitter/estimate_debug
+      Name: ChordophoneEstimation Debug
+      Namespaces:
+        {}
+      Queue Size: 1
+      Value: true
+    - Class: rviz/TF
+      Enabled: true
+      Filter (blacklist): ""
+      Filter (whitelist): ""
+      Frame Timeout: 15
+      Frames:
+        All Enabled: true
+        azure_kinect_camera_base:
+          Value: true
+        azure_kinect_camera_body:
+          Value: true
+        azure_kinect_camera_visor:
+          Value: true
+        azure_kinect_depth_camera_link:
+          Value: true
+        azure_kinect_depth_sensor:
+          Value: true
+        azure_kinect_holder:
+          Value: true
+        azure_kinect_imu_link:
+          Value: true
+        azure_kinect_microphone_0:
+          Value: true
+        azure_kinect_mounting_screw:
+          Value: true
+        azure_kinect_rgb_camera_link:
+          Value: true
+        azure_kinect_rgb_camera_link_urdf:
+          Value: true
+        azure_kinect_rgb_sensor:
+          Value: true
+        base_bellow_link:
+          Value: true
+        base_footprint:
+          Value: true
+        base_laser_link:
+          Value: true
+        base_link:
+          Value: true
+        bl_caster_l_wheel_link:
+          Value: true
+        bl_caster_r_wheel_link:
+          Value: true
+        bl_caster_rotation_link:
+          Value: true
+        br_caster_l_wheel_link:
+          Value: true
+        br_caster_r_wheel_link:
+          Value: true
+        br_caster_rotation_link:
+          Value: true
+        double_stereo_link:
+          Value: true
+        fl_caster_l_wheel_link:
+          Value: true
+        fl_caster_r_wheel_link:
+          Value: true
+        fl_caster_rotation_link:
+          Value: true
+        fr_caster_l_wheel_link:
+          Value: true
+        fr_caster_r_wheel_link:
+          Value: true
+        fr_caster_rotation_link:
+          Value: true
+        guzheng/a3/bridge:
+          Value: true
+        guzheng/a3/head:
+          Value: true
+        guzheng/a4/bridge:
+          Value: true
+        guzheng/a4/head:
+          Value: true
+        guzheng/a5/bridge:
+          Value: true
+        guzheng/a5/head:
+          Value: true
+        guzheng/b3/bridge:
+          Value: true
+        guzheng/b3/head:
+          Value: true
+        guzheng/b4/bridge:
+          Value: true
+        guzheng/b4/head:
+          Value: true
+        guzheng/b5/bridge:
+          Value: true
+        guzheng/b5/head:
+          Value: true
+        guzheng/d4/bridge:
+          Value: true
+        guzheng/d4/head:
+          Value: true
+        guzheng/d5/bridge:
+          Value: true
+        guzheng/d5/head:
+          Value: true
+        guzheng/d6/bridge:
+          Value: true
+        guzheng/d6/head:
+          Value: true
+        guzheng/e4/bridge:
+          Value: true
+        guzheng/e4/head:
+          Value: true
+        guzheng/e5/bridge:
+          Value: true
+        guzheng/e5/head:
+          Value: true
+        guzheng/fis4/bridge:
+          Value: true
+        guzheng/fis4/head:
+          Value: true
+        guzheng/fis5/bridge:
+          Value: true
+        guzheng/fis5/head:
+          Value: true
+        head_mounting:
+          Value: true
+        head_nuc_computer:
+          Value: true
+        head_pan_link:
+          Value: true
+        head_plate_frame:
+          Value: true
+        head_tilt_link:
+          Value: true
+        high_def_frame:
+          Value: true
+        high_def_optical_frame:
+          Value: true
+        imu_link:
+          Value: true
+        l_elbow_flex_link:
+          Value: true
+        l_eye:
+          Value: true
+        l_force_torque_adapter_link:
+          Value: true
+        l_force_torque_link:
+          Value: true
+        l_forearm_cam_frame:
+          Value: true
+        l_forearm_cam_optical_frame:
+          Value: true
+        l_forearm_link:
+          Value: true
+        l_forearm_roll_link:
+          Value: true
+        l_gripper_l_finger_link:
+          Value: true
+        l_gripper_l_finger_tip_frame:
+          Value: true
+        l_gripper_l_finger_tip_link:
+          Value: true
+        l_gripper_led_frame:
+          Value: true
+        l_gripper_motor_accelerometer_link:
+          Value: true
+        l_gripper_motor_screw_link:
+          Value: true
+        l_gripper_motor_slider_link:
+          Value: true
+        l_gripper_palm_link:
+          Value: true
+        l_gripper_r_finger_link:
+          Value: true
+        l_gripper_r_finger_tip_link:
+          Value: true
+        l_gripper_tool_frame:
+          Value: true
+        l_shoulder_lift_link:
+          Value: true
+        l_shoulder_pan_link:
+          Value: true
+        l_torso_lift_side_plate_link:
+          Value: true
+        l_upper_arm_link:
+          Value: true
+        l_upper_arm_roll_link:
+          Value: true
+        l_wrist_flex_link:
+          Value: true
+        l_wrist_roll_link:
+          Value: true
+        laser_tilt_link:
+          Value: true
+        laser_tilt_mount_link:
+          Value: true
+        narrow_stereo_l_stereo_camera_frame:
+          Value: true
+        narrow_stereo_l_stereo_camera_optical_frame:
+          Value: true
+        narrow_stereo_link:
+          Value: true
+        narrow_stereo_optical_frame:
+          Value: true
+        narrow_stereo_r_stereo_camera_frame:
+          Value: true
+        narrow_stereo_r_stereo_camera_optical_frame:
+          Value: true
+        pixel_6_pro:
+          Value: true
+        pixel_6_pro/camera_bar:
+          Value: true
+        pixel_6_pro/flash_led:
+          Value: true
+        pixel_6_pro/main_camera:
+          Value: true
+        pixel_6_pro/tele_camera:
+          Value: true
+        pixel_6_pro/ultra_wide_camera:
+          Value: true
+        pixel_6_pro_holder:
+          Value: true
+        projector_wg6802418_child_frame:
+          Value: true
+        projector_wg6802418_frame:
+          Value: true
+        r_elbow_flex_link:
+          Value: true
+        r_eye:
+          Value: true
+        r_forearm_roll_link:
+          Value: true
+        r_shoulder_lift_link:
+          Value: true
+        r_shoulder_pan_link:
+          Value: true
+        r_torso_lift_side_plate_link:
+          Value: true
+        r_upper_arm_link:
+          Value: true
+        r_upper_arm_roll_link:
+          Value: true
+        rh_adapter_link:
+          Value: true
+        rh_ff_J1_dummy:
+          Value: true
+        rh_ff_biotac_link:
+          Value: true
+        rh_ff_plectrum:
+          Value: true
+        rh_ffdistal:
+          Value: true
+        rh_ffknuckle:
+          Value: true
+        rh_ffmiddle:
+          Value: true
+        rh_ffproximal:
+          Value: true
+        rh_fftip:
+          Value: true
+        rh_forearm:
+          Value: true
+        rh_imu:
+          Value: true
+        rh_lf_J1_dummy:
+          Value: true
+        rh_lf_biotac_link:
+          Value: true
+        rh_lfdistal:
+          Value: true
+        rh_lfknuckle:
+          Value: true
+        rh_lfmetacarpal:
+          Value: true
+        rh_lfmiddle:
+          Value: true
+        rh_lfproximal:
+          Value: true
+        rh_lftip:
+          Value: true
+        rh_manipulator:
+          Value: true
+        rh_mf_J1_dummy:
+          Value: true
+        rh_mf_biotac_link:
+          Value: true
+        rh_mf_plectrum:
+          Value: true
+        rh_mfdistal:
+          Value: true
+        rh_mfknuckle:
+          Value: true
+        rh_mfmiddle:
+          Value: true
+        rh_mfproximal:
+          Value: true
+        rh_mftip:
+          Value: true
+        rh_palm:
+          Value: true
+        rh_rf_J1_dummy:
+          Value: true
+        rh_rf_biotac_link:
+          Value: true
+        rh_rf_plectrum:
+          Value: true
+        rh_rfdistal:
+          Value: true
+        rh_rfknuckle:
+          Value: true
+        rh_rfmiddle:
+          Value: true
+        rh_rfproximal:
+          Value: true
+        rh_rftip:
+          Value: true
+        rh_th_biotac_link:
+          Value: true
+        rh_th_plectrum:
+          Value: true
+        rh_thbase:
+          Value: true
+        rh_thdistal:
+          Value: true
+        rh_thdistal_J1_dummy:
+          Value: true
+        rh_thhub:
+          Value: true
+        rh_thmiddle:
+          Value: true
+        rh_thproximal:
+          Value: true
+        rh_thtip:
+          Value: true
+        rh_wrist:
+          Value: true
+        sensor_mount_link:
+          Value: true
+        target_pluck_string:
+          Value: true
+        torso_lift_link:
+          Value: true
+        torso_lift_motor_screw_link:
+          Value: true
+        tray_laser_link:
+          Value: true
+        tray_link:
+          Value: true
+        wide_stereo_l_stereo_camera_frame:
+          Value: true
+        wide_stereo_l_stereo_camera_optical_frame:
+          Value: true
+        wide_stereo_link:
+          Value: true
+        wide_stereo_optical_frame:
+          Value: true
+        wide_stereo_r_stereo_camera_frame:
+          Value: true
+        wide_stereo_r_stereo_camera_optical_frame:
+          Value: true
+      Marker Alpha: 1
+      Marker Scale: 0.07000000029802322
+      Name: TF
+      Show Arrows: true
+      Show Axes: true
+      Show Names: true
+      Tree:
+        base_footprint:
+          base_link:
+            base_bellow_link:
+              {}
+            base_laser_link:
+              {}
+            fl_caster_rotation_link:
+              fl_caster_l_wheel_link:
+                {}
+              fl_caster_r_wheel_link:
+                {}
+            tray_link:
+              tray_laser_link:
+                {}
+          guzheng/a3/head:
+            guzheng/a3/bridge:
+              {}
+          guzheng/a4/head:
+            guzheng/a4/bridge:
+              {}
+          guzheng/a5/head:
+            guzheng/a5/bridge:
+              {}
+          guzheng/b3/head:
+            guzheng/b3/bridge:
+              {}
+          guzheng/b4/head:
+            guzheng/b4/bridge:
+              {}
+          guzheng/b5/head:
+            guzheng/b5/bridge:
+              {}
+          guzheng/d4/head:
+            guzheng/d4/bridge:
+              {}
+          guzheng/d5/head:
+            guzheng/d5/bridge:
+              {}
+          guzheng/d6/head:
+            guzheng/d6/bridge:
+              {}
+          guzheng/e4/head:
+            guzheng/e4/bridge:
+              {}
+          guzheng/e5/head:
+            guzheng/e5/bridge:
+              {}
+          guzheng/fis4/head:
+            guzheng/fis4/bridge:
+              {}
+          guzheng/fis5/head:
+            guzheng/fis5/bridge:
+              {}
+        bl_caster_l_wheel_link:
+          {}
+        bl_caster_r_wheel_link:
+          {}
+        bl_caster_rotation_link:
+          {}
+        br_caster_l_wheel_link:
+          {}
+        br_caster_r_wheel_link:
+          {}
+        br_caster_rotation_link:
+          {}
+        fr_caster_l_wheel_link:
+          {}
+        fr_caster_r_wheel_link:
+          {}
+        fr_caster_rotation_link:
+          {}
+        head_pan_link:
+          {}
+        head_tilt_link:
+          head_plate_frame:
+            azure_kinect_camera_base:
+              azure_kinect_camera_body:
+                {}
+              azure_kinect_camera_visor:
+                {}
+              azure_kinect_depth_camera_link:
+                azure_kinect_imu_link:
+                  {}
+                azure_kinect_rgb_camera_link:
+                  {}
+              azure_kinect_depth_sensor:
+                {}
+              azure_kinect_microphone_0:
+                {}
+              azure_kinect_mounting_screw:
+                {}
+              azure_kinect_rgb_sensor:
+                azure_kinect_rgb_camera_link_urdf:
+                  {}
+            azure_kinect_holder:
+              {}
+            head_mounting:
+              {}
+            head_nuc_computer:
+              {}
+            l_eye:
+              {}
+            pixel_6_pro:
+              pixel_6_pro/camera_bar:
+                {}
+              pixel_6_pro/flash_led:
+                {}
+              pixel_6_pro/main_camera:
+                {}
+              pixel_6_pro/tele_camera:
+                {}
+              pixel_6_pro/ultra_wide_camera:
+                {}
+            pixel_6_pro_holder:
+              {}
+            projector_wg6802418_frame:
+              projector_wg6802418_child_frame:
+                {}
+            r_eye:
+              {}
+            sensor_mount_link:
+              double_stereo_link:
+                narrow_stereo_link:
+                  narrow_stereo_l_stereo_camera_frame:
+                    narrow_stereo_l_stereo_camera_optical_frame:
+                      {}
+                    narrow_stereo_r_stereo_camera_frame:
+                      narrow_stereo_r_stereo_camera_optical_frame:
+                        {}
+                  narrow_stereo_optical_frame:
+                    {}
+                wide_stereo_link:
+                  wide_stereo_l_stereo_camera_frame:
+                    wide_stereo_l_stereo_camera_optical_frame:
+                      {}
+                    wide_stereo_r_stereo_camera_frame:
+                      wide_stereo_r_stereo_camera_optical_frame:
+                        {}
+                  wide_stereo_optical_frame:
+                    {}
+              high_def_frame:
+                high_def_optical_frame:
+                  {}
+        l_elbow_flex_link:
+          {}
+        l_forearm_roll_link:
+          l_forearm_cam_frame:
+            l_forearm_cam_optical_frame:
+              {}
+          l_forearm_link:
+            {}
+        l_gripper_l_finger_link:
+          {}
+        l_gripper_l_finger_tip_frame:
+          {}
+        l_gripper_l_finger_tip_link:
+          {}
+        l_gripper_motor_screw_link:
+          {}
+        l_gripper_motor_slider_link:
+          {}
+        l_gripper_r_finger_link:
+          {}
+        l_gripper_r_finger_tip_link:
+          {}
+        l_shoulder_lift_link:
+          {}
+        l_shoulder_pan_link:
+          {}
+        l_upper_arm_roll_link:
+          l_upper_arm_link:
+            {}
+        l_wrist_flex_link:
+          {}
+        l_wrist_roll_link:
+          l_force_torque_adapter_link:
+            l_force_torque_link:
+              l_gripper_palm_link:
+                l_gripper_led_frame:
+                  {}
+                l_gripper_motor_accelerometer_link:
+                  {}
+                l_gripper_tool_frame:
+                  {}
+        laser_tilt_mount_link:
+          laser_tilt_link:
+            {}
+        r_elbow_flex_link:
+          {}
+        r_forearm_roll_link:
+          rh_adapter_link:
+            rh_forearm:
+              {}
+        r_shoulder_lift_link:
+          {}
+        r_shoulder_pan_link:
+          {}
+        r_upper_arm_roll_link:
+          r_upper_arm_link:
+            {}
+        rh_ff_J1_dummy:
+          rh_fftip:
+            rh_ff_biotac_link:
+              rh_ff_plectrum:
+                {}
+        rh_ffknuckle:
+          {}
+        rh_ffmiddle:
+          rh_ffdistal:
+            {}
+        rh_ffproximal:
+          {}
+        rh_lf_J1_dummy:
+          rh_lftip:
+            rh_lf_biotac_link:
+              {}
+        rh_lfknuckle:
+          {}
+        rh_lfmetacarpal:
+          {}
+        rh_lfmiddle:
+          rh_lfdistal:
+            {}
+        rh_lfproximal:
+          {}
+        rh_mf_J1_dummy:
+          rh_mftip:
+            rh_mf_biotac_link:
+              rh_mf_plectrum:
+                {}
+        rh_mfknuckle:
+          {}
+        rh_mfmiddle:
+          rh_mfdistal:
+            {}
+        rh_mfproximal:
+          {}
+        rh_palm:
+          rh_imu:
+            {}
+          rh_manipulator:
+            {}
+        rh_rf_J1_dummy:
+          rh_rftip:
+            rh_rf_biotac_link:
+              rh_rf_plectrum:
+                {}
+        rh_rfknuckle:
+          {}
+        rh_rfmiddle:
+          rh_rfdistal:
+            {}
+        rh_rfproximal:
+          {}
+        rh_thbase:
+          {}
+        rh_thdistal_J1_dummy:
+          rh_thtip:
+            rh_th_biotac_link:
+              rh_th_plectrum:
+                {}
+        rh_thhub:
+          {}
+        rh_thmiddle:
+          rh_thdistal:
+            {}
+        rh_thproximal:
+          {}
+        rh_wrist:
+          {}
+        target_pluck_string:
+          {}
+        torso_lift_link:
+          imu_link:
+            {}
+          l_torso_lift_side_plate_link:
+            {}
+          r_torso_lift_side_plate_link:
+            {}
+        torso_lift_motor_screw_link:
+          {}
+      Update Interval: 0
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 48; 48; 48
+    Default Light: true
+    Fixed Frame: base_footprint
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz/Interact
+      Hide Inactive Objects: true
+    - Class: rviz/MoveCamera
+    - Class: rviz/Select
+    - Class: rviz/FocusCamera
+    - Class: rviz/Measure
+    - Class: rviz/SetInitialPose
+      Theta std deviation: 0.2617993950843811
+      Topic: /initialpose
+      X std deviation: 0.5
+      Y std deviation: 0.5
+    - Class: rviz/SetGoal
+      Topic: /move_base_simple/goal
+    - Class: rviz/PublishPoint
+      Single click: true
+      Topic: /clicked_point
+  Value: true
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 0.41932815313339233
+      Enable Stereo Rendering:
+        Stereo Eye Separation: 0.05999999865889549
+        Stereo Focal Distance: 1
+        Swap Stereo Eyes: false
+        Value: false
+      Field of View: 0.7853981852531433
+      Focal Point:
+        X: 0.4579218924045563
+        Y: -0.35090309381484985
+        Z: 0.6442270278930664
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05000000074505806
+      Invert Z Axis: false
+      Name: Current View
+      Near Clip Distance: 0.009999999776482582
+      Pitch: 0.3997970521450043
+      Target Frame: <Fixed Frame>
+      Yaw: 5.00855827331543
+    Saved: ~
+Window Geometry:
+  CQT:
+    collapsed: false
+  Displays:
+    collapsed: false
+  Height: 1412
+  Hide Left Dock: false
+  Hide Right Dock: false
+  QMainWindow State: 000000ff00000000fd0000000400000000000001b5000004e6fc0200000009fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d00000408000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000006004300510054010000044b000000d80000001600ffffff000000010000010f000004e6fc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d000004e6000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000a000000003efc0100000002fb0000000800540069006d0065010000000000000a000000032200fffffffb0000000800540069006d0065010000000000000450000000000000000000000730000004e600000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  Selection:
+    collapsed: false
+  Time:
+    collapsed: false
+  Tool Properties:
+    collapsed: false
+  Views:
+    collapsed: false
+  Width: 2560
+  X: 1920
+  Y: 28
