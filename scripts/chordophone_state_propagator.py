@@ -6,7 +6,7 @@ import tf2_ros
 from tams_pr2_guzheng.msg import ChordophoneEstimation
 from tams_pr2_guzheng.utils import String
 from tf2_msgs.msg import TFMessage
-from visualization_msgs.msg import MarkerArray
+from visualization_msgs.msg import Marker, MarkerArray
 
 # from moveit_commander import PlanningSceneInterface
 # from moveit_msgs.msg import CollisionObject
@@ -59,7 +59,7 @@ class ChordophoneStatePropagator:
         strings = [String.from_msg(s) for s in msg.strings]
         # TODO: respect "up"
 
-        markers = [m for s in strings for m in s.markers]
+        markers = [Marker(action = Marker.DELETEALL)] + [m for s in strings for m in s.markers]
         self.pub_markers.publish(MarkerArray(markers=markers))
 
         # crude hack. WTF
