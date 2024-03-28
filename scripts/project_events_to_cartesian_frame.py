@@ -133,9 +133,14 @@ class Projector:
         f= self.finger
         marker.header.frame_id = f'rh_{f}_plectrum'
         buffer_target_frame = f'rh_{f}_biotac_link'
-        if not self.tf_buffer.can_transform(self.base_frame, buffer_target_frame, marker.header.stamp+rospy.Duration(TimeOffsetConfig.max['delta_t']), timeout= rospy.Duration(TimeOffsetConfig.max['delta_t']+0.2)):
-            rospy.logwarn("throw away event because transform is not available")
+        try:
+            if not self.tf_buffer.can_transform(self.base_frame, buffer_target_frame, marker.header.stamp+rospy.Duration(TimeOffsetConfig.max['delta_t']), timeout= rospy.Duration(TimeOffsetConfig.max['delta_t']+0.2)):
+                rospy.logwarn("throw away event because transform is not available")
+                return
+        except rospy.exceptions.ROSTimeMovedBackwardsException as e:
+            rospy.logwarn("throw away event because time moved backwards")
             return
+
         # buffer local trajectory of plectrum to pick precise value during calibration
         buffer= tf2_ros.Buffer(cache_time= rospy.Duration(1 << 30), debug= False)  # inf is not supported... :(
         buffer.set_transform_static(self.tf_buffer.lookup_transform(buffer_target_frame, marker.header.frame_id, rospy.Time()), '')
