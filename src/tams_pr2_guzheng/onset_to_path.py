@@ -125,18 +125,16 @@ class OnsetToPath:
             self.pluck_table.drop(plucks.index, inplace= True)
             return nbp
 
-        # account for huge value span between successful and failed plucks with a low cutoff
-        loudness_low_cutoff = 15.0 # dBA
-        plucks['loudness'].fillna(loudness_low_cutoff, inplace= True)
-        plucks.loc[plucks['loudness'] < loudness_low_cutoff, 'loudness'] = loudness_low_cutoff
+        # use only safe plucks (with loudness) for gp_loudness
+        plucks_loudness = plucks[plucks['safety_score'] > 0]
 
         gp_loudness= utils.fit_gp(
-            features,
-            plucks['loudness'].values,
+            features[plucks_loudness.index],
+            plucks_loudness['loudness'],
             normalize= True,
             alpha= 1.0,
             rbf_length= (0.5, 0.25),
-            train= False # True if plucks['loudness'].dropna().size > 50 else False
+            train= False # True if plucks_loudness.size > 50 else False
         )
         gp_safety = utils.fit_gp(
             features,
@@ -165,7 +163,7 @@ class OnsetToPath:
 
         psafe_threshold = 0.7
 
-        # optuna? In practice the sampling suffices and provides useful visualizations
+        # optuna? In practice MC sampling suffices and provides useful visualizations
         sample_size= 2000
         while (not rospy.is_shutdown()):
             if sample_size > 1e6:
