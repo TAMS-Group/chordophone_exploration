@@ -39,10 +39,10 @@ class PlayPiece:
 
         self.run_episode_result_sub= rospy.Subscriber('run_episode/result', RunEpisodeActionResult, self.run_episode_result_cb)
 
-        self.piece_sub= rospy.Subscriber('piece', Piece, self.piece_cb)
-        self.piece_sub= rospy.Subscriber('piece_midi_loudness', Piece, self.piece_midi_loudness_cb)
+        self.piece_sub= rospy.Subscriber('~piece', Piece, self.piece_cb)
+        self.piece_sub= rospy.Subscriber('~piece_midi_loudness', Piece, self.piece_midi_loudness_cb)
 
-        self.piece_action= actionlib.SimpleActionServer('play_piece', PlayPieceAction, self.play_piece_cb, auto_start=False)
+        self.piece_action= actionlib.SimpleActionServer('~action', PlayPieceAction, self.play_piece_cb, auto_start=False)
         self.piece_action.start()
 
     def run_episode_result_cb(self, msg):

@@ -69,6 +69,6 @@ rosbag record \
   /guzheng/pluck_projector/parameter_updates \
   \
   /guzheng/fitted_strings \
-  /piece \
-  /piece_midi_loudness \
+  /play_piece/piece \
+  /play_piece/piece_midi_loudness \
   __name:=rosbag_recorder
