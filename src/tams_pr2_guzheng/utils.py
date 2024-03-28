@@ -1,8 +1,11 @@
 import rospy
+from typing import Tuple
 
+import math
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
+import re
 import scipy.stats as stats
 import seaborn as sns
 import sklearn.gaussian_process as gp
@@ -10,15 +13,143 @@ import tf2_ros
 import tf2_geometry_msgs
 import tams_pr2_guzheng.utils as utils
 
-from geometry_msgs.msg import PoseStamped, PointStamped, Point, Vector3, Pose, Quaternion
+from copy import deepcopy
+from geometry_msgs.msg import PoseStamped, PointStamped, Point, Pose, Vector3, TransformStamped, Quaternion
 from matplotlib import pyplot as plt
 from matplotlib import cm
 from nav_msgs.msg import Path
 from sensor_msgs.msg import Image
+from std_msgs.msg import ColorRGBA
+from tf import transformations
 from typing import Tuple
+from visualization_msgs.msg import Marker
 
-from tams_pr2_guzheng.msg import RunEpisodeRequest, RunEpisodeGoal
+from tams_pr2_guzheng.msg import RunEpisodeRequest, RunEpisodeGoal, ChordophoneString
 from tams_pr2_guzheng.paths import RuckigPath
+
+class String:
+    def __init__(self, key : str, head : Tuple[float, float, float], bridge : Tuple[float, float, float]):
+        self.key = key
+        self.head = np.array(head)
+        self.bridge = np.array(bridge)
+
+    @property
+    def length(self):
+        return np.linalg.norm(self.bridge - self.head)
+
+    @property
+    def direction(self):
+        return (self.bridge - self.head) / self.length
+
+    @staticmethod
+    def from_msg(msg):
+        return String(
+            key = msg.key,
+            head = np.array((msg.head.x, msg.head.y, msg.head.z)),
+            bridge = np.array((msg.bridge.x, msg.bridge.y, msg.bridge.z))
+        )
+
+    @property
+    def as_msg(self):
+        return ChordophoneString(
+            key = self.key,
+            head = Point(*self.head),
+            bridge = Point(*self.bridge)
+        )
+
+    @property
+    def as_plain_types(self):
+        return {
+            "key": self.key,
+            "head": self.head.tolist(),
+            "bridge": self.bridge.tolist()
+        }
+
+    def head_pose(self, upwards= (0.0, 0.0, 1.0)):
+        p = Pose()
+        p.position.x = self.head[0]
+        p.position.y = self.head[1]
+        p.position.z = self.head[2]
+
+        rot = np.diag(np.ones(4))
+
+        # x points in string direction
+        rot[0:3, 0] = self.direction
+        # y is orthogonal to local x and global "upwards" (approach) direction
+        rot[0:3, 1] = np.cross(rot[0:3, 0], upwards)
+        rot[0:3, 1] /= np.linalg.norm(rot[0:3, 1])
+
+        # TODO: is this really necessary?
+        if rot[0, 1] > 0.0:
+            rot[0:3, 1] = -rot[0:3, 1]
+
+        # z is rotated upwards around x
+        rot[0:3, 2] = np.cross(rot[0:3, 0], rot[0:3, 1])
+
+        rot_q = transformations.quaternion_from_matrix(rot)
+        rot_q /= np.linalg.norm(rot_q)
+        p.orientation.x = rot_q[0]
+        p.orientation.y = rot_q[1]
+        p.orientation.z = rot_q[2]
+        p.orientation.w = rot_q[3]
+
+        return p
+
+    @property
+    def markers(self):
+        markers = []
+
+        m = Marker()
+        m.ns = self.key
+        m.id = 0
+        m.action = Marker.ADD
+        m.type = Marker.CYLINDER
+        m.header.frame_id = 'base_footprint'
+        m.frame_locked = True
+        m.scale = Vector3(0.003, 0.003, self.length)
+
+        # color a strings green by convention
+        if re.match("a[0-9]+", self.key):
+            m.color = ColorRGBA(0.0, 1.0, 0.0, 1.0)
+        else:
+            m.color = ColorRGBA(1.0, 1.0, 1.0, 1.0)
+
+        m.pose = self.head_pose()
+        m.pose.position = Point(*((self.head + self.bridge) / 2))
+        # rotate m.pose.orientation to align z with the string instad of x
+        m.pose.orientation = Quaternion(*transformations.quaternion_multiply(
+            (m.pose.orientation.x, m.pose.orientation.y, m.pose.orientation.z, m.pose.orientation.w),
+            transformations.quaternion_from_euler(0, math.tau/4, 0)
+        ))
+
+        markers.append(deepcopy(m))
+
+        m.id = 1
+        m.type = Marker.TEXT_VIEW_FACING
+        m.text = self.key
+        m.pose = self.head_pose()
+        m.pose.position.z -= 0.005
+        m.scale = Vector3(0.0, 0.0, 0.005)
+        markers.append(m)
+
+        return markers
+
+    @property
+    def tfs(self):
+        tf = TransformStamped()
+        tf.header.frame_id = 'base_footprint'
+        tf.child_frame_id = "guzheng/"+self.key+"/head"
+
+        tf.transform.translation = Vector3(*self.head)
+        tf.transform.rotation = self.head_pose().orientation
+
+        tf_bridge = TransformStamped()
+        tf_bridge.header.frame_id = tf.child_frame_id
+        tf_bridge.transform.translation.x = self.length
+        tf_bridge.transform.rotation.w = 1.0
+        tf_bridge.child_frame_id = "guzheng/"+self.key+"/bridge"
+
+        return (tf, tf_bridge)
 
 def note_to_string(note):
     return note.replace("♯", "is").lower()

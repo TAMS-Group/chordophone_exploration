@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="recording" default="false" />
+  <arg name="microphone" />
 
-  <include unless="$(arg recording)" file="$(dirname)/microphone.launch">
+  <include if="$(arg microphone)" file="$(dirname)/microphone.launch">
     <arg name="play" value="false" />
   </include>
 

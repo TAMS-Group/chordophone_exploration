@@ -49,6 +49,7 @@ DIRECTORY
 FILES
   ActionParameters.msg
   BiotacStamped.msg
+  ChordophoneEstimation.msg
   CQTStamped.msg
   EpisodeState.msg
   NoteOnset.msg
@@ -56,6 +57,7 @@ FILES
   PluckEpisodeV2.msg
   RunEpisodeRequest.msg
   TactilePluck.msg
+  ChordophoneString.msg
 )
 
 generate_messages(
