@@ -103,7 +103,7 @@ class OnsetToPath:
                 max_loudness= loudness_dist.max() if len(loudness_dist) > 0 else 0.0
                 ))
         if not hasattr(self, 'expressive_range_pub'):
-            self.expressive_range_pub = rospy.Publisher('expressive_range', ExpressiveRange, queue_size= 1)
+            self.expressive_range_pub = rospy.Publisher('~expressive_range', ExpressiveRange, queue_size= 1)
         self.expressive_range_pub.publish(r)
 
     def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : RuckigPath.ActionSpace, direction : float) -> RuckigPath:
