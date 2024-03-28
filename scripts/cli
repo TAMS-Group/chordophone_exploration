@@ -1,0 +1,157 @@
+#!/usr/bin/env python
+
+import cmd
+import rospy
+
+from dynamic_reconfigure.client import Client
+from std_srvs.srv import SetBool, Empty as EmptySrv
+from tams_pr2_guzheng.utils import string_to_note
+from rosapi.srv import DeleteParam
+
+class Cmd(cmd.Cmd):
+    true_kw = ('true', 'on', '1')
+    false_kw = ('false', 'off', '0')
+    truefalse_kw = true_kw + false_kw
+
+    def __init__(self):
+        rospy.init_node('guzheng_cli')
+        cmd.Cmd.__init__(self)
+        self.prompt = '> '
+        self.string_fitter_dr_client = Client('guzheng/string_fitter', timeout=10)
+
+    def parse_truefalse(self, line):
+        if (line.lower() in self.true_kw):
+            return True
+        elif (line.lower() in self.false_kw):
+            return False
+        else:
+            print(f'Invalid argument \'{line}\'.')
+            raise ValueError
+    def bool_to_string(self, b):
+        return 'on' if b else 'off'
+
+    def do_fit_strings(self, line):
+        '''set string fitter <on/off>'''
+
+        if not line:
+            line = "on"
+        try:
+            arg = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'active': arg})
+        except ValueError:
+            return
+
+    def complete_fit_strings(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_align_heads(self, line):
+        '''align string heads <on/off>'''
+
+        if not line:
+            print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['align_heads']))
+            return
+        try:
+            self.string_fitter_dr_client.update_configuration({'align_heads': self.parse_truefalse(line)})
+        except ValueError:
+            return
+
+    def complete_align_heads(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_reject_short_strings(self, line):
+        '''reject short strings <on/off>'''
+
+        if not line:
+            print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_short_strings']))
+            return
+        try:
+            self.string_fitter_dr_client.update_configuration({'reject_short_strings': self.parse_truefalse(line)})
+        except ValueError:
+            return
+
+    def complete_reject_short_strings(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_reject_unexpected(self, line):
+        '''reject unexpected strings <on/off>'''
+
+        if not line:
+            print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_unexpected']))
+            return
+        try:
+            self.string_fitter_dr_client.update_configuration({'reject_unexpected': self.parse_truefalse(line)})
+        except ValueError:
+            return
+
+    def complete_reject_unexpected(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_reject_unaligned(self, line):
+        '''reject unaligned strings <on/off>'''
+
+        if not line:
+            print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_unaligned']))
+            return
+        try:
+            self.string_fitter_dr_client.update_configuration({'reject_unaligned': self.parse_truefalse(line)})
+        except ValueError:
+            return
+
+    def complete_reject_unaligned(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_load_strings_from_file(self, line):
+        '''load strings from file <on/off>'''
+        if not hasattr(self, 'string_fitter_load_file_srv'):
+            self.string_fitter_load_file_srv = rospy.ServiceProxy('guzheng/string_fitter/load_from_file', EmptySrv)
+            self.string_fitter_load_file_srv.wait_for_service()
+
+        self.string_fitter_load_file_srv()
+
+    def do_store_to_file(self, line):
+        '''store strings to file <on/off>'''
+        if not hasattr(self, 'string_fitter_store_file_srv'):
+            self.string_fitter_store_file_srv = rospy.ServiceProxy('guzheng/string_fitter/store_to_file', EmptySrv)
+            self.string_fitter_store_file_srv.wait_for_service()
+
+        self.string_fitter_store_file_srv()
+
+    def do_drop_all_onsets(self, line):
+        '''drop onsets <on/off>'''
+        if not hasattr(self, 'projector_drop_onsets_srv'):
+            self.projector_drop_onsets_srv = rospy.ServiceProxy('guzheng/onset_projector/drop_events', DeleteParam)
+            self.projector_drop_onsets_srv.wait_for_service()
+        self.projector_drop_onsets_srv('ALL')
+
+    def do_drop_onsets(self, line):
+        '''drop onsets with <name>'''
+        if not hasattr(self, 'projector_drop_onsets_srv'):
+            self.projector_drop_onsets_srv = rospy.ServiceProxy('guzheng/onset_projector/drop_events', DeleteParam)
+            self.projector_drop_onsets_srv.wait_for_service()
+        if not line:
+            print('No onset name given.')
+            return
+        # if first char is lower, string_to_note
+        if line[0].islower():
+            line = string_to_note(line)
+        self.projector_drop_onsets_srv(line)
+
+    def do_quit(self, _line):
+        '''quit'''
+        return True
+
+    def emptyline(self):
+        pass
+
+    def precmd(self, line):
+        # Replace '-' with '_'
+        return line.replace('-', '_')
+
+    def default(self, line):
+        if line == 'EOF':
+            return True
+
+        print(f'Unknown command: {line}')
+
+if __name__ == '__main__':
+    Cmd().cmdloop()

@@ -32,6 +32,7 @@ generate_dynamic_reconfigure_options(
   cfg/Offsets.cfg
   cfg/Threshold.cfg
   cfg/TimeOffset.cfg
+  cfg/StringFitter.cfg
 )
 
 add_action_files(

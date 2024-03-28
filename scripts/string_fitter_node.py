@@ -11,11 +11,13 @@ from skimage.measure import LineModelND
 from skimage.measure import ransac
 from std_msgs.msg import ColorRGBA, Header
 from std_srvs.srv import SetBool, Empty as EmptySrv
+from tams_pr2_guzheng.cfg import StringFitterConfig
 from tams_pr2_guzheng.msg import ChordophoneEstimation
 from tams_pr2_guzheng.utils import note_to_string, String
 from typing import List
 from visualization_msgs.msg import Marker
 from visualization_msgs.msg import MarkerArray
+from dynamic_reconfigure.server import Server as DynamicReconfigureServer
 
 
 class StringFitter:
@@ -47,26 +49,27 @@ class StringFitter:
                             rospkg.RosPack().get_path('tams_pr2_guzheng')
                             + '/data/strings.yaml')
 
+        self.cfg = None
+        self.dyn_reconf_srv = DynamicReconfigureServer(StringFitterConfig, self.dynamic_reconfigure_cb)
+
         if rospy.get_param('~load_static_on_startup', False):
             self.load_from_file()
         else:
             self.active= True
-        self.enable_srv = rospy.Service('~set_active', SetBool, self.set_active)
-
-        self.exclude_short_strings = rospy.get_param('~exclude_short_strings', True)
-        self.exclude_short_strings_srv = rospy.Service('~exclude_short_strings', SetBool, self.set_exclude_short_strings)
-
-        self.reject_unexpected = rospy.get_param('~reject_unexpected', False)
-        self.reject_unexpected_srv = rospy.Service('~reject_unexpected', SetBool, self.set_reject_unexpected)
-
-        self.reject_unaligned = rospy.get_param('~reject_unaligned', False)
-        self.reject_unaligned_srv = rospy.Service('~reject_unaligned', SetBool, self.set_reject_unaligned)
-
-        self.align_heads = rospy.get_param('~align_heads', False)
-        self.align_heads_srv = rospy.Service('~align_heads', SetBool, self.set_align_heads)
 
         self.load_from_file_srv = rospy.Service('~load_from_file', EmptySrv, self.load_from_file)
         self.store_to_file_srv = rospy.Service('~store_to_file', EmptySrv, self.store_to_file)
+
+    def dynamic_reconfigure_cb(self, config : StringFitterConfig, level):
+        if self.cfg is None:
+            self.cfg = config
+            return config
+        should_fit = self.cfg.active == False and config.active == True
+        self.cfg = config
+        if should_fit:
+            self.fit()
+        self.publish_strings()
+        return config
 
     def start(self):
         self.sub_notes = rospy.Subscriber(
@@ -77,48 +80,9 @@ class StringFitter:
             queue_size= 1,
             )
 
-    def set_active(self, req):
-        self.active = req.data
-        if self.active:
-            rospy.loginfo("activated fitter")
-            self.fit()
-        else:
-            rospy.loginfo("set fitter inactive")
-
-        self.publish_strings()
-        return {'success': True, 'message' : '' }
-
-    def set_exclude_short_strings(self, req):
-        if req.data != self.exclude_short_strings:
-            self.exclude_short_strings = req.data
-            rospy.loginfo(f"set exclude_short_strings to {self.exclude_short_strings}")
-            self.publish_strings()
-        return {'success': True, 'message' : '' }
-
-    def set_reject_unexpected(self, req):
-        if req.data != self.reject_unexpected:
-            self.reject_unexpected = req.data
-            rospy.loginfo(f"set reject_unexpected to {self.reject_unexpected}")
-            self.publish_strings()
-        return {'success': True, 'message' : '' }
-
-    def set_reject_unaligned(self, req):
-        if req.data != self.reject_unaligned:
-            self.reject_unaligned = req.data
-            rospy.loginfo(f"set reject_unaligned to {self.reject_unaligned}")
-            self.publish_strings()
-        return {'success': True, 'message' : '' }
-
-    def set_align_heads(self, req):
-        if req.data != self.align_heads:
-            self.align_heads = req.data
-            rospy.loginfo(f"set align_heads to {self.align_heads}")
-            self.publish_strings()
-        return {'success': True, 'message' : '' }
-
     def load_from_file(self, _req = None):
         with open(self.storage_path, 'r') as f:
-            self.active = False
+            self.dyn_reconf_srv.update_configuration({'active': False})
             plain_strings = yaml.safe_load(f)
             self.strings = [
                 String(key= str(s['key']),
@@ -137,7 +101,7 @@ class StringFitter:
 
     def onsets_cb(self, msg):
         rospy.loginfo(f"got {len(msg.markers)} onsets to fit")
-        if not self.active:
+        if not self.cfg.active:
             return
 
         self.onsets = {}
@@ -196,7 +160,7 @@ class StringFitter:
 
         return (strings_aligned, strings_unaligned)
 
-    def do_align_heads(self, strings : List[String]):
+    def align_heads(self, strings : List[String]):
         # copy to adapt below
         aligned_strings = copy.deepcopy(strings)
 
@@ -278,8 +242,6 @@ class StringFitter:
                 max_pos_on_string = np.max(inlier_positions_on_string)
                 max_pt = model.params[0] + max_pos_on_string * direction
 
-                length = max_pos_on_string-min_pos_on_string
-
                 strings.append(
                     String(
                         key= note_to_string(k),
@@ -294,11 +256,10 @@ class StringFitter:
         self.strings = strings
 
     def publish_strings(self):
-
         strings = self.strings
         markers = MarkerArray(markers= [Marker(action = Marker.DELETEALL)])
 
-        if self.exclude_short_strings:
+        if self.cfg.reject_short_strings:
             short_strings = [s for s in strings if s.length < 0.05]
             strings = [s for s in strings if s.length >= 0.05]
             short_strings_markers = [sm for s in short_strings for sm in s.markers]
@@ -307,7 +268,7 @@ class StringFitter:
                 m.ns = "short "+m.ns
             markers.markers.extend(short_strings_markers)
 
-        if self.reject_unexpected:
+        if self.cfg.reject_unexpected:
             strings, unexpected_strings = self.split_unexpected_strings(strings)
             unexpected_strings_markers= [sm for s in unexpected_strings for sm in s.markers]
             for m in unexpected_strings_markers:
@@ -315,7 +276,7 @@ class StringFitter:
                 m.ns = "unexpected "+m.ns
             markers.markers.extend(unexpected_strings_markers)
 
-        if self.reject_unaligned:
+        if self.cfg.reject_unaligned:
             strings, unaligned_strings = self.split_unaligned_strings(strings)
             unaligned_strings_markers = [sm for s in unaligned_strings for sm in s.markers]
             for m in unaligned_strings_markers:
@@ -323,13 +284,22 @@ class StringFitter:
                 m.ns = "unaligned "+m.ns
             markers.markers.extend(unaligned_strings_markers)
 
-        if self.align_heads and len(strings) > 1:
-            cut_strings = self.do_align_heads(strings)
-            cut_strings_markers = [sm for s in cut_strings for sm in s.markers]
-            for m in cut_strings_markers:
-                m.scale.x = m.scale.y = m.scale.x/2
-                m.ns = "aligned heads " + m.ns
-            markers.markers.extend(cut_strings_markers)
+        if len(strings) > 1:
+            if self.cfg.align_heads:
+                unaligned_strings = strings
+                unaligned_strings_markers = [sm for s in strings for sm in s.markers]
+                strings = self.align_heads(strings)
+                for m in unaligned_strings_markers:
+                    m.scale.x = m.scale.y = m.scale.x/2
+                    m.ns = "unaligned heads " + m.ns
+                markers.markers.extend(unaligned_strings_markers)
+            else:
+                aligned_strings = self.align_heads(strings)
+                aligned_strings_markers = [sm for s in aligned_strings for sm in s.markers]
+                for m in aligned_strings_markers:
+                    m.color = ColorRGBA(0.1,0.8,0.1, 0.5)
+                    m.ns = "aligned heads "+m.ns
+                markers.markers.extend(aligned_strings_markers)
 
         self.pub_head_poses.publish(PoseArray(
             header= Header(stamp= rospy.Time.now(), frame_id= "base_footprint"),
