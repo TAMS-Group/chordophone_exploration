@@ -9,7 +9,7 @@ import scipy.stats as stats
 import tams_pr2_guzheng.utils as utils
 
 from nav_msgs.msg import Path
-from tams_pr2_guzheng.msg import RunEpisodeResult
+from tams_pr2_guzheng.msg import RunEpisodeResult, ExpressiveRange, NoteDynamics
 from tams_pr2_guzheng.paths import RuckigPath
 from tams_pr2_guzheng.utils import normalize
 from typing import Tuple
@@ -60,6 +60,7 @@ class OnsetToPath:
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
+        self.publish_expressive_range()
 
     def score_row(self, row):
         r = copy.deepcopy(row)
@@ -89,6 +90,21 @@ class OnsetToPath:
         ax.set_ylabel('loudness [dBA]')
         utils.publish_figure("loudness_strips", fig)
         plt.switch_backend(backend)
+
+    def publish_expressive_range(self):
+        '''publish the expressive range of the guzheng'''
+
+        r = ExpressiveRange()
+        for note in self.pluck_table.loc[self.pluck_table['safety_score'] > 0, 'detected_note'].unique():
+            loudness_dist = self.pluck_table.loc[(self.pluck_table['detected_note'] == note) & (self.pluck_table['safety_score'] > 0), 'loudness']
+            r.notes.append(NoteDynamics(
+                note= note,
+                min_loudness= loudness_dist.min() if len(loudness_dist) > 0 else 0.0,
+                max_loudness= loudness_dist.max() if len(loudness_dist) > 0 else 0.0
+                ))
+        if not hasattr(self, 'expressive_range_pub'):
+            self.expressive_range_pub = rospy.Publisher('expressive_range', ExpressiveRange, queue_size= 1)
+        self.expressive_range_pub.publish(r)
 
     def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : RuckigPath.ActionSpace, direction : float) -> RuckigPath:
         assert(direction in [-1.0, 1.0])

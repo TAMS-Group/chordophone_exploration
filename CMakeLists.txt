@@ -53,6 +53,8 @@ FILES
   ChordophoneEstimation.msg
   CQTStamped.msg
   EpisodeState.msg
+  ExpressiveRange.msg
+  NoteDynamics.msg
   NoteOnset.msg
   PluckEpisodeV1.msg
   PluckEpisodeV2.msg
