@@ -27,6 +27,7 @@ class OnsetToPath:
             self.pluck_table = pd.read_json(self.storage)
             self.pluck_table['safety_score'] = utils.score_safety(self.pluck_table)
         self.print_summary()
+        self.publish_expressive_range()
 
         rospy.on_shutdown(self.store_plucks)
 
@@ -103,7 +104,7 @@ class OnsetToPath:
                 max_loudness= loudness_dist.max() if len(loudness_dist) > 0 else 0.0
                 ))
         if not hasattr(self, 'expressive_range_pub'):
-            self.expressive_range_pub = rospy.Publisher('~expressive_range', ExpressiveRange, queue_size= 1)
+            self.expressive_range_pub = rospy.Publisher('~expressive_range', ExpressiveRange, queue_size= 1, latch= True)
         self.expressive_range_pub.publish(r)
 
     def infer_next_best_pluck(self, *, string : str, finger : str, actionspace : RuckigPath.ActionSpace, direction : float) -> RuckigPath:
