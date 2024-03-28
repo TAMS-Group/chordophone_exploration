@@ -33,7 +33,6 @@ class PlayPiece:
         # self.run_episode.wait_for_server()
 
         self.execute_path = actionlib.SimpleActionClient('pluck/execute_path', ExecutePathAction)
-        self.execute_path.wait_for_server()
 
         self.o2p= OnsetToPath(storage= rospy.get_param("~storage", rospkg.RosPack().get_path("tams_pr2_guzheng") + "/data/plucks.json"))
         self.start_string_position = rospy.get_param("~start_string_position", None)
@@ -70,7 +69,10 @@ class PlayPiece:
         self.piece_cb(msg)
 
     def piece_cb(self, msg):
-        rospy.loginfo(f"playing piece with {len(msg.onsets)} onsets")
+        rospy.loginfo(f"get to play piece with {len(msg.onsets)} onsets")
+        if not self.execute_path.wait_for_server(timeout= rospy.Duration(5.0)):
+            rospy.logerr("execute_path action is not connected. Cannot execute motions to play.")
+            return
         paths= []
         last_midi_note = None
         direction= -1.0
@@ -117,5 +119,5 @@ class PlayPiece:
 if __name__ == '__main__':
     rospy.init_node('play_piece')
 
-    play_piece= PlayPiece()
+    PlayPiece()
     rospy.spin()
