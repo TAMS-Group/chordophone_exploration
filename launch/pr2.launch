@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!-- start pr2 part of system -->
 <launch>
-  <include file="$(dirname)/plectrum.launch" />
+  <include file="$(dirname)/robot_model.launch" />
   <include file="$(dirname)/projectors.launch" />
   <include file="$(dirname)/detect_pluck.launch" />
   <include file="$(dirname)/pluck_from_path.launch" />
