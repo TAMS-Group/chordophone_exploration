@@ -146,9 +146,9 @@ def main():
             p = np.zeros(len(strings))
             if i >= 0:
                 # prefer neighborhood of previous string
-                p+= stats.norm.pdf(strings_idx, loc= i, scale= 1.0)
+                p+= 3*stats.norm.pdf(strings_idx, loc= i, scale= 1.0)
             # similar chances for all other strings
-            p+= stats.uniform.pdf(strings_idx, loc= 0, scale= 20)
+            p+= 0.02*stats.uniform.pdf(strings_idx, loc= 0, scale= 20)
             # penalize previously explored strings
             p/= onset_hist
             # we could normalize by string length as well, but geometric coverage turns out to be less important
