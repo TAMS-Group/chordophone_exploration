@@ -346,7 +346,7 @@ class OnsetToPath:
 
     def get_path(self, note : str, finger : str, direction : float, loudness : float= None, string_position : float= None) -> Tuple[Path, str, float]:
         '''
-        Returns a path for the given note and loudness.
+        Returns a path [0], finger [1], and expected loudness error [2] for the given note and loudness.
 
         @param note: The note to play
         @param finger: The finger to play the note with
@@ -447,11 +447,12 @@ class OnsetToPath:
         samples = samples[indices]
         samples_distance = samples_distance[indices]
 
-        sample_closest = samples[np.argmin(samples_distance)]
+        picked_sample = np.argmin(samples_distance)
+        sample_closest = samples[picked_sample]
         p = RuckigPath.prototype(string= string, direction= direction)
         p.string_position= sample_closest[0]
         p.keypoint_pos[0]= sample_closest[1]
 
         # TODO: maximize pdf between all samples around 1dB distance
 
-        return p, finger, 1.0
+        return p, finger, samples_distance[picked_sample]
