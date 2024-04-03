@@ -19,8 +19,9 @@ from tams_pr2_guzheng.utils import string_length, publish_figure, say
 from tams_pr2_guzheng.msg import (
     RunEpisodeAction,
     RunEpisodeGoal,
-    RunEpisodeRequest)
-from visualization_msgs.msg import MarkerArray
+    RunEpisodeRequest,
+    ChordophoneEstimation,
+    )
 from std_msgs.msg import Bool as BoolMsg
 
 def plot_p(strings, p):
@@ -97,8 +98,8 @@ def main():
     # strings to explore
     # guzheng:
     # # strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
-    fitted_strings = rospy.wait_for_message("guzheng/fitted_strings", MarkerArray)
-    known_strings = sorted([m.ns for m in fitted_strings.markers if " " not in m.ns and len(m.ns) > 0], key = lambda s: librosa.note_to_midi((utils.string_to_note(s))))
+    fitted_strings = rospy.wait_for_message("guzheng/estimate", ChordophoneEstimation)
+    known_strings = sorted([s.key for s in fitted_strings.strings], key = lambda s: librosa.note_to_midi(s))
     if string == "all":
         strings = known_strings
     else:
