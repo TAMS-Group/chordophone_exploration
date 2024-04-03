@@ -100,7 +100,7 @@ def main():
     # guzheng:
     # # strings= [f"{k}{o}" for o in [2,3,4,5] for k in ["d", "e", "fis", "a", "b"]]+["d6"]
     fitted_strings = rospy.wait_for_message("guzheng/estimate", ChordophoneEstimation)
-    known_strings = sorted([s.key for s in fitted_strings.strings], key = lambda s: librosa.note_to_midi(s))
+    known_strings = sorted([s.key for s in fitted_strings.strings], key = lambda s: librosa.note_to_midi(utils.string_to_note(s)))
     if string == "all":
         strings = known_strings
     else:

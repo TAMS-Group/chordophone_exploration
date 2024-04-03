@@ -20,7 +20,7 @@ import seaborn as sns
 class OnsetToPath:
     def __init__(self, *, storage : str = '/tmp/plucks.json'):
         self.pluck_table = pd.DataFrame(
-            columns=(*RuckigPath().params_map.keys(), 'finger', 'loudness', 'detected_note', 'onset_cnt', 'onsets')
+            columns=(*RuckigPath().params_map.keys(), 'finger', 'loudness', 'detected_note', 'onset_cnt', 'onsets', 'safety_score')
             )
         self.storage = storage
         if os.path.exists(self.storage):
@@ -146,7 +146,7 @@ class OnsetToPath:
         plucks_loudness = plucks[plucks['safety_score'] > 0]
 
         gp_loudness= utils.fit_gp(
-            features[plucks_loudness.index],
+            features[plucks['safety_score'] > 0],
             plucks_loudness['loudness'],
             normalize= True,
             alpha= 1.0,
