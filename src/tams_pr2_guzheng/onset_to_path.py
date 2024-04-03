@@ -422,8 +422,10 @@ class OnsetToPath:
             safety_score_predictions = gp_safety.predict(normalize(X, features_norm_params), return_std=True)
             return utils.prob_gt_zero(safety_score_predictions)
 
+        string_delta = 0.1
+
         domains = (
-            (plucks['string_position'].min(), plucks['string_position'].max()) if string_position is None else (max((0.0, string_position-.05)), min((plucks['string_position'].max(), string_position+.05))),
+            (plucks['string_position'].min(), plucks['string_position'].max()) if string_position is None else (max((0.0, string_position-string_delta)), min((plucks['string_position'].max(), string_position+string_delta))),
             (plucks['keypoint_pos_y'].min(), plucks['keypoint_pos_y'].max()),
         )
 
