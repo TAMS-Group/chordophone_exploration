@@ -4,5 +4,5 @@ numpy
 pandas
 ruckig
 scikit-image
+scikit-learn
 seaborn
-sklearn
