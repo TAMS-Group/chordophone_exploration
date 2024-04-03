@@ -427,7 +427,7 @@ class OnsetToPath:
             (plucks['keypoint_pos_y'].min(), plucks['keypoint_pos_y'].max()),
         )
 
-        psafe_threshold = 0.9
+        psafe_threshold = 0.75
 
         # optuna?
         sample_size= 5000
