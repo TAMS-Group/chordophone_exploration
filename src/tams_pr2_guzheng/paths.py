@@ -98,11 +98,11 @@ class RuckigPath:
 
     def __str__(self) -> str:
         return (
-            f"RuckigPath(\n"
-            f"    string= {self.string}\n"
-            f"    string_position= {self.string_position:.3f}\n"
-            f"    keypoint_pos= {self.keypoint_pos[0]:.3f} {self.keypoint_pos[1]:.3f}\n"
-            f"    keypoint_vel= {self.keypoint_vel[1]:.4f} {self.keypoint_vel[1]:.4f}\n"
+            f"RuckigPath("
+            f"string= {self.string}, "
+            f"string_position= {self.string_position:.3f}, "
+            f"keypoint_pos= ({self.keypoint_pos[0]:.3f}, {self.keypoint_pos[1]:.3f}), "
+            f"keypoint_vel= ({self.keypoint_vel[1]:.3f}, {self.keypoint_vel[1]:.3f}), "
             f")"
         )
 

@@ -36,7 +36,7 @@ class OnsetToPath:
         self.store_to_file()
 
     def print_summary(self):
-        summary= f"OnsetToPath stores {len(self.pluck_table)} plucks\n"
+        summary= f"OnsetToPath stores {len(self.pluck_table)} plucks (in file '{self.storage}')\n"
         for n in self.pluck_table['detected_note'].unique():
             if isinstance(n, float) and np.isnan(n):
                 l= len(self.pluck_table[self.pluck_table['detected_note'].isna()])
@@ -213,7 +213,7 @@ class OnsetToPath:
         sample_max_H = samples[np.argmax(samples_H)]
         nbp.string_position= sample_max_H[0]
         nbp.keypoint_pos[0]= sample_max_H[1]
-        rospy.loginfo(f"selected nbp: {nbp} with H= {np.max(samples_H)} out of {len(samples)} sufficiently safe samples")
+        rospy.loginfo(f"selected nbp: {nbp} with H= {np.max(samples_H):.2f} out of {len(samples)} safe samples")
 
         ## optional visualizations
 
