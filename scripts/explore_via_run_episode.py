@@ -110,7 +110,7 @@ def main():
     if position_strategy == "uniform":
         string_sampler = lambda i, d=stats.uniform(loc= 0.0, scale= 1.0): d.rvs()
     elif position_strategy == "halton":
-        # TODO: separate sampler for each string is essential
+        # separate sampler for each string is essential
         halton_sequences = [stats.qmc.Halton(d= len(strings), seed= 37) for _ in range(len(strings))]
         string_sampler = lambda i, sequences = halton_sequences: sequences[i].random()[:, i:i+1]  # retain 2d shape (for scale) with dimensions 1x1
 
