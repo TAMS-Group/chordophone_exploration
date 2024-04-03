@@ -9,7 +9,7 @@
   <arg name="runs" default="0" />
   <arg name="attempts_per_string" default="1" />
 
-  <!-- valid values: 'geometry', 'reduce_variance', 'random' -->
+  <!-- valid values: 'geometry', 'avpe', 'random' -->
   <arg name="strategy" default="random" />
   <!-- valid values: 'uniform', 'halton' -->
   <arg name="position_strategy" default="halton" />

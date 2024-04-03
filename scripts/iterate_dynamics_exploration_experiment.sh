@@ -30,7 +30,7 @@ cat $F | while read string direction runs; do
     for i in `seq 1 $runs`; do
        rostopic pub -1 /say std_msgs/String "data: 'exploring string $string $direction_string'" >&-
        echo "exploring string $string $direction_string ($i/$runs)"
-       roslaunch tams_pr2_guzheng explore.launch strategy:=reduce_variance string:=${string} direction:=${direction} runs:=$TRIALS storage:=${string}_${direction_string}_`date +%Y%m%d%H%M%S` 
+       roslaunch tams_pr2_guzheng explore.launch strategy:=avpe string:=${string} direction:=${direction} runs:=$TRIALS storage:=${string}_${direction_string}_`date +%Y%m%d%H%M%S`
     done
 done 
 

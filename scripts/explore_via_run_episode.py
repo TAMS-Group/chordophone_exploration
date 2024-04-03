@@ -44,7 +44,7 @@ def main():
     attempts_per_string = rospy.get_param("~attempts_per_string", 1) # number of attempts to pluck a target string before switching to another
     # path strategy to use for exploration. one of
     # "random" - randomly sample all open parameters
-    # "reduce_variance" - sample string position and keypoint_pos_y from a distribution that minimizes GP variance
+    # "avpe" - Active Valid Pluck Exploration. sample string position and keypoint_pos_y from a distribution that minimizes GP variance
     # "geometry" - retry variations if sample comes out without detected onset
     strategy = rospy.get_param("~strategy", "random")
     # strategy to sample string position from. one of
@@ -75,7 +75,7 @@ def main():
         rospy.logfatal(f"invalid position_strategy '{position_strategy}', use one of {valid_position_strategies}")
         return
 
-    valid_strategies = ("random", "reduce_variance", "geometry")
+    valid_strategies = ("random", "avpe", "geometry")
     if strategy not in valid_strategies:
         rospy.logfatal(f"invalid strategy '{strategy}', use one of {valid_strategies}")
         return
@@ -195,7 +195,7 @@ def main():
             path.string_position = stats.qmc.scale(string_sampler(i), *actionspace.string_position)
         elif strategy == "random":
             path.sample(actionspace, uniform_sampler)
-        elif strategy == "reduce_variance":
+        elif strategy == "avpe":
             path = o2p.infer_next_best_pluck(
                 string= strings[i],
                 finger= finger,
