@@ -75,7 +75,7 @@ class PlayPiece:
             return
         paths= []
         last_midi_note = None
-        direction= -1.0
+        direction= 1.0
         last_string_position = self.start_string_position
         finger = None
         for o in msg.onsets:
@@ -91,12 +91,14 @@ class PlayPiece:
             last_midi_note= midi_note
             try:
                 # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
-                path, finger, prob = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= direction, string_position= last_string_position, finger= finger)
+                # TODO: this ignores "direction"
+                path, finger, error = min([self.o2p.get_path(note=o.note, loudness= o.loudness, direction= d, string_position= last_string_position, finger= finger) for d in [1.0, -1.0]], key = lambda x: x[2])
                 path = path()
                 last_string_position = path.poses[0].pose.position.x
             except ValueError as e:
-                rospy.logerr(f"No known way to play note {o.note}, will skip it. ({e})")
+                rospy.logerr(f"No known way to play note {o.note} in direction {direction} ({e})")
                 continue
+
             approach_path = copy.deepcopy(path)
             approach_path.poses = approach_path.poses[0:1]
             approach_pose = copy.deepcopy(approach_path.poses[0])
