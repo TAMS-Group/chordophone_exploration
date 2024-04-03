@@ -113,7 +113,7 @@ class PlayPiece:
             rospy.logerr("will not attempt execution")
             return
 
-        stitched_path.poses = stitched_path.poses[::3]
+        stitched_path.poses = stitched_path.poses # [::3]
         self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= finger))
         self.execute_path.wait_for_result()
 
