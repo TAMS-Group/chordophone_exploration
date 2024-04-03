@@ -8,6 +8,7 @@
 
   <arg name="runs" default="0" />
   <arg name="attempts_per_string" default="1" />
+  <arg name="attempts_for_good_pluck" default="4" />
 
   <!-- valid values: 'geometry', 'avpe', 'random' -->
   <arg name="strategy" default="random" />
@@ -26,6 +27,7 @@
 
     <param name="runs" value="$(arg runs)" />
     <param name="attempts_per_string" value="$(arg attempts_per_string)" />
+    <param name="attempts_for_good_pluck" value="$(arg attempts_for_good_pluck)" />
 
     <param name="strategy" value="$(arg strategy)" />
     <param name="position_strategy" value="$(arg position_strategy)" />
