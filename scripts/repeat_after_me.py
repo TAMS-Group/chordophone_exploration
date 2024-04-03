@@ -18,12 +18,13 @@ class RepeatAfterMe:
         self.piece= Piece()
         self.recording= True
         self.onsets_sub= rospy.Subscriber("guzheng/onsets", NoteOnset, self.onset_cb)
-        self.play_piece= actionlib.SimpleActionClient("play_piece", PlayPieceAction)
+        self.play_piece= actionlib.SimpleActionClient("play_piece/action", PlayPieceAction)
         self.say = rospy.Publisher("/say", StringMsg, queue_size=1)
         self.move_group = MoveGroupCommander("manipulation")
         self.move_group.set_max_velocity_scaling_factor(0.7)
         self.move_group.set_max_acceleration_scaling_factor(0.7)
         self.play_piece.wait_for_server()
+        rospy.sleep(1.0) # buffer time for /say publisher
 
     def go_home(self):
         self.move_group.set_named_target("guzheng_initial")
@@ -51,6 +52,7 @@ class RepeatAfterMe:
 
     def spin(self):
         first_time= True
+        self.go_home()
         self.say.publish("I'm listening. Please show me your talent.")
         while True:
             if not first_time:
@@ -66,6 +68,7 @@ class RepeatAfterMe:
             if rospy.is_shutdown():
                 return
 
+            rospy.loginfo("Repeating sequence.")
             self.recording= False
 
             goal = PlayPieceGoal()
