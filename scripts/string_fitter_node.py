@@ -276,15 +276,15 @@ class StringFitter:
                 m.ns = "unexpected "+m.ns
             markers.markers.extend(unexpected_strings_markers)
 
-        if self.cfg.reject_unaligned:
-            strings, unaligned_strings = self.split_unaligned_strings(strings)
-            unaligned_strings_markers = [sm for s in unaligned_strings for sm in s.markers]
-            for m in unaligned_strings_markers:
-                m.color = ColorRGBA(0.8,0.1,0.1, 0.5)
-                m.ns = "unaligned "+m.ns
-            markers.markers.extend(unaligned_strings_markers)
-
         if len(strings) > 1:
+            if self.cfg.reject_unaligned:
+                strings, unaligned_strings = self.split_unaligned_strings(strings)
+                unaligned_strings_markers = [sm for s in unaligned_strings for sm in s.markers]
+                for m in unaligned_strings_markers:
+                    m.color = ColorRGBA(0.8,0.1,0.1, 0.5)
+                    m.ns = "unaligned "+m.ns
+                markers.markers.extend(unaligned_strings_markers)
+
             if self.cfg.align_heads:
                 unaligned_strings = strings
                 unaligned_strings_markers = [sm for s in strings for sm in s.markers]
