@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
 import cmd
+import re
 import rospy
+import shlex
+import subprocess
 
 from dynamic_reconfigure.client import Client
 from std_srvs.srv import SetBool, Empty as EmptySrv
 from tams_pr2_guzheng.utils import string_to_note
 from rosapi.srv import DeleteParam
+from moveit_by_name.msg import Command as MoveItByNameCommand
 
 class Cmd(cmd.Cmd):
     true_kw = ('true', 'on', '1')
@@ -36,8 +40,9 @@ class Cmd(cmd.Cmd):
         if not line:
             line = "on"
         try:
-            arg = self.parse_truefalse(line)
-            self.string_fitter_dr_client.update_configuration({'active': arg})
+            flag = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'active': flag})
+            print(f'string fitter is {self.bool_to_string(flag)}')
         except ValueError:
             return
 
@@ -51,7 +56,9 @@ class Cmd(cmd.Cmd):
             print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['align_heads']))
             return
         try:
-            self.string_fitter_dr_client.update_configuration({'align_heads': self.parse_truefalse(line)})
+            flag = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'align_heads': flag})
+            print(f'align_heads is {self.bool_to_string(flag)}')
         except ValueError:
             return
 
@@ -65,7 +72,9 @@ class Cmd(cmd.Cmd):
             print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_short_strings']))
             return
         try:
-            self.string_fitter_dr_client.update_configuration({'reject_short_strings': self.parse_truefalse(line)})
+            flag = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'reject_short_strings': flag})
+            print(f'reject_short_strings is {self.bool_to_string(flag)}')
         except ValueError:
             return
 
@@ -79,9 +88,12 @@ class Cmd(cmd.Cmd):
             print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_unexpected']))
             return
         try:
-            self.string_fitter_dr_client.update_configuration({'reject_unexpected': self.parse_truefalse(line)})
+            flag = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'reject_unexpected': flag})
+            print(f'reject_unexpected is {self.bool_to_string(flag)}')
         except ValueError:
             return
+
 
     def complete_reject_unexpected(self, text, line, begidx, endidx):
         return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
@@ -93,7 +105,9 @@ class Cmd(cmd.Cmd):
             print(self.bool_to_string(self.string_fitter_dr_client.get_configuration()['reject_unaligned']))
             return
         try:
-            self.string_fitter_dr_client.update_configuration({'reject_unaligned': self.parse_truefalse(line)})
+            flag = self.parse_truefalse(line)
+            self.string_fitter_dr_client.update_configuration({'reject_unaligned': flag})
+            print(f'reject_unaligned is {self.bool_to_string(flag)}')
         except ValueError:
             return
 
@@ -101,15 +115,15 @@ class Cmd(cmd.Cmd):
         return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
 
     def do_load_strings_from_file(self, line):
-        '''load strings from file <on/off>'''
+        '''load string geometry from file <on/off>'''
         if not hasattr(self, 'string_fitter_load_file_srv'):
             self.string_fitter_load_file_srv = rospy.ServiceProxy('guzheng/string_fitter/load_from_file', EmptySrv)
             self.string_fitter_load_file_srv.wait_for_service()
 
         self.string_fitter_load_file_srv()
 
-    def do_store_to_file(self, line):
-        '''store strings to file <on/off>'''
+    def do_store_strings_to_file(self, line):
+        '''store string geometry to file <on/off>'''
         if not hasattr(self, 'string_fitter_store_file_srv'):
             self.string_fitter_store_file_srv = rospy.ServiceProxy('guzheng/string_fitter/store_to_file', EmptySrv)
             self.string_fitter_store_file_srv.wait_for_service()
@@ -136,16 +150,105 @@ class Cmd(cmd.Cmd):
             line = string_to_note(line)
         self.projector_drop_onsets_srv(line)
 
+    def do_goto(self, line):
+        '''goto <initial,rest> position for arms and head'''
+        if not hasattr(self, 'moveit_by_name_pub'):
+            self.moveit_by_name_pub = rospy.Publisher('/moveit_by_name', MoveItByNameCommand, queue_size=10)
+            rospy.sleep(2.0)
+        if line == 'initial':
+            self.moveit_by_name_pub.publish(MoveItByNameCommand(group='head', target='look_down'))
+            print("Moving head to look_down")
+            rospy.sleep(5.0)
+            self.moveit_by_name_pub.publish(MoveItByNameCommand(group='manipulation', target='guzheng_initial'))
+            print("Moving arms to guzheng_initial")
+        elif line == 'rest':
+            self.moveit_by_name_pub.publish(MoveItByNameCommand(group='head', target='rest'))
+            print("Moving head to rest")
+            rospy.sleep(5.0)
+            self.moveit_by_name_pub.publish(MoveItByNameCommand(group='manipulation', target='guzheng_rest'))
+            print("Moving arms to guzheng_rest")
+        else:
+            print(f'Unknown goto state: {line}')
+
+    def complete_goto(self, text, line, begidx, endidx):
+        return [i for i in ['initial', 'rest'] if i.startswith(text.lower())]
+
+    def do_mannequin(self, line):
+        '''mannequin <on/off>'''
+        if not hasattr(self, 'mannequin_srv'):
+            self.mannequin_srv = rospy.ServiceProxy('/set_mannequin_mode', SetBool)
+            self.mannequin_srv.wait_for_service()
+
+        if not line:
+            line = "on"
+        try:
+            flag = self.parse_truefalse(line)
+            self.mannequin_srv(flag)
+            if flag:
+                print("mannequin mode switched on")
+            else:
+                print("Mannequin mode switched off")
+        except ValueError:
+            return
+
+    def complete_mannequin(self, text, line, begidx, endidx):
+        return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
+
+    def do_explore_geometry(self, line):
+        '''explore geometry of "all" or space-separated list of strings'''
+
+        if not line:
+            line = "all"
+
+        cmd = 'roslaunch tams_pr2_guzheng explore.launch strategy:=geometry string:="' + line + '"'
+
+        print("Starting roslaunch to explore geometry. Press enter to terminate.")
+        print("===")
+
+        # terminate script upon pressing enter from here
+        process = subprocess.Popen(shlex.split(cmd))
+
+        # wait for user input
+        input()
+        process.terminate()
+        process.wait()
+        print ("Finished exploring geometry.")
+
+    def do_explore_dynamics(self, line : str):
+        '''explore dynamics of "all" or space-separated list of strings. If a 1.0 or -1.0 is added, this will be the pluck direction.'''
+
+        direction = 0.0
+        match = re.search(r'([+-]?1\.0)', line)
+        if match:
+            direction = float(match.group(1))
+            line = line.replace(match.group(1), "")
+        line = line.strip()
+
+        if not line:
+            line = "all"
+
+        cmd = 'roslaunch tams_pr2_guzheng explore.launch strategy:=avpe string:="' + line + '" direction:=' + str(direction)
+
+        print(
+            f"Starting roslaunch to explore dynamics. Press enter to terminate."
+            f"==="
+            f"{cmd}"
+        )
+        # terminate script upon pressing enter from here
+        process = subprocess.Popen(shlex.split(cmd))
+
+        # wait for user input
+        input()
+        process.terminate()
+        process.wait()
+        print ("Finished exploring dynamics.")
+
     def do_quit(self, _line):
         '''quit'''
         return True
 
     def emptyline(self):
         pass
-
-    def precmd(self, line):
-        # Replace '-' with '_'
-        return line.replace('-', '_')
 
     def default(self, line):
         if line == 'EOF':

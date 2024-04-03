@@ -8,6 +8,10 @@
 - launch `all.launch` (which launches nodes on both basestation and c1)
 - launch `rviz.launch` on basestation for a pre-setup visualization
 
+- run `rosrun tams_pr2_guzheng cli` somewhere and look through `help` for available commands.
+  It provides a command line with various commands to control the framework.
+  Everything can be done outside the CLI as well with higher granularity, but it's a useful entry point.
+
 ### Teach-in initial guesses for string position
 
 - move MoveIt joint model group `manipulation` to `guzheng_initial` (e.g., through `goto_guzheng_initial.sh` on basestation)
