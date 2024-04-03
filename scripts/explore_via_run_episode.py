@@ -36,6 +36,7 @@ def main():
     # read parameters
 
     string = rospy.get_param("~string", "d6") # string to explore, might be multiple separated by spaces or "all" for all fitted ones
+    initial_string = rospy.get_param("~initial_string", "") # string to start with when multiple are specified
     finger = rospy.get_param("~finger", "ff") # finger to use to pluck, one of "ff", "mf", "rf", "th"
     direction = rospy.get_param("~direction", 0.0) # direction to pluck in (>0 towards the robot, <0 away from the robot), 0.0 for random
     string_position = rospy.get_param("~string_position", -1.0) # position on the string to pluck, <0 for random
@@ -129,7 +130,10 @@ def main():
     )
 
     # target string index (sampled in loop)
-    i= -1
+    if initial_string in strings:
+        i = strings.index(initial_string)
+    else:
+        i = -1
 
     say("starting exploration")
 

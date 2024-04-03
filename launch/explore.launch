@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="string" default="all" />
+  <arg name="initial_string" default="" />
   <arg name="finger" default="ff" />
   <arg name="direction" default="0.0" />
   <arg name="string_position" default="-1.0" />
@@ -18,6 +19,7 @@
 
   <node name="explore" pkg="tams_pr2_guzheng" type="explore_via_run_episode.py" output="screen">
     <param name="string" value="$(arg string)" />
+    <param name="initial_string" value="$(arg initial_string)" />
     <param name="finger" value="$(arg finger)" />
     <param name="direction" value="$(arg direction)" />
     <param name="string_position" value="$(arg string_position)" />
