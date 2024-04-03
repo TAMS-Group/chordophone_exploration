@@ -86,7 +86,7 @@ class OnsetToPath:
 
         backend= plt.get_backend()
         plt.switch_backend('agg')
-        fig = plt.figure(dpi= 100)
+        fig = plt.figure(dpi= 200)
         ax : plt.Axes = sns.stripplot(x=X['string'], y=X['loudness'], hue= X['direction'], hue_order= ['inwards', 'outwards'], ax = fig.gca())
         ax.set_ylabel('loudness [dBA]')
         utils.publish_figure("loudness_strips", fig)
@@ -267,8 +267,8 @@ class OnsetToPath:
         utils.publish_figure("sample_H", fig)
 
         # evaluate GP_loudness and p(safe|X) on a grid
-        grid_size= 50
-        grid_points = utils.make_grid_points(actionspace, 50).values
+        grid_size= 100
+        grid_points = utils.make_grid_points(actionspace, grid_size).values
         means, std = gp_loudness.predict(normalize(grid_points, features_norm_params), return_std=True)
 
         # mask out points that are not safe
@@ -276,7 +276,7 @@ class OnsetToPath:
 
         p_safe = p_safe(grid_points).reshape((grid_size, grid_size))
 
-        fig = plt.figure(dpi= 50)
+        fig = plt.figure(dpi= 100)
         utils.grid_plot(means, actionspace, plt.get_cmap("RdPu"))
         plt.title(f"GP safe loudness mean for {string} in direction {direction} with finger {finger}")
 
