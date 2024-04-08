@@ -42,7 +42,6 @@ class RepeatAfterMe:
     def expressive_range_cb(self, expressive_range : ExpressiveRange):
         with self.expressive_range_mutex:
             self.expressive_range = {n.note: n for n in expressive_range.notes}
-            self.expressive_range = expressive_range
 
     def go_home(self):
         self.move_group.set_named_target("guzheng_initial")
@@ -89,7 +88,7 @@ class RepeatAfterMe:
             goal = PlayPieceGoal()
             goal.piece = self.clean_piece(self.piece)
             self.piece = Piece()
-            rospy.loginfo(f"Repeating sequence with {len(self.goal.onsets)} onsets.")
+            rospy.loginfo(f"Repeating sequence with {len(goal.piece.onsets)} onsets.")
 
             known_onsets_cnt = 0
             unknown_onsets_cnt = 0
