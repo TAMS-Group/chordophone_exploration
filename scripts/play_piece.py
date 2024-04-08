@@ -55,8 +55,10 @@ class PlayPiece:
             rospy.loginfo(f'ignoring result with no detected onsets')
 
     def play_piece_cb(self, goal):
-        self.piece_cb(goal.piece)
-        self.piece_action.set_succeeded()
+        if self.piece_cb(goal.piece):
+            self.piece_action.set_succeeded()
+        else:
+            self.piece_action.set_aborted()
 
     def piece_midi_loudness_cb(self, msg):
         # loudness of msg.onsets is 1-127, we scale it between min and max in o2p.pluck_table
@@ -72,7 +74,7 @@ class PlayPiece:
         rospy.loginfo(f"get to play piece with {len(msg.onsets)} onsets")
         if not self.execute_path.wait_for_server(timeout= rospy.Duration(5.0)):
             rospy.logerr("execute_path action is not connected. Cannot execute motions to play.")
-            return
+            return False
         paths= []
         last_midi_note = None
         direction= 1.0
@@ -89,15 +91,26 @@ class PlayPiece:
                 #     direction*= -1.0
 
             last_midi_note= midi_note
-            try:
-                # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
-                # TODO: this ignores "direction"
-                path, finger, error = min([self.o2p.get_path(note=o.note, loudness= o.loudness, direction= d, string_position= last_string_position, finger= finger) for d in [1.0, -1.0]], key = lambda x: x[2])
-                path = path()
-                last_string_position = path.poses[0].pose.position.x
-            except ValueError as e:
-                rospy.logerr(f"No known way to play note {o.note} in direction {direction} ({e})")
+            
+            # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
+            # TODO: this ignores "direction"
+            candidate_paths = []
+            for d in (1.0, -1.0):
+                try:
+                    path, finger, error = self.o2p.get_path(note=o.note, loudness= o.loudness, direction= d, string_position= last_string_position, finger= finger)
+                    candidate_paths.append((path, finger, error))
+                except ValueError as e:
+                    rospy.logdebug(e)
+                    continue
+            
+            if not candidate_paths:
+                rospy.logerr(f"No known way to play note {o.note}")  # in direction {direction} ({e})")
                 continue
+
+            best_path = sorted(candidate_paths, key= lambda c: c[2])[0]
+            path = best_path[0]()
+
+            last_string_position = path.poses[0].pose.position.x
 
             approach_path = copy.deepcopy(path)
             approach_path.poses = approach_path.poses[0:1]
@@ -107,15 +120,21 @@ class PlayPiece:
             paths.append(approach_path)
             paths.append(path)
 
+        stitched_path = None
         try:
             stitched_path = stitch_paths(paths, self.tf)
         except tf2_ros.TransformException as e:
             rospy.logerr("will not attempt execution")
-            return
+            return False
+
+        if len(stitched_path.poses) < 2:
+            rospy.logerr("computed empty play path for piece ")
+            return False
 
         stitched_path.poses = stitched_path.poses # [::3]
         self.execute_path.send_goal(ExecutePathGoal(path= stitched_path, finger= finger))
         self.execute_path.wait_for_result()
+        return True
 
 
 if __name__ == '__main__':

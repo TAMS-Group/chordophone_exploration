@@ -115,6 +115,8 @@ class RepeatAfterMe:
 
             self.play_piece.send_goal(goal)
             self.play_piece.wait_for_result()
+            if self.play_piece.get_state() != actionlib.GoalStatus.SUCCEEDED:
+                self.say.publish("Ooops. That didn't work.")
             self.go_home()
 
             self.say.publish("It's your turn again.")
