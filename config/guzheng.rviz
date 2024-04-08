@@ -11,11 +11,8 @@ Panels:
         - /Pluck1
         - /Pluck1/Latest1
         - /Exploration1
-        - /Exploration1/Global1
-        - /Exploration1/String-Local1
-        - /Exploration1/Safe Active Learning1
       Splitter Ratio: 0.6264705657958984
-    Tree Height: 768
+    Tree Height: 358
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -86,6 +83,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        azure_kinect_depth_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         azure_kinect_depth_sensor:
           Alpha: 1
           Show Axes: false
@@ -106,7 +107,7 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        azure_kinect_rgb_camera_link_urdf:
+        azure_kinect_rgb_camera_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -873,13 +874,13 @@ Visualization Manager:
     - Class: rviz/Group
       Displays:
         - Class: rviz/MarkerArray
-          Enabled: true
+          Enabled: false
           Marker Topic: /guzheng/onsets_projected
           Name: Onset Projections
           Namespaces:
             {}
           Queue Size: 100
-          Value: true
+          Value: false
         - Class: rviz/Image
           Enabled: true
           Image Topic: /guzheng/spectrogram
@@ -893,7 +894,7 @@ Visualization Manager:
           Unreliable: false
           Value: true
         - Class: rviz/Image
-          Enabled: true
+          Enabled: false
           Image Topic: /guzheng/onset_detector/envelope
           Max Value: 1
           Median window: 5
@@ -903,7 +904,7 @@ Visualization Manager:
           Queue Size: 2
           Transport Hint: raw
           Unreliable: false
-          Value: true
+          Value: false
         - Align Bottom: false
           Background Alpha: 0.800000011920929
           Background Color: 0; 0; 0
@@ -957,382 +958,10 @@ Visualization Manager:
           Show Trail: false
           Value: false
         - Class: rviz/TF
-          Enabled: true
+          Enabled: false
           Frame Timeout: 1
           Frames:
             All Enabled: false
-            azure_kinect_camera_base:
-              Value: false
-            azure_kinect_camera_body:
-              Value: false
-            azure_kinect_camera_visor:
-              Value: false
-            azure_kinect_depth_sensor:
-              Value: false
-            azure_kinect_holder:
-              Value: false
-            azure_kinect_microphone_0:
-              Value: false
-            azure_kinect_mounting_screw:
-              Value: false
-            azure_kinect_rgb_camera_link_urdf:
-              Value: false
-            azure_kinect_rgb_sensor:
-              Value: false
-            base_bellow_link:
-              Value: false
-            base_footprint:
-              Value: false
-            base_laser_link:
-              Value: false
-            base_link:
-              Value: false
-            bl_caster_l_wheel_link:
-              Value: false
-            bl_caster_r_wheel_link:
-              Value: false
-            bl_caster_rotation_link:
-              Value: false
-            br_caster_l_wheel_link:
-              Value: false
-            br_caster_r_wheel_link:
-              Value: false
-            br_caster_rotation_link:
-              Value: false
-            double_stereo_link:
-              Value: false
-            fl_caster_l_wheel_link:
-              Value: false
-            fl_caster_r_wheel_link:
-              Value: false
-            fl_caster_rotation_link:
-              Value: false
-            fr_caster_l_wheel_link:
-              Value: false
-            fr_caster_r_wheel_link:
-              Value: false
-            fr_caster_rotation_link:
-              Value: false
-            guzheng/a2/bridge:
-              Value: true
-            guzheng/a2/head:
-              Value: true
-            guzheng/a3/bridge:
-              Value: true
-            guzheng/a3/head:
-              Value: true
-            guzheng/a4/bridge:
-              Value: true
-            guzheng/a4/head:
-              Value: true
-            guzheng/a5/bridge:
-              Value: true
-            guzheng/a5/head:
-              Value: true
-            guzheng/b2/bridge:
-              Value: true
-            guzheng/b2/head:
-              Value: true
-            guzheng/b3/bridge:
-              Value: true
-            guzheng/b3/head:
-              Value: true
-            guzheng/b4/bridge:
-              Value: true
-            guzheng/b4/head:
-              Value: true
-            guzheng/b5/bridge:
-              Value: true
-            guzheng/b5/head:
-              Value: true
-            guzheng/d2/bridge:
-              Value: true
-            guzheng/d2/head:
-              Value: true
-            guzheng/d3/bridge:
-              Value: true
-            guzheng/d3/head:
-              Value: true
-            guzheng/d4/bridge:
-              Value: true
-            guzheng/d4/head:
-              Value: true
-            guzheng/d5/bridge:
-              Value: true
-            guzheng/d5/head:
-              Value: true
-            guzheng/d6/bridge:
-              Value: true
-            guzheng/d6/head:
-              Value: true
-            guzheng/e2/bridge:
-              Value: true
-            guzheng/e2/head:
-              Value: true
-            guzheng/e3/bridge:
-              Value: true
-            guzheng/e3/head:
-              Value: true
-            guzheng/e4/bridge:
-              Value: true
-            guzheng/e4/head:
-              Value: true
-            guzheng/e5/bridge:
-              Value: true
-            guzheng/e5/head:
-              Value: true
-            guzheng/fis2/bridge:
-              Value: true
-            guzheng/fis2/head:
-              Value: true
-            guzheng/fis3/bridge:
-              Value: true
-            guzheng/fis3/head:
-              Value: true
-            guzheng/fis4/bridge:
-              Value: true
-            guzheng/fis4/head:
-              Value: true
-            guzheng/fis5/bridge:
-              Value: true
-            guzheng/fis5/head:
-              Value: true
-            head_mounting:
-              Value: false
-            head_nuc_computer:
-              Value: false
-            head_pan_link:
-              Value: false
-            head_plate_frame:
-              Value: false
-            head_tilt_link:
-              Value: false
-            high_def_frame:
-              Value: false
-            high_def_optical_frame:
-              Value: false
-            imu_link:
-              Value: false
-            l_elbow_flex_link:
-              Value: false
-            l_eye:
-              Value: false
-            l_force_torque_adapter_link:
-              Value: false
-            l_force_torque_link:
-              Value: false
-            l_forearm_cam_frame:
-              Value: false
-            l_forearm_cam_optical_frame:
-              Value: false
-            l_forearm_link:
-              Value: false
-            l_forearm_roll_link:
-              Value: false
-            l_gripper_l_finger_link:
-              Value: false
-            l_gripper_l_finger_tip_frame:
-              Value: false
-            l_gripper_l_finger_tip_link:
-              Value: false
-            l_gripper_led_frame:
-              Value: false
-            l_gripper_motor_accelerometer_link:
-              Value: false
-            l_gripper_motor_screw_link:
-              Value: false
-            l_gripper_motor_slider_link:
-              Value: false
-            l_gripper_palm_link:
-              Value: false
-            l_gripper_r_finger_link:
-              Value: false
-            l_gripper_r_finger_tip_link:
-              Value: false
-            l_gripper_tool_frame:
-              Value: false
-            l_shoulder_lift_link:
-              Value: false
-            l_shoulder_pan_link:
-              Value: false
-            l_torso_lift_side_plate_link:
-              Value: false
-            l_upper_arm_link:
-              Value: false
-            l_upper_arm_roll_link:
-              Value: false
-            l_wrist_flex_link:
-              Value: false
-            l_wrist_roll_link:
-              Value: false
-            laser_tilt_link:
-              Value: false
-            laser_tilt_mount_link:
-              Value: false
-            narrow_stereo_l_stereo_camera_frame:
-              Value: false
-            narrow_stereo_l_stereo_camera_optical_frame:
-              Value: false
-            narrow_stereo_link:
-              Value: false
-            narrow_stereo_optical_frame:
-              Value: false
-            narrow_stereo_r_stereo_camera_frame:
-              Value: false
-            narrow_stereo_r_stereo_camera_optical_frame:
-              Value: false
-            pixel_6_pro:
-              Value: false
-            pixel_6_pro/camera_bar:
-              Value: false
-            pixel_6_pro/flash_led:
-              Value: false
-            pixel_6_pro/main_camera:
-              Value: false
-            pixel_6_pro/tele_camera:
-              Value: false
-            pixel_6_pro/ultra_wide_camera:
-              Value: false
-            pixel_6_pro_holder:
-              Value: false
-            projector_wg6802418_child_frame:
-              Value: false
-            projector_wg6802418_frame:
-              Value: false
-            r_elbow_flex_link:
-              Value: false
-            r_eye:
-              Value: false
-            r_forearm_roll_link:
-              Value: false
-            r_shoulder_lift_link:
-              Value: false
-            r_shoulder_pan_link:
-              Value: false
-            r_torso_lift_side_plate_link:
-              Value: false
-            r_upper_arm_link:
-              Value: false
-            r_upper_arm_roll_link:
-              Value: false
-            rh_adapter_link:
-              Value: false
-            rh_ff_J1_dummy:
-              Value: false
-            rh_ff_biotac_link:
-              Value: false
-            rh_ff_plectrum:
-              Value: false
-            rh_ffdistal:
-              Value: false
-            rh_ffknuckle:
-              Value: false
-            rh_ffmiddle:
-              Value: false
-            rh_ffproximal:
-              Value: false
-            rh_fftip:
-              Value: false
-            rh_forearm:
-              Value: false
-            rh_imu:
-              Value: false
-            rh_lf_J1_dummy:
-              Value: false
-            rh_lf_biotac_link:
-              Value: false
-            rh_lfdistal:
-              Value: false
-            rh_lfknuckle:
-              Value: false
-            rh_lfmetacarpal:
-              Value: false
-            rh_lfmiddle:
-              Value: false
-            rh_lfproximal:
-              Value: false
-            rh_lftip:
-              Value: false
-            rh_manipulator:
-              Value: false
-            rh_mf_J1_dummy:
-              Value: false
-            rh_mf_biotac_link:
-              Value: false
-            rh_mf_plectrum:
-              Value: false
-            rh_mfdistal:
-              Value: false
-            rh_mfknuckle:
-              Value: false
-            rh_mfmiddle:
-              Value: false
-            rh_mfproximal:
-              Value: false
-            rh_mftip:
-              Value: false
-            rh_palm:
-              Value: false
-            rh_rf_J1_dummy:
-              Value: false
-            rh_rf_biotac_link:
-              Value: false
-            rh_rf_plectrum:
-              Value: false
-            rh_rfdistal:
-              Value: false
-            rh_rfknuckle:
-              Value: false
-            rh_rfmiddle:
-              Value: false
-            rh_rfproximal:
-              Value: false
-            rh_rftip:
-              Value: false
-            rh_th_biotac_link:
-              Value: false
-            rh_th_plectrum:
-              Value: false
-            rh_thbase:
-              Value: false
-            rh_thdistal:
-              Value: false
-            rh_thdistal_J1_dummy:
-              Value: false
-            rh_thhub:
-              Value: false
-            rh_thmiddle:
-              Value: false
-            rh_thproximal:
-              Value: false
-            rh_thtip:
-              Value: false
-            rh_wrist:
-              Value: false
-            sensor_mount_link:
-              Value: false
-            target_pluck_string:
-              Value: true
-            torso_lift_link:
-              Value: false
-            torso_lift_motor_screw_link:
-              Value: false
-            tray_laser_link:
-              Value: false
-            tray_link:
-              Value: false
-            wide_stereo_l_stereo_camera_frame:
-              Value: false
-            wide_stereo_l_stereo_camera_optical_frame:
-              Value: false
-            wide_stereo_link:
-              Value: false
-            wide_stereo_optical_frame:
-              Value: false
-            wide_stereo_r_stereo_camera_frame:
-              Value: false
-            wide_stereo_r_stereo_camera_optical_frame:
-              Value: false
           Marker Alpha: 1
           Marker Scale: 0.05000000074505806
           Name: Guzheng TFs
@@ -1340,324 +969,28 @@ Visualization Manager:
           Show Axes: true
           Show Names: true
           Tree:
-            base_footprint:
-              base_link:
-                base_bellow_link:
-                  {}
-                base_laser_link:
-                  {}
-                bl_caster_rotation_link:
-                  bl_caster_l_wheel_link:
-                    {}
-                  bl_caster_r_wheel_link:
-                    {}
-                br_caster_rotation_link:
-                  br_caster_l_wheel_link:
-                    {}
-                  br_caster_r_wheel_link:
-                    {}
-                fl_caster_rotation_link:
-                  fl_caster_l_wheel_link:
-                    {}
-                  fl_caster_r_wheel_link:
-                    {}
-                fr_caster_rotation_link:
-                  fr_caster_l_wheel_link:
-                    {}
-                  fr_caster_r_wheel_link:
-                    {}
-                torso_lift_link:
-                  head_pan_link:
-                    head_tilt_link:
-                      head_plate_frame:
-                        azure_kinect_camera_base:
-                          azure_kinect_camera_body:
-                            {}
-                          azure_kinect_camera_visor:
-                            {}
-                          azure_kinect_depth_sensor:
-                            {}
-                          azure_kinect_microphone_0:
-                            {}
-                          azure_kinect_mounting_screw:
-                            {}
-                          azure_kinect_rgb_sensor:
-                            azure_kinect_rgb_camera_link_urdf:
-                              {}
-                        azure_kinect_holder:
-                          {}
-                        head_mounting:
-                          {}
-                        head_nuc_computer:
-                          {}
-                        l_eye:
-                          {}
-                        pixel_6_pro:
-                          pixel_6_pro/camera_bar:
-                            {}
-                          pixel_6_pro/flash_led:
-                            {}
-                          pixel_6_pro/main_camera:
-                            {}
-                          pixel_6_pro/tele_camera:
-                            {}
-                          pixel_6_pro/ultra_wide_camera:
-                            {}
-                        pixel_6_pro_holder:
-                          {}
-                        projector_wg6802418_frame:
-                          projector_wg6802418_child_frame:
-                            {}
-                        r_eye:
-                          {}
-                        sensor_mount_link:
-                          double_stereo_link:
-                            narrow_stereo_link:
-                              narrow_stereo_l_stereo_camera_frame:
-                                narrow_stereo_l_stereo_camera_optical_frame:
-                                  {}
-                                narrow_stereo_r_stereo_camera_frame:
-                                  narrow_stereo_r_stereo_camera_optical_frame:
-                                    {}
-                              narrow_stereo_optical_frame:
-                                {}
-                            wide_stereo_link:
-                              wide_stereo_l_stereo_camera_frame:
-                                wide_stereo_l_stereo_camera_optical_frame:
-                                  {}
-                                wide_stereo_r_stereo_camera_frame:
-                                  wide_stereo_r_stereo_camera_optical_frame:
-                                    {}
-                              wide_stereo_optical_frame:
-                                {}
-                          high_def_frame:
-                            high_def_optical_frame:
-                              {}
-                  imu_link:
-                    {}
-                  l_shoulder_pan_link:
-                    l_shoulder_lift_link:
-                      l_upper_arm_roll_link:
-                        l_upper_arm_link:
-                          l_elbow_flex_link:
-                            l_forearm_roll_link:
-                              l_forearm_cam_frame:
-                                l_forearm_cam_optical_frame:
-                                  {}
-                              l_forearm_link:
-                                l_wrist_flex_link:
-                                  l_wrist_roll_link:
-                                    l_force_torque_adapter_link:
-                                      l_force_torque_link:
-                                        l_gripper_palm_link:
-                                          l_gripper_l_finger_link:
-                                            l_gripper_l_finger_tip_link:
-                                              {}
-                                          l_gripper_led_frame:
-                                            {}
-                                          l_gripper_motor_accelerometer_link:
-                                            {}
-                                          l_gripper_motor_slider_link:
-                                            l_gripper_motor_screw_link:
-                                              {}
-                                          l_gripper_r_finger_link:
-                                            l_gripper_r_finger_tip_link:
-                                              l_gripper_l_finger_tip_frame:
-                                                {}
-                                          l_gripper_tool_frame:
-                                            {}
-                  l_torso_lift_side_plate_link:
-                    {}
-                  laser_tilt_mount_link:
-                    laser_tilt_link:
-                      {}
-                  r_shoulder_pan_link:
-                    r_shoulder_lift_link:
-                      r_upper_arm_roll_link:
-                        r_upper_arm_link:
-                          r_elbow_flex_link:
-                            r_forearm_roll_link:
-                              rh_adapter_link:
-                                rh_forearm:
-                                  rh_wrist:
-                                    rh_palm:
-                                      rh_ffknuckle:
-                                        rh_ffproximal:
-                                          rh_ffmiddle:
-                                            rh_ff_J1_dummy:
-                                              rh_fftip:
-                                                rh_ff_biotac_link:
-                                                  rh_ff_plectrum:
-                                                    {}
-                                            rh_ffdistal:
-                                              {}
-                                      rh_imu:
-                                        {}
-                                      rh_lfmetacarpal:
-                                        rh_lfknuckle:
-                                          rh_lfproximal:
-                                            rh_lfmiddle:
-                                              rh_lf_J1_dummy:
-                                                rh_lftip:
-                                                  rh_lf_biotac_link:
-                                                    {}
-                                              rh_lfdistal:
-                                                {}
-                                      rh_manipulator:
-                                        {}
-                                      rh_mfknuckle:
-                                        rh_mfproximal:
-                                          rh_mfmiddle:
-                                            rh_mf_J1_dummy:
-                                              rh_mftip:
-                                                rh_mf_biotac_link:
-                                                  rh_mf_plectrum:
-                                                    {}
-                                            rh_mfdistal:
-                                              {}
-                                      rh_rfknuckle:
-                                        rh_rfproximal:
-                                          rh_rfmiddle:
-                                            rh_rf_J1_dummy:
-                                              rh_rftip:
-                                                rh_rf_biotac_link:
-                                                  rh_rf_plectrum:
-                                                    {}
-                                            rh_rfdistal:
-                                              {}
-                                      rh_thbase:
-                                        rh_thproximal:
-                                          rh_thhub:
-                                            rh_thmiddle:
-                                              rh_thdistal:
-                                                {}
-                                              rh_thdistal_J1_dummy:
-                                                rh_thtip:
-                                                  rh_th_biotac_link:
-                                                    rh_th_plectrum:
-                                                      {}
-                  r_torso_lift_side_plate_link:
-                    {}
-                torso_lift_motor_screw_link:
-                  {}
-                tray_link:
-                  tray_laser_link:
-                    {}
-              guzheng/a2/head:
-                guzheng/a2/bridge:
-                  {}
-              guzheng/a3/head:
-                guzheng/a3/bridge:
-                  {}
-              guzheng/a4/head:
-                guzheng/a4/bridge:
-                  {}
-              guzheng/a5/head:
-                guzheng/a5/bridge:
-                  {}
-              guzheng/b2/head:
-                guzheng/b2/bridge:
-                  {}
-              guzheng/b3/head:
-                guzheng/b3/bridge:
-                  {}
-              guzheng/b4/head:
-                guzheng/b4/bridge:
-                  {}
-              guzheng/b5/head:
-                guzheng/b5/bridge:
-                  {}
-              guzheng/d2/head:
-                guzheng/d2/bridge:
-                  {}
-              guzheng/d3/head:
-                guzheng/d3/bridge:
-                  {}
-              guzheng/d4/head:
-                guzheng/d4/bridge:
-                  {}
-              guzheng/d5/head:
-                guzheng/d5/bridge:
-                  {}
-                target_pluck_string:
-                  {}
-              guzheng/d6/head:
-                guzheng/d6/bridge:
-                  {}
-              guzheng/e2/head:
-                guzheng/e2/bridge:
-                  {}
-              guzheng/e3/head:
-                guzheng/e3/bridge:
-                  {}
-              guzheng/e4/head:
-                guzheng/e4/bridge:
-                  {}
-              guzheng/e5/head:
-                guzheng/e5/bridge:
-                  {}
-              guzheng/fis2/head:
-                guzheng/fis2/bridge:
-                  {}
-              guzheng/fis3/head:
-                guzheng/fis3/bridge:
-                  {}
-              guzheng/fis4/head:
-                guzheng/fis4/bridge:
-                  {}
-              guzheng/fis5/head:
-                guzheng/fis5/bridge:
-                  {}
+            {}
           Update Interval: 0
-          Value: true
+          Value: false
         - Class: rviz/MarkerArray
           Enabled: true
-          Marker Topic: /guzheng/fitted_strings
+          Marker Topic: /guzheng/estimate_markers
           Name: Fitted Strings
           Namespaces:
-            a2: true
             a3: true
             a4: true
             a5: true
-            aligned bridge a2: true
-            aligned bridge a3: true
-            aligned bridge a4: true
-            aligned bridge a5: true
-            aligned bridge b2: true
-            aligned bridge b3: true
-            aligned bridge b4: true
-            aligned bridge b5: true
-            aligned bridge d2: true
-            aligned bridge d3: true
-            aligned bridge d4: true
-            aligned bridge d5: true
-            aligned bridge d6: true
-            aligned bridge e2: true
-            aligned bridge e3: true
-            aligned bridge e4: true
-            aligned bridge e5: true
-            aligned bridge fis2: true
-            aligned bridge fis3: true
-            aligned bridge fis4: true
-            aligned bridge fis5: true
-            b2: true
             b3: true
             b4: true
             b5: true
-            d2: true
-            d3: true
             d4: true
             d5: true
             d6: true
-            e2: true
-            e3: true
             e4: true
             e5: true
-            fis2: true
-            fis3: true
             fis4: true
             fis5: true
-          Queue Size: 100
+          Queue Size: 1
           Value: true
       Enabled: true
       Name: Strings
@@ -1721,6 +1054,10 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
+            azure_kinect_depth_camera_link:
+              Alpha: 1
+              Show Axes: false
+              Show Trail: false
             azure_kinect_depth_sensor:
               Alpha: 1
               Show Axes: false
@@ -1741,7 +1078,7 @@ Visualization Manager:
               Show Axes: false
               Show Trail: false
               Value: true
-            azure_kinect_rgb_camera_link_urdf:
+            azure_kinect_rgb_camera_link:
               Alpha: 1
               Show Axes: false
               Show Trail: false
@@ -2409,7 +1746,11 @@ Visualization Manager:
               Marker Topic: /fingertips/plucks_latest
               Name: Plucks
               Namespaces:
-                {}
+                ff: true
+                lf: true
+                mf: true
+                rf: true
+                th: true
               Queue Size: 100
               Value: true
             - Class: rviz/MarkerArray
@@ -2417,7 +1758,21 @@ Visualization Manager:
               Marker Topic: /guzheng/onsets_latest
               Name: Onsets
               Namespaces:
-                {}
+                A3: true
+                A4: true
+                A5: true
+                B3: true
+                B4: true
+                B5: true
+                C♯4: true
+                D4: true
+                D5: true
+                D6: true
+                E4: true
+                E5: true
+                F♯4: true
+                F♯5: true
+                G♯4: true
               Queue Size: 100
               Value: true
           Enabled: true
@@ -2486,7 +1841,7 @@ Visualization Manager:
           Displays:
             - Class: rviz/Image
               Enabled: true
-              Image Topic: /explore/scores
+              Image Topic: /explore/episodes_safety_score
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -2497,7 +1852,7 @@ Visualization Manager:
               Unreliable: false
               Value: true
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /explore/sample_H
               Max Value: 1
               Median window: 5
@@ -2507,9 +1862,9 @@ Visualization Manager:
               Queue Size: 1
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
             - Class: rviz/Image
-              Enabled: true
+              Enabled: false
               Image Topic: /explore/p_safety
               Max Value: 1
               Median window: 5
@@ -2519,9 +1874,9 @@ Visualization Manager:
               Queue Size: 1
               Transport Hint: raw
               Unreliable: false
-              Value: true
+              Value: false
           Enabled: true
-          Name: Safe Active Learning
+          Name: Active Valid Pluck Exploration
       Enabled: true
       Name: Exploration
     - Class: tams_pr2_guzheng/Play GUI
@@ -2555,7 +1910,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 0.23052242398262024
+      Distance: 0.5171676874160767
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -2563,17 +1918,17 @@ Visualization Manager:
         Value: false
       Field of View: 0.7853981852531433
       Focal Point:
-        X: 0.5727605819702148
-        Y: -0.4035685956478119
-        Z: 0.657788097858429
+        X: 0.46404755115509033
+        Y: -0.28406408429145813
+        Z: 0.641736626625061
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.26479849219322205
+      Pitch: 0.33979716897010803
       Target Frame: <Fixed Frame>
-      Yaw: 4.871973037719727
+      Yaw: 5.006966590881348
     Saved: ~
 Window Geometry:
   CQT:
@@ -2588,7 +1943,7 @@ Window Geometry:
     collapsed: false
   H(Safe Samples):
     collapsed: false
-  Height: 1412
+  Height: 1057
   Hide Left Dock: false
   Hide Right Dock: false
   Loudness Overview:
@@ -2601,7 +1956,7 @@ Window Geometry:
     collapsed: false
   Play GUI:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd000000040000000000000164000003e8fc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed0000040d00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000007c0000035a000000e60100001cfa000000020100000003fb000000100050006c0061007900200047005500490200000d7500000281000001640000031ffb0000000a005600690065007700730100000000ffffffff0000010000fffffffb000000100044006900730070006c0061007900730100000000000001b70000015600fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000024005200760069007a00560069007300750061006c0054006f006f006c007300470075006901000003dc000000410000004100fffffffb000000280020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720100000376000000410000000000000000fb0000003c005400720061006a006500630074006f007200790020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720100000423000000410000004100ffffff0000000100000270000003e8fc0200000010fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c0069006400650072000000003d000000970000001600000016fb00000016004700500020006c006f00750064006e006500730073010000007c000000ed0000001600fffffffc0000016f00000108000000330100001cfa000000010100000002fb0000001e0047005000200073007400640020006c006f00750064006e0065007300730100000000ffffffff0000008f00fffffffb0000001e004800280053006100660065002000530061006d0070006c0065007300290100000790000002700000008f00fffffffb0000000e0070002800730061006600650029010000027d000000aa0000001600fffffffb0000001a005300610066006500740079002000530063006f007200650073010000032d000001370000001600fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067000000028a000000aa0000017d00fffffffb000000280020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000377000000490000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000fb00000026004e006100720072006f0077002000530074006500720065006f0020005200690067006800740000000000ffffffff0000000000000000fb00000024004e006100720072006f0077002000530074006500720065006f0020004c0065006600740000000000ffffffff0000000000000000fb000000200057006900640065002000530074006500720065006f0020004c0065006600740000000000ffffffff0000000000000000fb00000018004c00650066007400200046006f0072006500610072006d0000000000ffffffff0000000000000000fb000000240041007a0075007200650020004b0069006e0065006300740020004400650070007400680000000000ffffffff0000000000000000fb000000200041007a0075007200650020004b0069006e006500630074002000520047004200000003a1000000160000000000000000fb000000220057006900640065002000530074006500720065006f0020005200690067006800740000000000ffffffff00000000000000000000000200000a0000000039fc0100000002fb0000000800540069006d0065010000000000000a000000032200fffffffb0000000a00560069006500770073030000004e00000080000002e1000001970000000300000a00000000fdfc0100000006fb000000100045006e00760065006c006f007000650100000000000000ca0000006800fffffffb0000000600430051005401000000d0000003cb0000004c00fffffffb000000260053007400720069006e006700200044006900730074007200690062007500740069006f006e01000004a1000001dc0000009c00fffffffb00000022004c006f00750064006e0065007300730020004f00760065007200760069006500770100000683000001b6000000a300fffffffb000000200050006100740068002000500072006f006a0065006300740069006f006e0073010000083f000001c10000009000fffffffb0000000800540069006d0065010000000000000450000000000000000000000620000003e800000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd00000004000000000000016400000252fc020000000bfb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000007800000043800000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afc0000007e000001c2000000e80100001dfa000000020100000003fb000000100050006c0061007900200047005500490200000d7500000119000001640000031ffb0000000a005600690065007700730100000000ffffffff0000010000fffffffb000000100044006900730070006c0061007900730100000000000001b70000015600fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261fb00000024005200760069007a00560069007300750061006c0054006f006f006c00730047007500690100000246000000420000004200fffffffb000000280020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720100000376000000410000000000000000fb0000003c005400720061006a006500630074006f007200790020002d0020005400720061006a006500630074006f0072007900200053006c0069006400650072010000028e000000420000004200ffffff000000010000027000000252fc020000000efb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb00000044004d006f00740069006f006e0050006c0061006e006e0069006e00670020002d0020005400720061006a006500630074006f0072007900200053006c0069006400650072000000003d000000970000001600000016fc0000007e0000010e000000340100001dfa000000000100000003fb00000016004700500020006c006f00750064006e0065007300730100000000ffffffff0000008000fffffffb0000001e0047005000200073007400640020006c006f00750064006e0065007300730100000000ffffffff0000009600fffffffb0000001e004800280053006100660065002000530061006d0070006c0065007300290100000790000002700000009700fffffffc000001920000013e000000340100001dfa000000010100000002fb0000000e00700028007300610066006500290100000000ffffffff0000005e00fffffffb0000001a005300610066006500740079002000530063006f00720065007301000004c8000002700000008500fffffffb0000001c004d006f00740069006f006e0050006c0061006e006e0069006e0067000000028a000000aa0000018900fffffffb000000280020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720000000377000000490000000000000000fb0000001200530065006c0065006300740069006f006e010000025a000000b20000000000000000fb00000026004e006100720072006f0077002000530074006500720065006f0020005200690067006800740000000000ffffffff0000000000000000fb00000024004e006100720072006f0077002000530074006500720065006f0020004c0065006600740000000000ffffffff0000000000000000fb000000200057006900640065002000530074006500720065006f0020004c0065006600740000000000ffffffff0000000000000000fb00000018004c00650066007400200046006f0072006500610072006d0000000000ffffffff0000000000000000fb000000240041007a0075007200650020004b0069006e0065006300740020004400650070007400680000000000ffffffff0000000000000000fb000000200041007a0075007200650020004b0069006e006500630074002000520047004200000003a1000000160000000000000000fb000000220057006900640065002000530074006500720065006f0020005200690067006800740000000000ffffffff000000000000000000000002000007380000003afc0100000002fb0000000800540069006d00650100000000000007380000034200fffffffb0000000a00560069006500770073030000004e00000080000002e10000019700000003000007380000012dfc0100000006fb000000100045006e00760065006c006f007000650000000000000001290000006c00fffffffb000000060043005100540100000000000002900000004e00fffffffb000000260053007400720069006e006700200044006900730074007200690062007500740069006f006e010000029600000174000000a500fffffffb00000022004c006f00750064006e0065007300730020004f0076006500720076006900650077010000041000000173000000ac00fffffffb000000200050006100740068002000500072006f006a0065006300740069006f006e00730100000589000001af0000009800fffffffb0000000800540069006d00650100000000000004500000000000000000000003580000025200000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   RvizVisualToolsGui:
     collapsed: false
   Safety Scores:
@@ -2618,8 +1973,8 @@ Window Geometry:
     collapsed: false
   Views:
     collapsed: false
-  Width: 2560
-  X: 1920
-  Y: 28
+  Width: 1848
+  X: 1992
+  Y: 0
   p(safe):
     collapsed: false
