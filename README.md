@@ -4,6 +4,7 @@
 
 - launch and calibrate regular PR2
 - move Guzheng in front of PR2, connect microphone through USB soundcard to basestation
+- tape plectra to fingertips
 - `mountpr2.sh` on basestation to share workspace between c1 and basestation
 - launch `all.launch` (which launches nodes on both basestation and c1)
 - launch `rviz.launch` on basestation for a pre-setup visualization
@@ -14,10 +15,13 @@
 
 ### Teach-in initial guesses for string position
 
-- move MoveIt joint model group `manipulation` to `guzheng_initial` (e.g., through `goto_guzheng_initial.sh` on basestation)
-- activate mannequin mode (optionally set the head back to default position controller via `hold_head_still.sh` on basestation)
+- move MoveIt joint model group `manipulation` to `guzheng_initial`
+  `cli: goto initial`, or `goto_guzheng_initial.sh` on basestation)
+- activate mannequin mode (afterwards optionally set the head back to default position controller via `hold_head_still.sh` on basestation)
+  `cli: mannequin`
 - teach-in string plucking until all strings appear roughly in the right spot
 - disable mannequin mode & go back to `guzheng_initial`
+  `cli: mannequin off` & `cli: goto initial`
 
 ### Geometry exploration
 
@@ -25,17 +29,23 @@ throughout geometry exploration, optionally run `rqt_reconfigure` on `fingertips
 to adjust detection thresholds, timing, Cartesian plectrum poses, and string reconstruction options as dynamic calibration steps.
 
 - explore geometry of demonstrated strings, e.g.,
+  `cli: explore_geometry`
   `roslaunch tams_pr2_guzheng explore.launch strategy:=geometry string:=all`
   (there are various parameters)
 - notice that you have to confirm trajectory execution at first in the RvizVisualToolsGui as breakpoints are added before actual execution.
   Confirming with `continue` will drop further questions.
 - disable string fitter once you are happy with the current result (dynamic reconfigure `active` flag)
-  optionally store current geometry (`guzheng/string_fitter/store_to_file` service)
+  `cli: fit_strings off`
+- optionally store current geometry (`guzheng/string_fitter/store_to_file` service)
+  `cli: store_strings_to_file`
 
 ### Dynamics exploration
 
-- `roslaunch tams_pr2_guzheng explore.launch strategy:=avpe string:=all direction:=0.0`
-  (or pick strings as space-separated list and direction from {-1.0, 1.0} to be more selective)
+- Explore Dynamics through Active Valid Pluck Exploration
+  `cli: explore_dynamics`
+  or, e.g., `cli: explore_dynamics 1.0 d6 b5 a5`
+  or, e.g., `explore_dynamics d5`
+  or `roslaunch tams_pr2_guzheng explore.launch strategy:=avpe string:=all direction:=0.0`
 
 ### Reproduction
 
