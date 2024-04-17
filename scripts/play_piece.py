@@ -64,9 +64,14 @@ class PlayPiece:
         # loudness of msg.onsets is 1-127, we scale it between min and max in o2p.pluck_table
 
         for o in msg.onsets:
-            loudness_min, loudness_max = self.o2p.get_note_min_max(o.note)
-            loudness_range = loudness_max - loudness_min
-            o.loudness = loudness_min + loudness_range * (o.loudness-1) / 127.0
+            try:
+                loudness_min, loudness_max = self.o2p.get_note_min_max(o.note)
+                loudness_range = loudness_max - loudness_min
+                o.loudness = loudness_min + loudness_range * (o.loudness-1) / 127.0
+            except ValueError as e:
+                # we don't know the note. Fill in a nonsensical loudness
+                # and leave the error reporting for later
+                o.loudness = 0.0
 
         self.piece_cb(msg)
 
@@ -91,7 +96,7 @@ class PlayPiece:
                 #     direction*= -1.0
 
             last_midi_note= midi_note
-            
+
             # TODO: We can't mix fingers here because ExecutePath only supports one finger in request.
             # TODO: this ignores "direction"
             candidate_paths = []
@@ -102,7 +107,7 @@ class PlayPiece:
                 except ValueError as e:
                     rospy.logdebug(e)
                     continue
-            
+
             if not candidate_paths:
                 rospy.logerr(f"No known way to play note {o.note}")  # in direction {direction} ({e})")
                 continue
@@ -128,7 +133,7 @@ class PlayPiece:
             return False
 
         if len(stitched_path.poses) < 2:
-            rospy.logerr("computed empty play path for piece ")
+            rospy.logerr("Cannot play anything in the received piece.")
             return False
 
         stitched_path.poses = stitched_path.poses # [::3]
