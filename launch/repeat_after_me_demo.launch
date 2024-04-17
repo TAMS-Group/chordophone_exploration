@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<launch>
+  <include file="$(dirname)/play_piece.launch" />
+  <node name="repeat_after_me" pkg="tams_pr2_guzheng" type="repeat_after_me.py" output="screen" />
+</launch>
