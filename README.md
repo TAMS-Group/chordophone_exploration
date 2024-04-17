@@ -157,5 +157,5 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 
 ### TF frames
 
-`target_pluck_string` - a dynamic frame published when `run_episode` attempts to target a string
-`rh_{finger}_plectrum` - tip of the plectrum as manually calibrated
+- `target_pluck_string` - a dynamic frame published when `run_episode` attempts to target a string
+- `rh_{finger}_plectrum` - tip of the plectrum as calibrated
