@@ -11,6 +11,7 @@ from std_srvs.srv import SetBool, Empty as EmptySrv
 from tams_pr2_guzheng.utils import string_to_note
 from rosapi.srv import DeleteParam
 from moveit_by_name.msg import Command as MoveItByNameCommand
+from music_perception.msg import Piece, NoteOnset
 
 class Cmd(cmd.Cmd):
     true_kw = ('true', 'on', '1')
@@ -242,6 +243,75 @@ class Cmd(cmd.Cmd):
         process.terminate()
         process.wait()
         print ("Finished exploring dynamics.")
+
+    def do_use_explored_plucks(self, line):
+        '''provide currently explored plucks as resource for inference.
+
+        USE WITH CAUTION: This will overwrite the current pluck database.
+        '''
+        cmd = 'rosrun tams_pr2_guzheng use_explored_plucks.sh'
+        result = subprocess.run(shlex.split(cmd))
+        if result.returncode == 0:
+            print(
+                "Successfully updated pluck database.\n"
+                "newly-started play node will use the explored plucks."
+                )
+        else:
+            print("Failed to update pluck database.")
+
+    def do_start_play_piece(self, line):
+        '''run/restart play piece node for use with inference'''
+
+        if hasattr(self, 'play_piece'):
+            print("Terminating previous play_piece")
+            if self.play_piece.poll() is None:
+                self.play_piece.terminate()
+            del self.play_piece
+        cmd = 'roslaunch tams_pr2_guzheng play_piece.launch'
+        self.play_piece = subprocess.Popen(shlex.split(cmd), stdout=subprocess.DEVNULL)
+
+    def do_play(self, line):
+        '''play notes as specified
+
+        examples:
+           d6 d5 fis5
+           a3:127 a3:64 a3:32 a3:1
+        '''
+
+        if not hasattr(self, 'play_piece_client'):
+            self.play_piece_client = rospy.Publisher('play_piece/piece_midi_loudness', Piece, queue_size=1)
+            # wait a few seconds until subscriber is available
+            now = rospy.Time.now()
+            while self.play_piece_client.get_num_connections() == 0 and not rospy.is_shutdown() and rospy.Time.now() - now < rospy.Duration(5.0):
+                rospy.sleep(0.1)
+        if self.play_piece_client.get_num_connections() == 0:
+            print("play_piece is not running. Start it with 'start_play_piece'")
+            return
+        if not line:
+            print("No piece given.")
+            return
+
+        notes = line.split()
+        piece = Piece()
+        piece.onsets = []
+        for note in notes:
+            note, loudness = note.split(':') if ':' in note else (note, 127)
+            piece.onsets.append(NoteOnset(note= string_to_note(note), loudness= int(loudness)))
+
+        print(f"Publishing to play_piece")
+        self.play_piece_client.publish(piece)
+
+    def do_repeat_after_me(self, line):
+        '''run repeat_after_me demo'''
+
+        cmd = 'roslaunch tams_pr2_guzheng repeat_after_me.launch'
+        print("Starting repeat_after_me demo. Press enter to terminate.")
+        print("===")
+        process = subprocess.Popen(shlex.split(cmd))
+        input()
+        process.terminate()
+        process.wait()
+        print ("Stopped repeat_after_me demo.")
 
     def do_quit(self, _line):
         '''quit'''
