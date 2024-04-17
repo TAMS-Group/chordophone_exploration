@@ -1,4 +1,19 @@
-# Pluck and Play:
+# Pluck and Play: Chordophone Exploration
+
+![Robot Setup and Geometric Model](doc/first-impression.png)
+
+## Publication
+
+To refer to this work, please cite the following paper:
+
+```
+@inproceedings{goerner2024,
+  title={{Pluck and Play: Self-supervised Exploration of Chordophones for Robotic Playing}},
+  author={Görner, Michael and Hendrich, Norman and Zhang, Jianwei},
+  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)},
+  year={2024}
+}
+```
 
 ## Demo flow (at TAMS' lab)
 
@@ -51,7 +66,7 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 
 - play note sequences, `cli: play a4 fis5 d6` (each optionally followed with `:loudness` in range 1-127)
 
-## Information Structure
+## ROS Information Structure
 
 ### Native PR2
 
@@ -124,23 +139,24 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 `/guzheng/events`    - unused (alternative projector input)
 `/fingertips/events` - unused (alternative projector input)
 
-`/guzheng/fitted_strings` - string markers for all strings currently fitted through projected note onsets
-                          or loaded strings from file
+`/guzheng/estimate`          - current estimate of strings
+`/guzheng/estimate_markers`  - visual_markers visualization with additional (possibly rejected) candidates
+
+`/explore/p`                      - shaped exploration distribution used to sample which strings to explore next
+`/explore/sample_H`               - MC sample visualization to determine NBP for string
+`/explore/loudness_strips`        - overview of all observed valid loudness samples across strings
+`/explore/episodes_loudness`      - observed loudness for all valid samples for string
+`/explore/gp_loudness`            - visualization of Gaussian Process from samples for string
+`/explore/gp_std_loudness`        - stddev of the same GP
+`/explore/episodes_safety_score`  - validity label for all samples for string
+`/explore/p_safety`               - visualization of GP probit-regression for validity for string
+
+`/play_piece/action`              - takes `music_perception/Piece`, infers pluck parameters, generate paths, and execute through execute_path
+`/play_piece/piece`               - message interface for action goals
+`/play_piece/piece_midi_loudness` - same, but loudness scaled between 1-127 for each onset interpreted relative to explored plucks
+`/play_piece/expressive_range`    - summary information of known notes/loudness ranges
 
 ### TF frames
 
 `target_pluck_string` - a dynamic frame published when `run_episode` attempts to target a string
 `rh_{finger}_plectrum` - tip of the plectrum as manually calibrated
-
-## Citation
-
-To refer to this work, please cite the following paper:
-
-```
-@inproceedings{goerner2024,
-  title={{Pluck and Play: Self-supervised Exploration of Chordophones for Robotic Playing}},
-  author={Görner, Michael and Hendrich, Norman and Zhang, Jianwei},
-  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)},
-  year={2024}
-}
-```
