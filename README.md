@@ -15,6 +15,13 @@ To refer to this work, please cite the following paper:
 }
 ```
 
+## Requires
+
+- ROS Noetic (or 2024 ROS-O builds), see package.xml for most ROS dependencies
+- The [TAMS PR2 stack](https://github.com/TAMS-Group/rosinstalls/blob/31036e56d445e1824b3ab2cbdf0fb7ace290d625/noetic-tams-pr2.rosinstall)
+- [`music_perception`](https://github.com/TAMS-Group/music_perception/)
+- [`load_venv`](https://github.com/v4hn/load_venv) (and various packages from `requirements.txt`)
+
 ## Demo flow (at TAMS' lab)
 
 ### Startup the framework
