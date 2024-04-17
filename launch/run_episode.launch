@@ -13,6 +13,7 @@
   <arg name="nosleep" default="false" />
 
   <node name="run_episode" pkg="tams_pr2_guzheng" type="run_episode.py" output="screen">
+    <param name="listen" value="$(arg listen)" />
     <param name="just_play" value="$(arg just_play)" />
     <param name="explore" value="$(arg explore)" />
     <param name="note" value="$(arg note)" />
@@ -20,7 +21,6 @@
     <param name="runs" value="$(arg runs)" />
     <param name="repeat" value="$(arg repeat)" />
     <param name="continuous" value="$(arg continuous)" />
-    <param name="listen" value="$(arg listen)" />
     <param name="direction" value="$(arg direction)" />
     <param name="string_position" value="$(arg string_position)" />
     <param name="nosleep" value="$(arg nosleep)" />
