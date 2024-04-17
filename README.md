@@ -1,66 +1,57 @@
-# Demo flow
+# Pluck and Play:
+
+## Demo flow (at TAMS' lab)
 
 ### Startup the framework
 
 - launch and calibrate regular PR2
-- move Guzheng in front of PR2, connect microphone through USB soundcard to basestation
 - tape plectra to fingertips
+- move Guzheng in front of PR2, connect microphone through USB soundcard to basestation
 - `mountpr2.sh` on basestation to share workspace between c1 and basestation
 - launch `all.launch` (which launches nodes on both basestation and c1)
 - launch `rviz.launch` on basestation for a pre-setup visualization
 
-- run `rosrun tams_pr2_guzheng cli` somewhere and look through `help` for available commands.
-  It provides a command line with various commands to control the framework.
-  Everything can be done outside the CLI as well with higher granularity, but it's a useful entry point.
+- run `rosrun tams_pr2_guzheng cli`.
+  It provides a command line with various commands to control the framework (see `help` for more information).
+  Everything can be done outside the CLI as well with finer granularity, but it's a useful entry point.
 
 ### Teach-in initial guesses for string position
 
-- move MoveIt joint model group `manipulation` to `guzheng_initial`
-  `cli: goto initial`, or `goto_guzheng_initial.sh` on basestation)
-- activate mannequin mode (afterwards optionally set the head back to default position controller via `hold_head_still.sh` on basestation)
-  `cli: mannequin`
-- teach-in string plucking until all strings appear roughly in the right spot
-- disable mannequin mode & go back to `guzheng_initial`
-  `cli: mannequin off` & `cli: goto initial`
+- move MoveIt joint model group `manipulation` to named state `guzheng_initial`, `cli: goto initial`
+- activate mannequin mode, `cli: mannequin`
+  - very optional: set the head back to default position controller via `hold_head_still.sh` on basestation to keep it fixed
+- teach-in string plucking until all strings appear roughly in the right location
+- disable mannequin mode & go back to `guzheng_initial`, `cli: mannequin off` & `cli: goto initial`
 
 ### Geometry exploration
 
-throughout geometry exploration, optionally run `rqt_reconfigure` on `fingertips`, `guzheng`, and `plectrum_poses`
-to adjust detection thresholds, timing, Cartesian plectrum poses, and string reconstruction options as dynamic calibration steps.
+throughout geometry exploration, optionally run `rqt_reconfigure` on `fingertips`, `guzheng`, and `plectrum_poses` namespaces
+to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and string reconstruction options as dynamic calibration steps.
 
-- explore geometry of demonstrated strings, e.g.,
-  `cli: explore_geometry`
-  `roslaunch tams_pr2_guzheng explore.launch strategy:=geometry string:=all`
-  (there are various parameters)
-- notice that you have to confirm trajectory execution at first in the RvizVisualToolsGui as breakpoints are added before actual execution.
-  Confirming with `continue` will drop further questions.
-- disable string fitter once you are happy with the current result (dynamic reconfigure `active` flag)
-  `cli: fit_strings off`
-- optionally store current geometry (`guzheng/string_fitter/store_to_file` service)
-  `cli: store_strings_to_file`
+- explore geometry of demonstrated strings, e.g., `cli: explore_geometry [a4 fis5 ...]`
+- notice that you have to confirm trajectory execution at first in the RvizVisualToolsGui as breakpoints are added before actual execution. Confirming with `continue` will drop further questions.
+- disable string fitter once you are happy with the current result (dynamic reconfigure `active` flag), `cli: fit_strings off`
+- optionally store current geometry (`guzheng/string_fitter/store_to_file` service), `cli: store_strings_to_file`
 
 ### Dynamics exploration
 
-- Explore Dynamics through Active Valid Pluck Exploration
-  `cli: explore_dynamics`
-  or, e.g., `cli: explore_dynamics 1.0 d6 b5 a5`
-  or, e.g., `explore_dynamics d5`
-  or `roslaunch tams_pr2_guzheng explore.launch strategy:=avpe string:=all direction:=0.0`
+- Explore Dynamics through Active Valid Pluck Exploration, `cli: explore_dynamics`
+  or, e.g., `cli: explore_dynamics 1.0 d6 d5 d4` to restrict to specific strings and inward (1.0) or outward (-1.0) direction
 
 ### Reproduction
 
-- Make the gathered plucks available for playing
-  `mv $(rospack find tams_pr2_guzheng)/data/plucks_explore.json $(rospack find tams_pr2_guzheng)/data/plucks.json`
+- After exploration, make the gathered plucks available for playing, `cli: use_explored_plucks`
+  careful, this will overwrite the current plucks db if it exists
 
-- start the module that receives onset lists (`music_perception/Piece`) and builds plucking paths
-  `rosrun tams_pr2_guzheng play_piece.py`
+- start the module that receives pieces (`music_perception/Piece`) to play and builds/executes plucking paths, `cli: start_play_piece`
 
-- E.g., run repeat after me demo node that listens to note onsets and will try to imitate melodies
-  `rosrun tams_pr2_guzheng repeat_after_me.py`
+### Demos
 
-# Information Structure
+- run repeat after me demo node that listens for note onsets from the microphone and will try to imitate melodies, `cli: repeat_after_me`
 
-## Raw Inputs
+- play note sequences, `cli: play a4 fis5 d6` (each optionally followed with `:loudness` in range 1-127)
+
+## Information Structure
 
 ### Native PR2
 
@@ -69,7 +60,7 @@ to adjust detection thresholds, timing, Cartesian plectrum poses, and string rec
 `/tf`              - Transforms
 `/tf_static`
 `/diagnostics_agg`       - Diagnostics system (useful to detect runtime faults)
-`/mannequin_mode_active` - Is mannequin mode active (and the robot cannot move by itself)?
+`/mannequin_mode_active` - Is mannequin mode active? (if it is, the robot cannot move by itself)
 
 (tf already includes plectrum/fingertip positions and detected string frames)
 
@@ -86,7 +77,7 @@ to adjust detection thresholds, timing, Cartesian plectrum poses, and string rec
 `/execute_trajectory/goal`             - MoveIt's Trajectory Execution action (which splits trajectories for hand/arm controller and sends them on)
 `/execute_trajectory/result`
 
-## Experiment control flow
+### Experiment control flow
 
 `/run_episode/goal`          - generate, execute, and analyze a single pluck (including approach motion)
 `/run_episode/result`
@@ -136,7 +127,20 @@ to adjust detection thresholds, timing, Cartesian plectrum poses, and string rec
 `/guzheng/fitted_strings` - string markers for all strings currently fitted through projected note onsets
                           or loaded strings from file
 
-## TF frames
+### TF frames
 
 `target_pluck_string` - a dynamic frame published when `run_episode` attempts to target a string
 `rh_{finger}_plectrum` - tip of the plectrum as manually calibrated
+
+## Citation
+
+To refer to this work, please cite the following paper:
+
+```
+@inproceedings{goerner2024,
+  title={{Pluck and Play: Self-supervised Exploration of Chordophones for Robotic Playing}},
+  author={Görner, Michael and Hendrich, Norman and Zhang, Jianwei},
+  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)},
+  year={2024}
+}
+```
