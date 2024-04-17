@@ -1,4 +1,4 @@
-*.png
+notebooks/**/*.png
 *.ipynb_checkpoints/
 *.midi
 *.mp4
