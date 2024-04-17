@@ -260,22 +260,22 @@ def undo_normalize(x, params):
     (mean, std) = params
     return x * std + mean
 
-def score_safety(df):
-    # minimum distance to neighbors to consider safe
+def score_validity(df):
+    # minimum distance to neighbors to consider valid
     # empirically determined accuracy of string fitting
-    # safe_threshold = 0.001 # m
+    # valid_threshold = 0.001 # m
 
-    # distance to saturation of distance safety score
+    # distance to saturation of distance validity score
     # saturation_threshold  = 0.015 # m
 
     # loudness cut-off
     loudness_threshold = 65.0 # dBA
 
-    # a = 1/(saturation_threshold-safe_threshold)
-    # b = -a*safe_threshold
+    # a = 1/(saturation_threshold-valid_threshold)
+    # b = -a*valid_threshold
 
     # create new pandas series with same index as df
-    scores = pd.Series(np.full(len(df), 0.5), index= df.index, name='safety')
+    scores = pd.Series(np.full(len(df), 0.5), index= df.index, name='validity')
 
     #scores = (a*df['min_distance']+b)
     #scores[df['min_distance'] >= saturation_threshold] = 1.0
@@ -336,7 +336,7 @@ def fit_gp_loudness(features, values):
         # type= "Matern"
     )
 
-def fit_gp_safety(features, values):
+def fit_gp_validity(features, values):
     return utils.fit_gp(
         features,
         values,

@@ -4,7 +4,7 @@
     <arg name="use_gui" value="true" />
     <arg name="use_rviz" value="false" />
     <arg name="load_robot_description" value="false" />
-    <arg name="fake_execution_type" value="interpolate" /> <!-- mandatory for safety function evaluation -->
+    <arg name="fake_execution_type" value="interpolate" /> <!-- mandatory for validity function evaluation -->
   </include>
 
   <include file="$(dirname)/robot_model.launch">

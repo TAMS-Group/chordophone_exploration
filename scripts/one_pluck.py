@@ -88,7 +88,7 @@ def main():
 
     result = run_episode.get_result()
 
-    # compute minimum distance to other strings during execution (used in safety score)
+    # compute minimum distance to other strings during execution (used in validity score)
     minimum_distance = np.inf
     known_strings_cp = known_strings[:]
     for string in known_strings_cp:

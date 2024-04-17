@@ -148,8 +148,8 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 `/explore/episodes_loudness`      - observed loudness for all valid samples for string
 `/explore/gp_loudness`            - visualization of Gaussian Process from samples for string
 `/explore/gp_std_loudness`        - stddev of the same GP
-`/explore/episodes_safety_score`  - validity label for all samples for string
-`/explore/p_safety`               - visualization of GP probit-regression for validity for string
+`/explore/episodes_validity_score`  - validity label for all samples for string
+`/explore/p_validity`               - visualization of GP probit-regression for validity for string
 
 `/play_piece/action`              - takes `music_perception/Piece`, infers pluck parameters, generate paths, and execute through execute_path
 `/play_piece/piece`               - message interface for action goals

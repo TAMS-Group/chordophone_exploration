@@ -226,7 +226,7 @@ def main():
             unexpected_onsets = [o for o in result.onsets if o.note != utils.string_to_note(strings[i])]
 
             if strategy != "geometry":
-                # compute minimum distance to other strings during execution (used in safety score)
+                # compute minimum distance to other strings during execution (used in validity score)
                 minimum_distance = np.inf
                 closest_neighbor = "none"
                 known_strings_cp = known_strings[:]

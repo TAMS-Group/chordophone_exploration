@@ -20,12 +20,12 @@ import seaborn as sns
 class OnsetToPath:
     def __init__(self, *, storage : str = '/tmp/plucks.json'):
         self.pluck_table = pd.DataFrame(
-            columns=(*RuckigPath().params_map.keys(), 'finger', 'loudness', 'detected_note', 'onset_cnt', 'onsets', 'safety_score')
+            columns=(*RuckigPath().params_map.keys(), 'finger', 'loudness', 'detected_note', 'onset_cnt', 'onsets', 'validity_score')
             )
         self.storage = storage
         if os.path.exists(self.storage):
             self.pluck_table = pd.read_json(self.storage)
-            self.pluck_table['safety_score'] = utils.score_safety(self.pluck_table)
+            self.pluck_table['validity_score'] = utils.score_validity(self.pluck_table)
         self.print_summary()
         self.publish_expressive_range()
 
@@ -51,13 +51,13 @@ class OnsetToPath:
         rospy.loginfo(summary)
 
     def store_to_file(self):
-        # exclude safety_score from storage, we compute it on load
-        self.pluck_table.drop(columns= ['safety_score']).to_json(self.storage)
+        # exclude validity_score from storage, we compute it on load
+        self.pluck_table.drop(columns= ['validity_score']).to_json(self.storage)
 
     def add_sample(self, row):
         row['onsets'] = str(row['onsets']) # convert to string for eventual json serialization
         row_df = pd.DataFrame(row, columns= row.keys(), index= [0])
-        row_df['safety_score'] = utils.score_safety(row_df)
+        row_df['validity_score'] = utils.score_validity(row_df)
         self.pluck_table = pd.concat((self.pluck_table, row_df), axis= 0, ignore_index=True)
 
         self.plot_loudness_strips()
@@ -71,14 +71,14 @@ class OnsetToPath:
             pass
         df = pd.DataFrame(r, columns= r.keys(), index= [0])
 
-        return utils.score_safety(df)[0]
+        return utils.score_validity(df)[0]
 
     def plot_loudness_strips(self):
         '''plot cross-string loudness overview'''
 
         # we want to keep the original order in pluck_table to notice temporal effects
         # so we prepare a copy for plotting
-        X = self.pluck_table[self.pluck_table['safety_score'] > 0].copy()
+        X = self.pluck_table[self.pluck_table['validity_score'] > 0].copy()
         X= X.sort_values('string', key= lambda x: x.map(lambda a: librosa.note_to_midi(utils.string_to_note(a))))
         X['direction'] = self.pluck_table['pre_y'].map(lambda y: 'inwards' if y < 0.0 else 'outwards')
 
@@ -96,8 +96,8 @@ class OnsetToPath:
         '''publish the expressive range of the guzheng'''
 
         r = ExpressiveRange()
-        for note in self.pluck_table.loc[self.pluck_table['safety_score'] > 0, 'detected_note'].unique():
-            loudness_dist = self.pluck_table.loc[(self.pluck_table['detected_note'] == note) & (self.pluck_table['safety_score'] > 0), 'loudness']
+        for note in self.pluck_table.loc[self.pluck_table['validity_score'] > 0, 'detected_note'].unique():
+            loudness_dist = self.pluck_table.loc[(self.pluck_table['detected_note'] == note) & (self.pluck_table['validity_score'] > 0), 'loudness']
             r.notes.append(NoteDynamics(
                 note= note,
                 min_loudness= loudness_dist.min() if len(loudness_dist) > 0 else 0.0,
@@ -137,25 +137,25 @@ class OnsetToPath:
         )
         features = normalize(features, features_norm_params).values
 
-        if not (plucks['safety_score'] > 0).any():
-            rospy.logwarn(f"no safe plucks found for string {string} and finger {finger} in direction {direction}. dropping unsafe plucks and return default nbp as seed")
+        if not (plucks['validity_score'] > 0).any():
+            rospy.logwarn(f"no valid plucks found for string {string} and finger {finger} in direction {direction}. dropping unvalid plucks and return default nbp as seed")
             self.pluck_table.drop(plucks.index, inplace= True)
             return nbp
 
-        # use only safe plucks (with loudness) for gp_loudness
-        plucks_loudness = plucks[plucks['safety_score'] > 0]
+        # use only valid plucks (with loudness) for gp_loudness
+        plucks_loudness = plucks[plucks['validity_score'] > 0]
 
         gp_loudness= utils.fit_gp(
-            features[plucks['safety_score'] > 0],
+            features[plucks['validity_score'] > 0],
             plucks_loudness['loudness'],
             normalize= True,
             alpha= 1.0,
             rbf_length= (0.5, 0.25),
             train= False # True if plucks_loudness.size > 50 else False
         )
-        gp_safety = utils.fit_gp(
+        gp_validity = utils.fit_gp(
             features,
-            plucks['safety_score'].values,
+            plucks['validity_score'].values,
             normalize= False,
             alpha= .5,
             rbf_length= (0.5, 0.25),
@@ -168,23 +168,23 @@ class OnsetToPath:
             X= normalize(X, features_norm_params)
             return gp_loudness.predict(X, return_std=True)[1]
 
-        # Probability of sample being safe w.r.t. Gaussian prediction
-        def p_safe(X):
-            safety_score_predictions = gp_safety.predict(normalize(X, features_norm_params), return_std=True)
-            return utils.prob_gt_zero(safety_score_predictions)
+        # Probability of sample being valid w.r.t. Gaussian prediction
+        def p_valid(X):
+            validity_score_predictions = gp_validity.predict(normalize(X, features_norm_params), return_std=True)
+            return utils.prob_gt_zero(validity_score_predictions)
 
         domains = (
             actionspace.string_position,
             actionspace.keypoint_pos_y,
         )
 
-        psafe_threshold = 0.7
+        pvalid_threshold = 0.7
 
         # optuna? In practice MC sampling suffices and provides useful visualizations
         sample_size= 2000
         while (not rospy.is_shutdown()):
             if sample_size > 1e6:
-                rospy.logerr(f"could not find a safe sample for {string} in direction {direction} after {float(sample_size):.0e} attempts. restarting with default nbp as seed")
+                rospy.logerr(f"could not find a valid sample for {string} in direction {direction} after {float(sample_size):.0e} attempts. restarting with default nbp as seed")
                 self.pluck_table.drop(plucks.index, inplace= True)
                 return nbp
 
@@ -196,38 +196,38 @@ class OnsetToPath:
             samples = np.array([p*(d[1]-d[0])+d[0] for (p,d) in zip(samples.T, domains)]).T
 
             samples_H = H(samples)
-            samples_psafe = p_safe(samples)
+            samples_pvalid = p_valid(samples)
 
-            safe_sample_cnt = np.sum(samples_psafe >= psafe_threshold)
-            if safe_sample_cnt > 20:
+            valid_sample_cnt = np.sum(samples_pvalid >= pvalid_threshold)
+            if valid_sample_cnt > 20:
                 break
             sample_size*= 2
-            rospy.loginfo(f"found too few safe samples (only {safe_sample_cnt}), will retry with {sample_size} samples")
-            rospy.loginfo_throttle(10, f"knows {np.sum(plucks['safety_score'] > 0.0)} samples with safety_score > 0.0 and {np.sum(plucks['safety_score'] < 0.0)} samples with safety_score < 0.0")
+            rospy.loginfo(f"found too few valid samples (only {valid_sample_cnt}), will retry with {sample_size} samples")
+            rospy.loginfo_throttle(10, f"knows {np.sum(plucks['validity_score'] > 0.0)} samples with validity_score > 0.0 and {np.sum(plucks['validity_score'] < 0.0)} samples with validity_score < 0.0")
 
-        # limit to sufficiently safe samples
-        indices = samples_psafe >= psafe_threshold
+        # limit to sufficiently valid samples
+        indices = samples_pvalid >= pvalid_threshold
         samples = samples[indices]
         samples_H = samples_H[indices]
 
         sample_max_H = samples[np.argmax(samples_H)]
         nbp.string_position= sample_max_H[0]
         nbp.keypoint_pos[0]= sample_max_H[1]
-        rospy.loginfo(f"selected nbp: {nbp} with H= {np.max(samples_H):.2f} out of {len(samples)} safe samples")
+        rospy.loginfo(f"selected nbp: {nbp} with H= {np.max(samples_H):.2f} out of {len(samples)} valid samples")
 
         ## optional visualizations
 
-        # safety scores of all considered trials
+        # validity scores of all considered trials
         fig, ax = plt.subplots(dpi= 100)
         utils.plot_trials(
             plucks,
-            col= plucks['safety_score'],
+            col= plucks['validity_score'],
             cmap= sns.color_palette("seismic", as_cmap=True),
             norm= plt.Normalize(vmin=-1.0, vmax=1.0),
             actionspace= actionspace,
             ax= ax,
         )
-        utils.publish_figure("episodes_safety_score", fig)
+        utils.publish_figure("episodes_validity_score", fig)
 
         # loudness of all known samples
         fig, ax = plt.subplots(dpi= 100)
@@ -254,7 +254,7 @@ class OnsetToPath:
         utils.publish_figure("episodes_loudness_along_string", fig)
 
         df_samples = pd.DataFrame({'string_position' : samples[:,0], 'keypoint_pos_y' : samples[:,1], 'H': samples_H})
-        # all safe samples evaluated for nbp
+        # all valid samples evaluated for nbp
         fig, ax = plt.subplots(dpi= 100)
         utils.plot_trials(
             df_samples,
@@ -266,19 +266,19 @@ class OnsetToPath:
         ax.scatter(sample_max_H[0], sample_max_H[1], marker= 'x', color= 'blue', s= 150, linewidths= 5)
         utils.publish_figure("sample_H", fig)
 
-        # evaluate GP_loudness and p(safe|X) on a grid
+        # evaluate GP_loudness and p(valid|X) on a grid
         grid_size= 100
         grid_points = utils.make_grid_points(actionspace, grid_size).values
         means, std = gp_loudness.predict(normalize(grid_points, features_norm_params), return_std=True)
 
-        # mask out points that are not safe
-        means[p_safe(grid_points) < psafe_threshold] = np.nan
+        # mask out points that are not valid
+        means[p_valid(grid_points) < pvalid_threshold] = np.nan
 
-        p_safe = p_safe(grid_points).reshape((grid_size, grid_size))
+        p_valid = p_valid(grid_points).reshape((grid_size, grid_size))
 
         fig = plt.figure(dpi= 100)
         utils.grid_plot(means, actionspace, plt.get_cmap("RdPu"))
-        plt.title(f"GP safe loudness mean for {string} in direction {direction} with finger {finger}")
+        plt.title(f"GP valid loudness mean for {string} in direction {direction} with finger {finger}")
 
         utils.publish_figure("gp_loudness", fig)
 
@@ -287,8 +287,8 @@ class OnsetToPath:
         utils.publish_figure("gp_std_loudness", fig)
 
         fig = plt.figure(dpi= 100)
-        utils.grid_plot(p_safe, actionspace, plt.get_cmap("brg"))
-        utils.publish_figure("p_safety", fig)
+        utils.grid_plot(p_valid, actionspace, plt.get_cmap("brg"))
+        utils.publish_figure("p_validity", fig)
 
         return nbp
 
@@ -300,7 +300,7 @@ class OnsetToPath:
             (self.pluck_table['string'] == utils.note_to_string(note)) &
             (self.pluck_table['detected_note'] == note) &
             (self.pluck_table['onset_cnt'] == 1) &
-            (self.pluck_table['safety_score'] > 0.0) &
+            (self.pluck_table['validity_score'] > 0.0) &
             (self.pluck_table['post_y']*direction >= 0.0)
         ]
         if len(plucks) == 0:
@@ -396,16 +396,16 @@ class OnsetToPath:
         features, features_norm_params = normalize(features)
 
         gp_loudness= utils.fit_gp(
-            features[plucks['safety_score'] > 0],
-            plucks.loc[plucks['safety_score'] > 0, 'loudness'].values,
+            features[plucks['validity_score'] > 0],
+            plucks.loc[plucks['validity_score'] > 0, 'loudness'].values,
             normalize= True,
             alpha= 1.0,
             rbf_length= (0.5, 0.25),
             train= False # True if plucks['loudness'].dropna().size > 50 else False
         )
-        gp_safety = utils.fit_gp(
+        gp_validity = utils.fit_gp(
             features,
-            plucks['safety_score'].values,
+            plucks['validity_score'].values,
             normalize= False,
             alpha= .5,
             rbf_length= (0.5, 0.25),
@@ -417,10 +417,10 @@ class OnsetToPath:
             X= normalize(X, features_norm_params)
             return np.abs(gp_loudness.predict(X, return_std=False)-loudness)
 
-        # Probability of sample being safe w.r.t. Gaussian prediction
-        def p_safe(X):
-            safety_score_predictions = gp_safety.predict(normalize(X, features_norm_params), return_std=True)
-            return utils.prob_gt_zero(safety_score_predictions)
+        # Probability of sample being valid w.r.t. Gaussian prediction
+        def p_valid(X):
+            validity_score_predictions = gp_validity.predict(normalize(X, features_norm_params), return_std=True)
+            return utils.prob_gt_zero(validity_score_predictions)
 
         string_delta = 0.1
 
@@ -429,7 +429,7 @@ class OnsetToPath:
             (plucks['keypoint_pos_y'].min(), plucks['keypoint_pos_y'].max()),
         )
 
-        psafe_threshold = 0.75
+        pvalid_threshold = 0.75
 
         # optuna?
         sample_size= 5000
@@ -442,10 +442,10 @@ class OnsetToPath:
         samples = np.array([p*(d[1]-d[0])+d[0] for (p,d) in zip(samples.T, domains)]).T
 
         samples_distance = DistanceToTargetLoudness(samples)
-        samples_psafe = p_safe(samples)
+        samples_pvalid = p_valid(samples)
 
-        # limit to sufficiently safe samples
-        indices = samples_psafe >= psafe_threshold
+        # limit to sufficiently valid samples
+        indices = samples_pvalid >= pvalid_threshold
         samples = samples[indices]
         samples_distance = samples_distance[indices]
 

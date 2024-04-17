@@ -1841,7 +1841,7 @@ Visualization Manager:
           Displays:
             - Class: rviz/Image
               Enabled: true
-              Image Topic: /explore/episodes_safety_score
+              Image Topic: /explore/episodes_validity_score
               Max Value: 1
               Median window: 5
               Min Value: 0
@@ -1865,11 +1865,11 @@ Visualization Manager:
               Value: false
             - Class: rviz/Image
               Enabled: false
-              Image Topic: /explore/p_safety
+              Image Topic: /explore/p_validity
               Max Value: 1
               Median window: 5
               Min Value: 0
-              Name: p(safe)
+              Name: p(valid)
               Normalize Range: true
               Queue Size: 1
               Transport Hint: raw
@@ -1976,5 +1976,5 @@ Window Geometry:
   Width: 1848
   X: 1992
   Y: 0
-  p(safe):
+  p(valid):
     collapsed: false

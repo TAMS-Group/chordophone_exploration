@@ -107,7 +107,7 @@ def main():
 
         del r['onsets'] # this field is a list of onsets, but pandas just ignores the whole dict if it sees it
         df = pd.DataFrame(r.copy(), columns= r.keys(), index= [0])
-        r['safety_score'] = utils.score_safety(df)[0]
+        r['validity_score'] = utils.score_validity(df)[0]
         if r['loudness'] is None:
             r['loudness'] = -1.0
         r['target_loudness'] = target_loudness
@@ -115,7 +115,7 @@ def main():
         r['shuffle'] = shuffle
         r['direction'] = direction
         results.append(r)
-        rospy.loginfo(f'      yielded {"safe" if r["safety_score"] > 0.0 else "unsafe"} / {r["loudness"]:.2F}dBA')
+        rospy.loginfo(f'      yielded {"valid" if r["validity_score"] > 0.0 else "unvalid"} / {r["loudness"]:.2F}dBA')
         pd.DataFrame(results).to_json(results_path+".tmp")
 
 
