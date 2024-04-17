@@ -81,9 +81,13 @@ def main():
         return
 
     # only continue if mannequin mode is inactive (state is published on topic)
-    if rospy.wait_for_message("mannequin_mode_active", BoolMsg).data:
-        rospy.logfatal("mannequin mode is active, aborting")
-        return
+    try:
+        if rospy.wait_for_message("mannequin_mode_active", BoolMsg, timeout= 10.0).data:
+            rospy.logfatal("mannequin mode is active, aborting")
+            return
+    except rospy.ROSException:
+        rospy.loginfo("could not check for mannequin mode, continuing")
+        pass
 
     # prepare exploration
 
