@@ -16,6 +16,8 @@
   <!-- used to set offsets -->
   <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
 
+  <node name="moveit_by_name" pkg="moveit_by_name" type="moveit_by_name" />
+
   <include file="$(dirname)/string_fitter.launch" />
   <param name="/guzheng/string_fitter/storage_path" value="$(find tams_pr2_guzheng)/data/strings_example.yaml" />
   <param name="/guzheng/string_fitter/load_static_on_startup" value="true" />
@@ -24,4 +26,6 @@
   <include file="$(dirname)/run_episode.launch">
     <arg name="listen" value="true" />
   </include>
+
+  <node name="no_mannequin_mode_pub" pkg="rostopic" type="rostopic" args="pub /mannequin_mode_active std_msgs/Bool 'data: false'" />
 </launch>
