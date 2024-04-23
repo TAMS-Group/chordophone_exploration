@@ -49,6 +49,7 @@ class StringFitter:
                             rospkg.RosPack().get_path('tams_pr2_guzheng')
                             + '/data/strings.yaml')
 
+        self.onsets = {}
         self.cfg = None
         self.dyn_reconf_srv = DynamicReconfigureServer(StringFitterConfig, self.dynamic_reconfigure_cb)
 
