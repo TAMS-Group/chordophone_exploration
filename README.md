@@ -52,8 +52,10 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 
 - explore geometry of demonstrated strings, e.g., `cli: explore_geometry [a4 fis5 ...]`
 - notice that you have to confirm trajectory execution at first in the RvizVisualToolsGui as breakpoints are added before actual execution. Confirming with `continue` will drop further questions.
-- disable string fitter once you are happy with the current result (dynamic reconfigure `active` flag), `cli: fit_strings off`
-- optionally store current geometry (`guzheng/string_fitter/store_to_file` service), `cli: store_strings_to_file`
+- Eventually fix strings `cli: fix_strings` once you are happy with the current result, this will automatically...
+  - disable string fitter (dynamic reconfigure `active` flag), `cli: fit_strings off`
+  - optionally store current geometry (`guzheng/string_fitter/store_to_file` service), `cli: store_strings_to_file`
+  - clear the stored dynamics database
 
 ### Dynamics exploration
 

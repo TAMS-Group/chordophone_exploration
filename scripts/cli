@@ -50,6 +50,25 @@ class Cmd(cmd.Cmd):
     def complete_fit_strings(self, text, line, begidx, endidx):
         return [kw for kw in self.truefalse_kw if kw.startswith(text.lower())]
 
+    def do_fix_strings(self, line):
+        '''disable string fitter, store geometry, clear existing dynamics (as they are worthless with the changed strings)'''
+
+        self.do_fit_strings('off')
+        self.do_store_strings_to_file('')
+        self.do_clear_explored_plucks('')
+        print("Fixed strings. Ready for Dynamics Exploration.")
+
+    def do_clear_explored_plucks(self, line):
+        '''clear explored plucks db (so that the next exploration starts from scratch)'''
+
+        cmd = 'rosrun tams_pr2_guzheng clear_explored_plucks.sh'
+        result = subprocess.run(shlex.split(cmd))
+        if result.returncode == 0:
+            print("Successfully cleared explored dynamics.")
+        else:
+            print("Failed to clear explored dynamics.")
+
+
     def do_align_heads(self, line):
         '''align string heads <on/off>'''
 
