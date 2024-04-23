@@ -323,7 +323,7 @@ class Cmd(cmd.Cmd):
     def do_repeat_after_me(self, line):
         '''run repeat_after_me demo'''
 
-        cmd = 'roslaunch tams_pr2_guzheng repeat_after_me.launch'
+        cmd = 'roslaunch tams_pr2_guzheng repeat_after_me_demo.launch'
         print("Starting repeat_after_me demo. Press enter to terminate.")
         print("===")
         process = subprocess.Popen(shlex.split(cmd))
