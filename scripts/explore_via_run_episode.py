@@ -24,10 +24,13 @@ from tams_pr2_guzheng.msg import (
     )
 from std_msgs.msg import Bool as BoolMsg
 
-def plot_p(strings, p):
+def plot_p(strings, p, chosen= None):
     fig = plt.figure(dpi= 150)
     fig.gca().set_title("explore distribution across target strings")
     fig.gca().bar(np.arange(len(strings)), p, tick_label= strings)
+    # color chosen string in fitting complementary color
+    if chosen is not None:
+        fig.gca().get_children()[chosen].set_color("darkred")
     publish_figure("p", fig)
 
 def main():
@@ -150,16 +153,18 @@ def main():
             p = np.zeros(len(strings))
             if i >= 0:
                 # prefer neighborhood of previous string
-                p+= 3*stats.norm.pdf(strings_idx, loc= i, scale= 1.0)
+                p+= 3*stats.norm.pdf(strings_idx, loc= i, scale= 2.0)
             # similar chances for all other strings
-            p+= 0.02*stats.uniform.pdf(strings_idx, loc= 0, scale= 20)
+            p+= 0.03*stats.uniform.pdf(strings_idx, loc= 0, scale= 20)
             # penalize previously explored strings
-            p/= onset_hist
+            p/= 10*onset_hist
             # we could normalize by string length as well, but geometric coverage turns out to be less important
             p/= p.sum()
-            plot_p(strings, p)
 
             i = np.random.choice(strings_idx, 1, p= p)[0]
+
+            plot_p(strings, p, chosen= i)
+
             # update actionspace.string_position
             try:
                 string_len = string_length(strings[i], tf)
