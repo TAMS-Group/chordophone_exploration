@@ -2,6 +2,10 @@
 
 ![Robot Setup and Geometric Model](doc/first-impression.png)
 
+## Video
+
+[Watch the 3-minute pitch video here](https://youtu.be/AE36-gKiG40)
+
 ## Publication
 
 To refer to this work, please cite the following paper:
