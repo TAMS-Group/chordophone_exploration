@@ -19,6 +19,8 @@ To refer to this work, please cite the following paper:
 }
 ```
 
+The datasets associated with this paper can be found [here](https://tams.informatik.uni-hamburg.de/research/datasets/index.php#pluck_and_play).
+
 ## Requires
 
 - ROS Noetic (or 2024 ROS-O builds), see package.xml for most ROS dependencies
