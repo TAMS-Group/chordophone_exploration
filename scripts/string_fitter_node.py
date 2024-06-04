@@ -84,7 +84,7 @@ class StringFitter:
     def load_from_file(self, _req = None):
         with open(self.storage_path, 'r') as f:
             self.dyn_reconf_srv.update_configuration({'active': False})
-            plain_strings = yaml.valid_load(f)
+            plain_strings = yaml.safe_load(f)
             self.strings = [
                 String(key= str(s['key']),
                        head= np.array(s['head']),
