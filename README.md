@@ -11,11 +11,13 @@
 To refer to this work, please cite the following paper:
 
 ```
-@inproceedings{goerner2024,
-  title={{Pluck and Play: Self-supervised Exploration of Chordophones for Robotic Playing}},
-  author={Görner, Michael and Hendrich, Norman and Zhang, Jianwei},
-  booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)},
-  year={2024}
+@INPROCEEDINGS{goerner24,
+	author={Görner, Michael and Hendrich, Norman and Zhang, Jianwei},
+	booktitle={2024 IEEE International Conference on Robotics and Automation (ICRA)}, 
+	title={Pluck and Play: Self-supervised Exploration of Chordophones for Robotic Playing}, 
+	year={2024},
+	pages={18286-18293},
+	doi={10.1109/ICRA57147.2024.10610120}
 }
 ```
 
