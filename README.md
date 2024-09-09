@@ -75,12 +75,13 @@ to adjust detection thresholds, clock offsets, Cartesian plectrum poses, and str
 - After exploration, make the gathered plucks available for playing, `cli: use_explored_plucks`
   careful, this will overwrite the current plucks db if it exists
 
-- start the module that receives pieces (`music_perception/Piece`) to play and builds/executes plucking paths, `cli: start_play_piece`
-
 ### Demos
 
 - run repeat after me demo node that listens for note onsets from the microphone and will try to imitate melodies, `cli: repeat_after_me`
 
+OR
+
+- start the module that receives pieces (`music_perception/Piece`) to play and builds/executes plucking paths, `cli: start_play_piece`
 - play note sequences, `cli: play a4 fis5 d6` (each optionally followed with `:loudness` in range 1-127)
 
 ## ROS Information Structure
